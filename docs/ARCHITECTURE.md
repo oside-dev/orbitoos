@@ -83,3 +83,12 @@ OrbitOS keeps a backward-compatible active-brand context while storing a brand r
 ## Workspace security boundary
 
 The target persistent backend uses workspace membership as the authorization boundary. Authenticated users are resolved to workspace IDs through a private RLS helper, and application tables require authenticated membership for access. Provisioning a workspace or changing membership is intentionally a backend-controlled operation until the invitation/bootstrap flow is implemented.
+
+## Runtime environment boundary
+
+OrbitOS models runtime environment explicitly:
+
+- local — browser localStorage, deterministic/local providers, no authenticated backend.
+- authenticated-persistent — authenticated user + workspace membership + persistent store.
+
+The browser shell reports the current mode instead of pretending that a backend session exists. The authenticated persistent runtime is created only after Auth returns a real user and the workspace context adapter confirms membership. The same core runtime contracts are used in both modes.
