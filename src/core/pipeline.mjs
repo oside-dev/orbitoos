@@ -64,6 +64,7 @@ export async function runLocalPipeline(
     ...idea,
     stage: PIPELINE_STAGES[3],
     variants,
+    strategy,
     metadata: {
       ...(idea.metadata ?? {}),
       brandId,
