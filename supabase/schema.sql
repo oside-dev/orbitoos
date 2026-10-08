@@ -8,8 +8,7 @@ create table if not exists workspaces (
   slug text unique not null,
   timezone text not null default 'UTC',
   settings jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  generated_at timestamptz not null default now()
+  created_at timestamptz not null default now()
 );
 
 create table if not exists brands (
@@ -58,7 +57,7 @@ create table if not exists research_items (
 
 create table if not exists content_items (
   id text primary key,
-  idea_id uuid references ideas(id) on delete set null,
+  idea_id text references ideas(id) on delete set null,
   workspace_id text not null references workspaces(id) on delete cascade,
   title text not null,
   brief text not null default '',
@@ -97,7 +96,7 @@ create table if not exists schedules (
 create table if not exists analytics_snapshots (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
-  content_item_id uuid references content_items(id) on delete set null,
+  content_item_id text references content_items(id) on delete set null,
   platform text not null,
   snapshot_date date not null,
   views integer not null default 0,
@@ -128,5 +127,6 @@ create table if not exists learning_insights (
   confidence numeric not null default 0.5,
   impact text not null default 'medium',
   status text not null default 'new',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  generated_at timestamptz not null default now()
 );
