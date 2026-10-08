@@ -29,7 +29,8 @@ OrbitOS now has an optional provider adapter for a locally running Ollama API.
 
 - The AI contract is provider-neutral.
 - The default runtime does not require a model.
-- Ollama is injected as a content-generator dependency when a local model is available.
+- The runtime selects the provider through a small factory boundary.
+- Ollama can be enabled from Settings with a localhost model; the browser never stores provider secrets.
 - No AI credentials are stored in the browser.
 - Deterministic local generation remains the fallback.
 
@@ -74,7 +75,7 @@ https://orbitoos.vercel.app
 - M0 — Foundation — complete
 - M1 — Content operating loop — active
 - M2 — Internal domain/core/adapters split — active foundation work
-- M3 — Free/local AI adapter — adapter ready; runtime opt-in
+- M3 — Free/local AI adapter — runtime-integrated; deterministic default + opt-in Ollama
 - M4 — Persistent backend adapter
 - M5 — Official publishing adapters
 - M6 — Real analytics ingestion + learning
