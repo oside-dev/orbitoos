@@ -6,6 +6,8 @@ import {
   createContentVariant,
   createIdea,
   createSchedule,
+  createSocialAccount,
+  createPublishingJob,
 } from "../src/domain/models.mjs";
 import { toCoreStage, toUiStage } from "../src/runtime/ui-state.mjs";
 import {
@@ -135,4 +137,35 @@ test("analytics parser normalizes numeric strings", () => {
       followerDelta: 17,
     },
   );
+});
+
+
+test("social account and publishing job models enforce provider boundaries", () => {
+  const account = createSocialAccount({
+    id: "social-test",
+    workspaceId: "workspace-test",
+    brandId: "brand-test",
+    platform: "instagram",
+    accountType: "business",
+    externalAccountId: "ig-123",
+    status: "connected",
+    scopes: ["instagram_basic"],
+  });
+
+  const job = createPublishingJob({
+    id: "job-test",
+    workspaceId: "workspace-test",
+    brandId: "brand-test",
+    socialAccountId: account.id,
+    contentItemId: "content-test",
+    contentVariantId: "variant-test",
+    idempotencyKey: "schedule-1:1",
+    scheduledAt: "2030-01-01T12:00:00Z",
+  });
+
+  assert.equal(account.platform, "instagram");
+  assert.equal(account.status, "connected");
+  assert.equal(job.socialAccountId, "social-test");
+  assert.equal(job.status, "queued");
+  assert.equal(job.idempotencyKey, "schedule-1:1");
 });
