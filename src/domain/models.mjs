@@ -7,6 +7,15 @@ export const PLATFORMS = Object.freeze([
   "LinkedIn",
 ]);
 
+export const SOCIAL_PLATFORMS = Object.freeze([
+  "facebook",
+  "instagram",
+  "tiktok",
+  "youtube",
+  "x",
+  "linkedin",
+]);
+
 export const PIPELINE_STAGES = Object.freeze([
   "idea",
   "research",
@@ -158,5 +167,84 @@ export function normalizeBrand(brand = {}) {
       brand.visualDirection ?? brand.visual_direction ?? "",
     ).trim(),
     postingGoals: brand.postingGoals ?? brand.posting_goals ?? {},
+  };
+}
+
+
+export function createSocialAccount(input = {}, now = Date.now()) {
+  const platform = String(input.platform ?? "").trim().toLowerCase();
+  const workspaceId = String(input.workspaceId ?? input.workspace_id ?? "").trim();
+  const externalAccountId = String(
+    input.externalAccountId ?? input.external_account_id ?? "",
+  ).trim();
+
+  if (!workspaceId) throw new Error("Social account workspace is required.");
+  if (!SOCIAL_PLATFORMS.includes(platform)) {
+    throw new Error("Unsupported social account platform: " + platform);
+  }
+  if (!externalAccountId) {
+    throw new Error("Social account external ID is required.");
+  }
+
+  return {
+    id: input.id ?? createId("social-account", now),
+    workspaceId,
+    brandId: input.brandId ?? input.brand_id ?? null,
+    platform,
+    accountType: String(input.accountType ?? input.account_type ?? "profile"),
+    externalAccountId,
+    handle: String(input.handle ?? "").trim(),
+    displayName: String(input.displayName ?? input.display_name ?? "").trim(),
+    profileUrl: String(input.profileUrl ?? input.profile_url ?? "").trim(),
+    avatarUrl: String(input.avatarUrl ?? input.avatar_url ?? "").trim(),
+    status: String(input.status ?? "connected"),
+    scopes: Array.isArray(input.scopes) ? input.scopes.map(String) : [],
+    metadata: input.metadata ?? {},
+    connectedAt:
+      input.connectedAt ??
+      input.connected_at ??
+      new Date(now).toISOString(),
+    lastSyncedAt: input.lastSyncedAt ?? input.last_synced_at ?? null,
+    updatedAt: input.updatedAt ?? input.updated_at ?? new Date(now).toISOString(),
+  };
+}
+
+export function createPublishingJob(input = {}, now = Date.now()) {
+  const workspaceId = String(input.workspaceId ?? input.workspace_id ?? "").trim();
+  const socialAccountId = String(
+    input.socialAccountId ?? input.social_account_id ?? "",
+  ).trim();
+  const contentItemId = String(
+    input.contentItemId ?? input.content_item_id ?? "",
+  ).trim();
+  const idempotencyKey = String(input.idempotencyKey ?? "").trim();
+  const scheduledAt = String(input.scheduledAt ?? input.scheduled_at ?? "").trim();
+
+  if (!workspaceId) throw new Error("Publishing job workspace is required.");
+  if (!socialAccountId) throw new Error("Publishing job social account is required.");
+  if (!contentItemId) throw new Error("Publishing job content item is required.");
+  if (!idempotencyKey) throw new Error("Publishing job idempotency key is required.");
+  if (!scheduledAt || Number.isNaN(Date.parse(scheduledAt))) {
+    throw new Error("Publishing job schedule must be a valid ISO date.");
+  }
+
+  return {
+    id: input.id ?? createId("publish-job", now),
+    workspaceId,
+    brandId: input.brandId ?? input.brand_id ?? null,
+    socialAccountId,
+    contentItemId,
+    contentVariantId: input.contentVariantId ?? input.content_variant_id ?? null,
+    idempotencyKey,
+    scheduledAt,
+    status: String(input.status ?? "queued"),
+    attempts: Number.isInteger(input.attempts) ? input.attempts : 0,
+    providerPostId: input.providerPostId ?? input.provider_post_id ?? null,
+    lastErrorCode: input.lastErrorCode ?? input.last_error_code ?? null,
+    lastErrorMessage: input.lastErrorMessage ?? input.last_error_message ?? null,
+    payload: input.payload ?? {},
+    createdAt: input.createdAt ?? input.created_at ?? new Date(now).toISOString(),
+    startedAt: input.startedAt ?? input.started_at ?? null,
+    finishedAt: input.finishedAt ?? input.finished_at ?? null,
   };
 }

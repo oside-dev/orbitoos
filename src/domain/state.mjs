@@ -11,6 +11,8 @@ const DEFAULT_STATE = Object.freeze({
   contentItems: [],
   contentVariants: [],
   schedules: [],
+  socialAccounts: [],
+  publishingJobs: [],
   metrics: [],
   audit: [],
   learning: {
@@ -113,6 +115,32 @@ export function normalizeState(raw = {}) {
       }))
     : [];
 
+  const socialAccountBrandById = new Map(
+    (Array.isArray(source.socialAccounts) ? source.socialAccounts : []).map(
+      (account) => [account.id, account.brandId ?? null],
+    ),
+  );
+
+  const normalizedSocialAccounts = Array.isArray(source.socialAccounts)
+    ? structuredClone(source.socialAccounts).map((account) => ({
+        ...account,
+        workspaceId: account.workspaceId ?? source.workspace?.id ?? null,
+        brandId: account.brandId ?? activeBrandId ?? null,
+      }))
+    : [];
+
+  const normalizedPublishingJobs = Array.isArray(source.publishingJobs)
+    ? structuredClone(source.publishingJobs).map((job) => ({
+        ...job,
+        workspaceId: job.workspaceId ?? source.workspace?.id ?? null,
+        brandId:
+          job.brandId ??
+          socialAccountBrandById.get(job.socialAccountId) ??
+          activeBrandId ??
+          null,
+      }))
+    : [];
+
   const normalizedMetrics = Array.isArray(source.metrics)
     ? structuredClone(source.metrics).map((metric) => ({
         ...metric,
@@ -156,6 +184,8 @@ export function normalizeState(raw = {}) {
     contentItems: normalizedContentItems,
     contentVariants: normalizedContentVariants,
     schedules: normalizedSchedules,
+    socialAccounts: normalizedSocialAccounts,
+    publishingJobs: normalizedPublishingJobs,
     metrics: normalizedMetrics,
     audit: normalizedAudit,
     learning,

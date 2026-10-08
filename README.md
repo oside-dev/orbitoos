@@ -86,9 +86,17 @@ https://orbitoos.vercel.app
 - M11 — Content intelligence foundation — persisted Strategy Agent artifact linked to each idea and restored across workspace reloads
 - M12 — Strategy-aware learning — performance metrics are correlated back to persisted strategy angles
 - M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
+- M14 — Social publishing foundation — workspace-scoped social account metadata, durable publishing jobs, idempotency records, and secret-reference boundaries; official OAuth/platform adapters remain gated
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
 ## Validation
 
 Pull requests and main-branch pushes run the existing runtime checks plus framework-free Node contract tests for domain stages and analytics report parsing.
+
+
+## Social publishing foundation
+
+The persistence layer now separates public social-account metadata from credential references. Access/refresh credentials are represented by secret names only; credential values do not enter OrbitOS state, content payloads, or browser storage. Approved schedules can materialize durable publishing jobs when a matching connected social account exists.
+
+The live SQL contract is recorded in `docs/architecture/social-publishing-foundation.sql`. Actual platform OAuth adapters and worker execution remain the next gated layer.

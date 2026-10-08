@@ -6,6 +6,8 @@ import {
   createContentVariant,
   createIdea,
   createSchedule,
+  createSocialAccount,
+  createPublishingJob,
 } from "../src/domain/models.mjs";
 import { toCoreStage, toUiStage } from "../src/runtime/ui-state.mjs";
 import {
@@ -16,6 +18,9 @@ import {
   fromPersistentBrandRow,
   toPersistentBrandRow,
 } from "../src/adapters/supabase-store.mjs";
+import { createOrbitRuntime } from "../src/core/runtime.mjs";
+import { MemoryStore } from "../src/adapters/local-store.mjs";
+import { createInitialState } from "../src/domain/state.mjs";
 
 test("domain models enforce the canonical pipeline contract", () => {
   const brand = createBrand({
@@ -135,4 +140,230 @@ test("analytics parser normalizes numeric strings", () => {
       followerDelta: 17,
     },
   );
+});
+
+
+test("social account and publishing job models enforce provider boundaries", () => {
+  const account = createSocialAccount({
+    id: "social-test",
+    workspaceId: "workspace-test",
+    brandId: "brand-test",
+    platform: "instagram",
+    accountType: "business",
+    externalAccountId: "ig-123",
+    status: "connected",
+    scopes: ["instagram_basic"],
+  });
+
+  const job = createPublishingJob({
+    id: "job-test",
+    workspaceId: "workspace-test",
+    brandId: "brand-test",
+    socialAccountId: account.id,
+    contentItemId: "content-test",
+    contentVariantId: "variant-test",
+    idempotencyKey: "schedule-1:1",
+    scheduledAt: "2030-01-01T12:00:00Z",
+  });
+
+  assert.equal(account.platform, "instagram");
+  assert.equal(account.status, "connected");
+  assert.equal(job.socialAccountId, "social-test");
+  assert.equal(job.status, "queued");
+  assert.equal(job.idempotencyKey, "schedule-1:1");
+});
+
+
+test("approved schedules create a durable publishing job when a matching account is connected", async () => {
+  const state = createInitialState({
+    workspace: {
+      id: "workspace-test",
+      name: "OrbitoOS Workspace",
+      slug: "orbitoos-test",
+      timezone: "UTC",
+    },
+    brand: {
+      id: "brand-test",
+      name: "Test Brand",
+      voice: "Clear",
+      audience: "Creators",
+      pillars: ["Education"],
+      rules: ["No auto-publish"],
+    },
+    brands: [
+      {
+        id: "brand-test",
+        name: "Test Brand",
+        voice: "Clear",
+        audience: "Creators",
+        pillars: ["Education"],
+        rules: ["No auto-publish"],
+      },
+    ],
+    activeBrandId: "brand-test",
+    ideas: [
+      {
+        id: "idea-test",
+        title: "Publishable idea",
+        pillar: "Education",
+        audience: "Creators",
+        goal: "Reach",
+        brief: "A test brief",
+        stage: "approved",
+        score: 90,
+        variants: {
+          "Instagram Reels": {
+            hook: "A hook",
+            body: "A body",
+            cta: "A CTA",
+            hashtags: ["#orbit"],
+            creativeBrief: "",
+            visualDirection: "",
+            approved: true,
+          },
+        },
+        metadata: { brandId: "brand-test" },
+      },
+    ],
+    contentItems: [
+      {
+        id: "content-test",
+        ideaId: "idea-test",
+        brandId: "brand-test",
+        title: "Publishable idea",
+        brief: "A test brief",
+        status: "approved",
+        createdAt: "2030-01-01T10:00:00.000Z",
+        updatedAt: "2030-01-01T10:00:00.000Z",
+      },
+    ],
+    contentVariants: [
+      {
+        id: "variant-test",
+        contentItemId: "content-test",
+        brandId: "brand-test",
+        platform: "Instagram Reels",
+        hook: "A hook",
+        body: "A body",
+        cta: "A CTA",
+        hashtags: ["#orbit"],
+        creativeBrief: "",
+        visualDirection: "",
+        status: "approved",
+        approved: true,
+        version: 1,
+        updatedAt: "2030-01-01T10:00:00.000Z",
+      },
+    ],
+    socialAccounts: [
+      {
+        id: "social-test",
+        workspaceId: "workspace-test",
+        brandId: "brand-test",
+        platform: "instagram",
+        accountType: "business",
+        externalAccountId: "ig-123",
+        status: "connected",
+        scopes: ["instagram_basic"],
+        metadata: {},
+        connectedAt: "2030-01-01T10:00:00.000Z",
+        lastSyncedAt: null,
+        updatedAt: "2030-01-01T10:00:00.000Z",
+      },
+    ],
+    schedules: [],
+    publishingJobs: [],
+  });
+
+  const runtime = createOrbitRuntime({
+    store: new MemoryStore(state),
+  });
+
+  const next = await runtime.scheduleIdeaVariant({
+    ideaId: "idea-test",
+    platform: "Instagram Reels",
+    scheduledAt: "2030-01-01T12:00:00Z",
+  });
+
+  assert.equal(next.schedules.length, 1);
+  assert.equal(next.publishingJobs.length, 1);
+  assert.equal(next.publishingJobs[0].socialAccountId, "social-test");
+  assert.equal(next.publishingJobs[0].status, "queued");
+  assert.equal(next.publishingJobs[0].idempotencyKey, "schedule-" + next.schedules[0].id + ":1");
+});
+
+test("scheduling without a connected account remains a schedule-only operation", async () => {
+  const state = createInitialState({
+    workspace: { id: "workspace-test" },
+    brand: {
+      id: "brand-test",
+      name: "Test Brand",
+      voice: "",
+      audience: "",
+    },
+    brands: [
+      {
+        id: "brand-test",
+        name: "Test Brand",
+        voice: "",
+        audience: "",
+      },
+    ],
+    activeBrandId: "brand-test",
+    ideas: [
+      {
+        id: "idea-test-2",
+        title: "Schedule only",
+        stage: "approved",
+        variants: {
+          TikTok: {
+            hook: "Hook",
+            body: "Body",
+            cta: "CTA",
+            hashtags: [],
+            approved: true,
+          },
+        },
+        metadata: { brandId: "brand-test" },
+      },
+    ],
+    contentItems: [
+      {
+        id: "content-test-2",
+        ideaId: "idea-test-2",
+        brandId: "brand-test",
+        title: "Schedule only",
+        brief: "",
+      },
+    ],
+    contentVariants: [
+      {
+        id: "variant-test-2",
+        contentItemId: "content-test-2",
+        brandId: "brand-test",
+        platform: "TikTok",
+        hook: "Hook",
+        body: "Body",
+        cta: "CTA",
+        approved: true,
+        version: 1,
+      },
+    ],
+    socialAccounts: [],
+    schedules: [],
+    publishingJobs: [],
+  });
+
+  const runtime = createOrbitRuntime({
+    store: new MemoryStore(state),
+  });
+
+  const next = await runtime.scheduleIdeaVariant({
+    ideaId: "idea-test-2",
+    platform: "TikTok",
+    scheduledAt: "2030-01-01T12:00:00Z",
+  });
+
+  assert.equal(next.schedules.length, 1);
+  assert.equal(next.publishingJobs.length, 0);
 });

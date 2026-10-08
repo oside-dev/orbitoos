@@ -4,6 +4,7 @@ import {
   createContentVariant,
   createIdea,
   createSchedule,
+  createPublishingJob,
   normalizeBrand,
 } from "../domain/models.mjs";
 import { assertAdapter } from "../contracts/adapters.mjs";
@@ -18,6 +19,13 @@ import { createContentGenerator } from "./content-generator-factory.mjs";
 import { createPublishingGateway } from "./publishing-gateway.mjs";
 import { createAnalyticsGateway } from "./analytics-gateway.mjs";
 import { createAnalyticsAgent, learningAgent } from "../agents/index.mjs";
+
+function platformToSocialPlatform(platform) {
+  const normalized = String(platform ?? "").toLowerCase();
+  if (normalized === "instagram reels") return "instagram";
+  if (normalized === "youtube shorts") return "youtube";
+  return normalized;
+}
 
 function materializeContent(state, idea, now = Date.now()) {
   const current = state.contentItems.find((item) => item.ideaId === idea.id);
@@ -393,9 +401,52 @@ export function createOrbitRuntime({
         : item,
     );
 
+    const socialPlatform = platformToSocialPlatform(platform);
+    const connectedAccount = state.socialAccounts.find(
+      (account) =>
+        account.platform === socialPlatform &&
+        account.status === "connected" &&
+        (!idea.metadata?.brandId ||
+          !account.brandId ||
+          account.brandId === idea.metadata.brandId),
+    );
+    const contentVariant = state.contentVariants.find(
+      (item) =>
+        item.contentItemId === contentItem.id &&
+        item.platform === platform,
+    );
+    const publishingJob =
+      connectedAccount && contentVariant
+        ? createPublishingJob({
+            workspaceId:
+              state.workspace?.id ?? connectedAccount.workspaceId ?? "",
+            brandId: idea.metadata?.brandId ?? state.activeBrandId ?? null,
+            socialAccountId: connectedAccount.id,
+            contentItemId: contentItem.id,
+            contentVariantId: contentVariant.id,
+            idempotencyKey:
+              schedule.id + ":" + String(contentVariant.version ?? 1),
+            scheduledAt,
+            status: "queued",
+            payload: {
+              ideaId,
+              platform,
+              source: "orbit-schedule",
+            },
+          }, now)
+        : null;
+
+    const publishingJobs = publishingJob
+      ? state.publishingJobs.some((job) => job.idempotencyKey === publishingJob.idempotencyKey)
+        ? state.publishingJobs
+        : [...state.publishingJobs, publishingJob]
+      : state.publishingJobs;
+
     return save({
       ...state,
       schedules: [...state.schedules, schedule],
+      socialAccounts: state.socialAccounts,
+      publishingJobs,
       contentItems: state.contentItems,
       contentVariants: nextContentVariants,
       audit: [
