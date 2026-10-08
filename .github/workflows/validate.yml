@@ -33,8 +33,10 @@ jobs:
       - name: Validate modular core
         run: |
           test -f src/domain/models.mjs
+          test -f src/domain/state.mjs
           test -f src/core/pipeline.mjs
           test -f src/core/audit.mjs
+          test -f src/core/runtime.mjs
           test -f src/contracts/adapters.mjs
           test -f src/adapters/local-store.mjs
           test -f src/adapters/local-content-generator.mjs
@@ -43,6 +45,8 @@ jobs:
           test -f src/adapters/null-publisher.mjs
           test -f tests/smoke.mjs
           test -f tests/contracts.mjs
+          test -f tests/runtime.mjs
           node tests/smoke.mjs
           node tests/contracts.mjs
-          echo "Core and adapter contract tests passed"
+          node tests/runtime.mjs
+          echo "Core, adapter, and runtime tests passed"
