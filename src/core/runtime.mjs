@@ -476,6 +476,15 @@ export function createOrbitRuntime({
   }
 
   async function runDuePublishing(now = Date.now()) {
+    if (publisher.enabled !== true) {
+      return {
+        processed: 0,
+        blocked: true,
+        code: "PUBLISHING_DISABLED",
+        results: [],
+      };
+    }
+
     const state = await snapshot();
     const due = state.schedules.filter(
       (schedule) =>
