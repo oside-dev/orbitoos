@@ -285,6 +285,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.ideas.map((idea) => ({
         id: idea.id,
         workspace_id: id,
+        brand_id: idea.metadata?.brandId ?? state.activeBrandId ?? null,
         title: idea.title,
         objective: idea.goal,
         audience: idea.audience,
@@ -301,6 +302,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.research.map((item, index) => ({
         id: item.id ?? id + ":research:" + index,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         idea_id: item.ideaId ?? null,
         topic: item.topic ?? "",
         summary: item.summary ?? "",
@@ -318,7 +320,6 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         idea_id: item.ideaId,
         brand_id: item.brandId ?? state.activeBrandId ?? null,
         workspace_id: id,
-        brand_id: item.brandId ?? state.activeBrandId ?? null,
         title: item.title,
         brief: item.brief,
         status: item.status,
@@ -402,6 +403,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.learningInsights.map((item, index) => ({
         id: item.id ?? id + ":learning:" + index,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         title: item.title,
         detail: item.detail,
         category: item.category ?? "general",
