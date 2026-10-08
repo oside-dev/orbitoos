@@ -76,7 +76,7 @@ https://orbitoos.vercel.app
 - M1 — Content operating loop — active
 - M2 — Internal domain/core/adapters split — active foundation work
 - M3 — Free/local AI adapter — runtime-integrated; deterministic default + opt-in Ollama
-- M4 — Persistent backend adapter — SDK-independent adapter foundation + schema contract
+- M4 — Persistent backend adapter — SDK-independent adapter foundation + schema contract — SDK-independent adapter foundation + schema contract
 - M5 — Official publishing adapters
 - M6 — Real analytics ingestion + learning
 - M7 — Multi-brand automation
