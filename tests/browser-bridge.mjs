@@ -77,6 +77,11 @@ state = await bridge.scheduleIdeaVariant({
 assert.equal(state.schedules.length, 1);
 assert.equal(state.schedules[0].platform, "TikTok");
 
+await bridge.setAiConfig({ provider: "ollama", model: "test-local-model" });
+const aiConfig = await bridge.getAiConfig();
+assert.equal(aiConfig.provider, "ollama");
+assert.equal(aiConfig.model, "test-local-model");
+
 const exported = await bridge.exportState();
 const restoredStorage = createMemoryStorage();
 const restoredBridge = createOrbitBrowserBridge({
