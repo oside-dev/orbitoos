@@ -1,5 +1,6 @@
 -- OrbitOS target schema for Supabase Free
--- This file is a contract for M2. M0 remains local-first.
+-- This file is a contract for the persistent backend adapter.
+-- The local-first runtime remains the default until a real backend is connected.
 
 create table if not exists workspaces (
   id uuid primary key,
@@ -59,6 +60,7 @@ create table if not exists content_variants (
   cta text not null default '',
   hashtags text[] not null default '{}',
   creative_brief text not null default '',
+  visual_direction text not null default '',
   status text not null default 'draft',
   version integer not null default 1,
   updated_at timestamptz not null default now()
