@@ -232,6 +232,21 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
     );
 
     await upsert(
+      "research_items",
+      state.research.map((item, index) => ({
+        id: item.id ?? id + ":research:" + index,
+        workspace_id: id,
+        idea_id: item.ideaId ?? null,
+        topic: item.topic ?? "",
+        summary: item.summary ?? "",
+        signals: item.signals ?? [],
+        opportunity_score: item.opportunityScore ?? 0,
+        sources: item.sources ?? [],
+        generated_by: item.generatedBy ?? "backend",
+      })),
+    );
+
+    await upsert(
       "content_items",
       state.contentItems.map((item) => ({
         id: item.id,
@@ -306,6 +321,21 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         output: item.output ?? {},
         started_at: item.startedAt,
         finished_at: item.finishedAt,
+      })),
+    );
+
+    await upsert(
+      "learning_insights",
+      state.learningInsights.map((item, index) => ({
+        id: item.id ?? id + ":learning:" + index,
+        workspace_id: id,
+        title: item.title,
+        detail: item.detail,
+        category: item.category ?? "general",
+        confidence: item.confidence ?? 0.5,
+        impact: item.impact ?? "medium",
+        status: item.status ?? "new",
+        generated_at: state.learning?.generatedAt ?? new Date().toISOString(),
       })),
     );
 
