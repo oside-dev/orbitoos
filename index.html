@@ -25,7 +25,7 @@
 .modalBg{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:18px;z-index:20}.modal{width:min(680px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}.form{display:grid;gap:10px}
 .toast{position:fixed;right:18px;bottom:18px;z-index:30;background:#dffaf1;color:#06131c;padding:10px 13px;border-radius:10px;font-weight:700}.hidden{display:none!important}
 @media(max-width:1050px){.app{grid-template-columns:78px 1fr}.brandText,.nav span,.foot{display:none}.nav button{text-align:center}.kpis{grid-template-columns:1fr 1fr}.two,.three{grid-template-columns:1fr}.pipeline{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:620px){.app{grid-template-columns:1fr}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.brandText,.nav span{display:inline}.nav{grid-template-columns:repeat(5,1fr)}.nav button{font-size:10px;padding:7px 3px;text-align:center}.foot{display:none}.top{padding:10px 14px}.wrap{padding:14px}.head{display:block}.actions{margin-top:10px}.platforms{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(2,minmax(180px,1fr))}}
+.topContext{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.topContext .actions{margin-left:6px}@media(max-width:760px){.topContext{flex-wrap:wrap}}@media(max-width:620px){.app{grid-template-columns:1fr}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.brandText,.nav span{display:inline}.nav{grid-template-columns:repeat(5,1fr)}.nav button{font-size:10px;padding:7px 3px;text-align:center}.foot{display:none}.top{padding:10px 14px}.wrap{padding:14px}.head{display:block}.actions{margin-top:10px}.platforms{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(2,minmax(180px,1fr))}}
 </style>
 </head>
 <body>
@@ -42,7 +42,7 @@ const pages=[
 ];
 const seed={
  version:4,
- workspace:{name:"Northstar Studio"},
+ workspace:{id:"workspace-local",name:"Northstar Studio",slug:"northstar-local",timezone:"UTC"},
  brand:{name:"Northstar Studio",voice:"Clear, direct, curious. Teach first; sell second.",audience:"Early-stage creators and small teams.",rules:["No invented facts or fake proof","One useful takeaway per post","Keep CTAs specific","Never auto-publish without an official adapter"]},
  ideas:[
   {id:"i1",title:"Why most content hooks fail in the first 2 seconds",pillar:"Education",audience:"Beginner creators",goal:"Reach",brief:"Explain the difference between a topic and a tension-driven hook.",stage:"Draft",score:87,variants:{}},
@@ -90,13 +90,23 @@ function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function toast(msg){const x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
 function log(agent,msg){state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
 function btn(label,fn,primary=false,extra=""){return '<button class="btn '+(primary?"primary ":"")+extra+'" onclick="'+fn+'">'+esc(label)+"</button>"}
+function runtimeModeLabel(){
+ const mode=state.runtime?.mode||"local";
+ return mode==="authenticated-persistent"?"AUTHENTICATED":"LOCAL";
+}
 function nav(){
+ const workspace=state.workspace?.name||"Local Workspace";
+ const brandName=state.brand?.name||"No brand";
+ const mode=runtimeModeLabel();
  return '<aside class="side"><div class="brand"><div class="mark">O</div><div class="brandText">OrbitOS<small>AI content operating system</small></div></div>'+
  '<div class="nav">'+pages.map(p=>'<button class="'+(page===p[0]?"active":"")+'" onclick="go(\''+p[0]+'\')">'+p[1]+' <span>'+p[2]+'</span></button>').join("")+'</div>'+
- '<div class="foot">FREE-FIRST MODE<br>Local state • no paid AI calls<br>Publishing locked</div></aside>';
+ '<div class="foot"><span class="badge '+(mode==="LOCAL"?"ok":"")+'">'+mode+'</span><br>'+esc(workspace)+'<br>'+esc(brandName)+'<br>Publishing locked</div></aside>';
 }
 function shell(title,sub,actions,body){
- document.getElementById("root").innerHTML='<div class="app">'+nav()+'<main class="main"><header class="top"><div class="crumb">'+esc(page.toUpperCase())+"</div><div class='actions'>"+(actions||"")+"</div></header><div class='wrap'><div class='head'><div><h1>"+esc(title)+"</h1><p>"+esc(sub)+"</p></div></div>"+body+"</div></main></div>";
+ const workspace=state.workspace?.name||"Local Workspace";
+ const brandName=state.brand?.name||"No brand";
+ const mode=runtimeModeLabel();
+ document.getElementById("root").innerHTML='<div class="app">'+nav()+'<main class="main"><header class="top"><div class="crumb">'+esc(page.toUpperCase())+"</div><div class='topContext'><span>"+esc(workspace)+"</span><span>•</span><span>"+esc(brandName)+"</span><span class="badge "+(mode==="LOCAL"?"ok":"")+">"+mode+"</span><div class='actions'>"+(actions||"")+"</div></div></header><div class='wrap'><div class='head'><div><h1>"+esc(title)+"</h1><p>"+esc(sub)+"</p></div></div>"+body+"</div></main></div>";
 }
 function go(p){page=p;render()}
 function render(){
@@ -276,7 +286,16 @@ async function createBrandProfile(){
 
 async function settings(){
  const ai=state.settings?.ai||{provider:"local",model:"",baseUrl:"http://localhost:11434/api"};
- shell("Settings","Free-first controls, backup, and safety gates","",'<div class="grid two"><div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div><div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div><div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+btn("Save AI settings","saveAiSettings()",true)+'</div></div><div class="card"><h2>Local data</h2><p class="small">State lives in browser storage. JSON backups contain no secrets.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div><div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>Local storage adapter</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div></div><div class="card" style="margin-top:14px"><div class="notice">Ollama mode is opt-in and stays on localhost. The default path remains free and deterministic.</div></div>');
+ const runtime=state.runtime||{mode:"local",provider:"local-store",persistent:false,authenticated:false};
+ shell("Settings","Free-first controls, workspace identity, backup, and safety gates","",
+ '<div class="grid two">'+
+ '<div class="card"><div class="row"><h2>Workspace & identity</h2><span class="badge '+(runtime.authenticated?"ok":"")+'">'+(runtime.authenticated?"AUTHENTICATED":"LOCAL")+'</span></div><table class="table" style="margin-top:10px"><tr><td>Workspace</td><td>'+esc(state.workspace?.name||"Local Workspace")+'</td></tr><tr><td>Workspace ID</td><td>'+esc(runtime.workspaceId||state.workspace?.id||"local")+'</td></tr><tr><td>User</td><td>'+esc(runtime.userId||"Local session")+'</td></tr><tr><td>Persistence</td><td>'+esc(runtime.persistent?"Backend persistent":"Browser localStorage")+'</td></tr><tr><td>Provider</td><td>'+esc(runtime.provider)+'</td></tr></table><div class="notice" style="margin-top:10px">'+(runtime.authenticated?"Signed-in workspace runtime is active.":"Local mode is active because no authenticated backend project is connected.")+'</div></div>'+
+ '<div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div>'+
+ '<div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div>'+
+ '<div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+btn("Save AI settings","saveAiSettings()",true)+'</div></div>'+
+ '<div class="card"><h2>Local data</h2><p class="small">State lives in browser storage. JSON backups contain no secrets.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div>'+
+ '<div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>'+esc(runtime.persistent?"Authenticated persistent store":"Local storage adapter")+'</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div>'+
+ '</div><div class="card" style="margin-top:14px"><div class="notice">Backend mode is not simulated. When a real authenticated workspace is connected, the same core runtime can switch to the persistent adapter without changing agent contracts.</div></div>');
 }
 function newIdea(){
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Create idea</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Idea title<input class="input" id="newTitle" placeholder="e.g. 3 mistakes creators make with hooks"></label><label>Pillar<input class="input" id="newPillar" placeholder="Education"></label><label>Audience<input class="input" id="newAudience" placeholder="Beginner creators"></label><label>Goal<select class="select" id="newGoal"><option>Reach</option><option>Engagement</option><option>Education</option><option>Leads</option></select></label><label>Brief<textarea class="textarea" id="newBrief" placeholder="What should this content teach?"></textarea></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Create & research","createIdea()",true)+'</div></div></div>';
@@ -398,6 +417,7 @@ async function boot(){
   state=stored
     ? await window.orbitCore.snapshot()
     : await window.orbitCore.importState(JSON.stringify(seed));
+  state.runtime=await window.orbitCore.getEnvironment();
   selectedId=state.ideas[0]?.id||null;
   render();
  }catch(error){
