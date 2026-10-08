@@ -57,6 +57,17 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       learningRows,
     ] = results;
 
+    const mappedBrands = brands.map((row) => ({
+      id: row.id,
+      name: row.name,
+      voice: row.voice,
+      audience: row.audience,
+      pillars: row.pillars ?? [],
+      prohibited: row.prohibited ?? [],
+      visualDirection: row.visual_direction ?? "",
+      postingGoals: row.posting_goals ?? {},
+    }));
+
     const itemMap = new Map(contentItems.map((item) => [item.id, item]));
     const variantsByItem = new Map();
     for (const variant of contentVariants) {
@@ -124,14 +135,6 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       brands: mappedBrands,
       activeBrandId,
       ideas: mappedIdeas,
-            id: brands[0].id,
-            name: brands[0].name,
-            voice: brands[0].voice,
-            audience: brands[0].audience,
-            pillars: brands[0].pillars ?? [],
-            prohibited: brands[0].prohibited ?? [],
-            visualDirection: brands[0].visual_direction ?? "",
-
       research: researchItems.map((row) => ({
         id: row.id,
         ideaId: row.idea_id ?? null,
@@ -155,6 +158,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
       contentVariants: contentVariants.map((row) => ({
         id: row.id,
+        brandId: row.brand_id ?? null,
         contentItemId: row.content_item_id,
         platform: row.platform,
         hook: row.hook,
@@ -170,6 +174,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
       schedules: schedules.map((row) => ({
         id: row.id,
+        brandId: row.brand_id ?? null,
         contentItemId: row.content_item_id,
         platform: row.platform,
         scheduledAt: row.scheduled_at,
@@ -178,6 +183,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
       metrics: analytics.map((row) => ({
         id: row.id,
+        brandId: row.brand_id ?? null,
         contentItemId: row.content_item_id,
         platform: row.platform,
         snapshotDate: row.snapshot_date,
@@ -191,6 +197,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
       audit: audit.map((row) => ({
         id: row.id,
+        brandId: row.brand_id ?? null,
         agent: row.agent,
         task: row.task,
         status: row.status,
