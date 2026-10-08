@@ -232,23 +232,34 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         name: state.workspace.name ?? "OrbitOS",
         slug: state.workspace.slug ?? id,
         timezone: state.workspace.timezone ?? "UTC",
-        settings: state.workspace.settings ?? {},
+        settings: {
+          ...(state.workspace.settings ?? {}),
+          activeBrandId: state.activeBrandId ?? null,
+        },
       },
     ]);
 
-    await upsert("brands", [
-      {
-        id: state.brand.id ?? id + ":brand",
+    const persistedBrands =
+      state.brands.length > 0
+        ? state.brands
+        : state.brand.name
+          ? [{ ...state.brand, id: state.brand.id ?? id + ":brand" }]
+          : [];
+
+    await upsert(
+      "brands",
+      persistedBrands.map((brand) => ({
+        id: brand.id,
         workspace_id: id,
-        name: state.brand.name ?? "",
-        voice: state.brand.voice ?? "",
-        audience: state.brand.audience ?? "",
-        pillars: state.brand.pillars ?? [],
-        prohibited: state.brand.prohibited ?? [],
-        visual_direction: state.brand.visualDirection ?? "",
-        posting_goals: state.brand.postingGoals ?? {},
-      },
-    ]);
+        name: brand.name,
+        voice: brand.voice ?? "",
+        audience: brand.audience ?? "",
+        pillars: brand.pillars ?? [],
+        prohibited: brand.prohibited ?? [],
+        visual_direction: brand.visualDirection ?? "",
+        posting_goals: brand.postingGoals ?? {},
+      })),
+    );
 
     await upsert(
       "ideas",
@@ -286,7 +297,9 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.contentItems.map((item) => ({
         id: item.id,
         idea_id: item.ideaId,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         title: item.title,
         brief: item.brief,
         status: item.status,
@@ -300,6 +313,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.contentVariants.map((item) => ({
         id: item.id,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         content_item_id: item.contentItemId,
         platform: item.platform,
         hook: item.hook,
@@ -320,6 +334,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.schedules.map((item) => ({
         id: item.id,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         content_item_id: item.contentItemId,
         platform: item.platform,
         scheduled_at: item.scheduledAt,
@@ -333,6 +348,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.metrics.map((item, index) => ({
         id: item.id ?? id + ":metric:" + index,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         content_item_id: item.contentItemId ?? null,
         platform: item.platform,
         snapshot_date: item.snapshotDate,
@@ -351,6 +367,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       state.audit.map((item) => ({
         id: item.id,
         workspace_id: id,
+        brand_id: item.brandId ?? state.activeBrandId ?? null,
         agent: item.agent,
         task: item.task,
         status: item.status,
@@ -377,7 +394,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
     );
 
     const cleanupTargets = [
-      ["brands", [state.brand.id ?? id + ":brand"]],
+      ["brands", persistedBrands.map((item) => item.id)],
       ["ideas", state.ideas.map((item) => item.id)],
       [
         "research_items",
