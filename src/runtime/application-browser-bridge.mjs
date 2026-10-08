@@ -126,21 +126,23 @@ export async function createOrbitApplicationBrowserBridge({
     return result;
   }
 
-  async function onAuthStateChange(callback) {
-    return auth.onAuthStateChange(async (event, authSnapshot) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        try {
-          await initializeRemote();
-        } catch {
+  function onAuthStateChange(callback) {
+    return auth.onAuthStateChange((event, authSnapshot) => {
+      void (async () => {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          try {
+            await initializeRemote();
+          } catch {
+            remote = null;
+          }
+        }
+
+        if (event === "SIGNED_OUT") {
           remote = null;
         }
-      }
 
-      if (event === "SIGNED_OUT") {
-        remote = null;
-      }
-
-      await callback(event, authSnapshot);
+        await callback(event, authSnapshot);
+      })();
     });
   }
 
