@@ -48,6 +48,7 @@ jobs:
           test -f src/adapters/null-publisher.mjs
           test -f src/adapters/ollama-text-model.mjs
           test -f src/adapters/ollama-content-generator.mjs
+          test -f src/adapters/supabase-store.mjs
           test -f src/runtime/ui-state.mjs
           test -f src/runtime/browser-bridge.mjs
           test -f src/agents/orchestrator.mjs
@@ -64,6 +65,7 @@ jobs:
           test -f tests/browser-bridge.mjs
           test -f tests/agents.mjs
           test -f tests/local-ai.mjs
+          test -f tests/supabase-store.mjs
 
       - name: Run smoke tests
         run: node tests/smoke.mjs
@@ -82,3 +84,6 @@ jobs:
 
       - name: Run local AI adapter tests
         run: node tests/local-ai.mjs
+
+      - name: Run persistent backend adapter tests
+        run: node tests/supabase-store.mjs
