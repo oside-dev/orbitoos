@@ -87,3 +87,8 @@ https://orbitoos.vercel.app
 - M12 — Strategy-aware learning — performance metrics are correlated back to persisted strategy angles
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
+
+
+## Validation
+
+Pull requests and main-branch pushes run a Node 24 syntax check over `src/` and `tests/`, followed by framework-free contract tests.
