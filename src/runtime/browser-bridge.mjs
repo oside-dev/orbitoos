@@ -99,6 +99,7 @@ export function createOrbitBrowserBridge({
     const previous = readStoredState(storage, key);
     const runtime = createOrbitRuntime({
       store: new MemoryStore(toCoreState(previous)),
+      ai: readAiConfig(previous),
     });
 
     return toUiState(await runtime.snapshot(), previous);
