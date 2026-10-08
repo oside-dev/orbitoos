@@ -47,9 +47,16 @@ const bridge = createOrbitBrowserBridge({ storage, key: "orbit-v4" });
 assert.equal(typeof bridge.publishIdeaVariant, "function");
 assert.equal(typeof bridge.ingestExternalMetrics, "undefined");
 assert.equal(typeof bridge.runDuePublishing, "undefined");
+assert.equal(typeof bridge.getEnvironment, "function");
 assert.equal(typeof bridge.createBrand, "function");
 assert.equal(typeof bridge.listBrands, "function");
 assert.equal(typeof bridge.setActiveBrand, "function");
+
+const environment = await bridge.getEnvironment();
+assert.equal(environment.mode, "local");
+assert.equal(environment.provider, "local-store");
+assert.equal(environment.persistent, false);
+assert.equal(environment.authenticated, false);
 
 let state = await bridge.snapshot();
 assert.ok(Array.isArray(state.brands));
