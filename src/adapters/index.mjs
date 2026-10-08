@@ -18,3 +18,4 @@ export {
 export { createOllamaTextModel } from "./ollama-text-model.mjs";
 export { createOllamaContentGenerator } from "./ollama-content-generator.mjs";
 export { createContentGenerator, AI_PROVIDERS } from "../core/content-generator-factory.mjs";
+export { createSupabaseStateStore } from "./supabase-store.mjs";
