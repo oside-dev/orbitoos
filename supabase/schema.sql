@@ -11,6 +11,22 @@ create table if not exists workspaces (
   created_at timestamptz not null default now()
 );
 
+create table if not exists workspace_members (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null default 'viewer'
+    check (role in ('owner', 'admin', 'editor', 'analyst', 'viewer')),
+  created_at timestamptz not null default now(),
+  unique (workspace_id, user_id)
+);
+
+create index if not exists workspace_members_user_workspace_idx
+  on workspace_members(user_id, workspace_id);
+
+create index if not exists workspace_members_workspace_idx
+  on workspace_members(workspace_id);
+
 create table if not exists brands (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
@@ -142,11 +158,32 @@ create table if not exists learning_insights (
 );
 
 
--- Security baseline: exposed public tables stay protected until explicit
--- workspace ownership policies are defined. The persistence adapter is a
--- server-side boundary; never ship a secret/service key to the browser.
+-- Security contract: browser/API access is restricted to authenticated
+-- users who belong to the workspace. Workspace provisioning/membership changes
+-- remain backend-controlled until an explicit invitation/bootstrap flow exists.
+-- Never expose a Supabase service_role/secret key to the browser.
+
+create schema if not exists private;
+
+create or replace function private.user_workspace_ids()
+returns setof text
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select wm.workspace_id
+  from public.workspace_members wm
+  where wm.user_id = (select auth.uid());
+$$;
+
+revoke execute on function private.user_workspace_ids() from public;
+revoke execute on function private.user_workspace_ids() from anon;
+grant usage on schema private to authenticated;
+grant execute on function private.user_workspace_ids() to authenticated;
 
 alter table if exists workspaces enable row level security;
+alter table if exists workspace_members enable row level security;
 alter table if exists brands enable row level security;
 alter table if exists ideas enable row level security;
 alter table if exists research_items enable row level security;
@@ -156,3 +193,144 @@ alter table if exists schedules enable row level security;
 alter table if exists analytics_snapshots enable row level security;
 alter table if exists agent_runs enable row level security;
 alter table if exists learning_insights enable row level security;
+
+-- Clean re-runs: replace only the policies owned by this contract.
+drop policy if exists "workspace_members_read" on workspace_members;
+drop policy if exists "workspaces_member_read" on workspaces;
+drop policy if exists "workspaces_member_update" on workspaces;
+drop policy if exists "brands_member_access" on brands;
+drop policy if exists "ideas_member_access" on ideas;
+drop policy if exists "research_member_access" on research_items;
+drop policy if exists "content_items_member_access" on content_items;
+drop policy if exists "content_variants_member_access" on content_variants;
+drop policy if exists "schedules_member_access" on schedules;
+drop policy if exists "analytics_member_access" on analytics_snapshots;
+drop policy if exists "agent_runs_member_access" on agent_runs;
+drop policy if exists "learning_member_access" on learning_insights;
+
+create policy "workspace_members_read"
+on workspace_members
+for select
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "workspaces_member_read"
+on workspaces
+for select
+to authenticated
+using (
+  id in (select private.user_workspace_ids())
+);
+
+create policy "workspaces_member_update"
+on workspaces
+for update
+to authenticated
+using (
+  id in (select private.user_workspace_ids())
+)
+with check (
+  id in (select private.user_workspace_ids())
+);
+
+create policy "brands_member_access"
+on brands
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "ideas_member_access"
+on ideas
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "research_member_access"
+on research_items
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "content_items_member_access"
+on content_items
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "content_variants_member_access"
+on content_variants
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "schedules_member_access"
+on schedules
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "analytics_member_access"
+on analytics_snapshots
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "agent_runs_member_access"
+on agent_runs
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "learning_member_access"
+on learning_insights
+for all
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+)
+with check (
+  workspace_id in (select private.user_workspace_ids())
+);
+
