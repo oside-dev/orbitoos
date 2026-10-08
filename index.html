@@ -31,7 +31,8 @@
 <body>
 <div id="root"></div>
 <div id="modalRoot"></div>
-<input id="fileInput" type="file" accept="application/json" class="hidden">
+<input id="fileInput" type="file" accept="application/json,.json" class="hidden">
+<input id="analyticsFileInput" type="file" accept="application/json,.json,text/csv,.csv" class="hidden">
 <script>
 const STORE="orbit-v4";
 const platforms=["TikTok","Instagram Reels","YouTube Shorts","X","Facebook","LinkedIn"];
@@ -142,8 +143,7 @@ function overview(){
  const pipe='<div class="card"><div class="row"><h2>Operating pipeline</h2><span class="badge ok">LOCAL</span></div><div class="pipeline" style="margin-top:12px">'+stages.slice(0,6).map((s,i)=>'<div class="step"><span>'+s+'</span><b>'+activeIdeas.filter(x=>x.stage===s).length+'</b></div>').join("")+'</div><div class="small" style="margin-top:9px">Idea → Research → Strategy → Draft → Review → Approved. Schedule remains a separate execution step.</div></div>';
  const right='<div class="card"><div class="row"><h2>System guardrails</h2><span class="badge warn">FREE-FIRST</span></div><div class="notice" style="margin-top:10px">No paid provider calls. No social account credentials. No automatic external publishing. Human approval remains mandatory.</div><div class="small" style="margin-top:10px">Runtime v4 • local persistence • portable JSON backup</div></div>';
  const activity='<div class="card"><div class="row"><h2>Activity</h2><span class="badge">EVENT LOG</span></div><div class="timeline" style="margin-top:10px">'+state.events.slice(0,8).map(e=>'<div class="event"><div class="time">'+esc(e[0])+'</div><div class="eventBody">'+esc(e[1])+'</div></div>').join("")+'</div></div>';
- const entries=learningEntries();
- const learning='<div class="card"><div class="row"><h2>Learning loop</h2><span class="badge '+(entries.length?'ok':'warn')+'">'+(entries.length?'RUNTIME':'WAITING')+'</span></div><div class="list" style="margin-top:10px">'+(entries.length?entries.slice(0,3).map((x,i)=>'<div class="item"><strong>'+(i+1)+". "+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join(""):'<div class="small">Run Learning from Analytics after metrics are available.</div>')+'</div></div>';
+ const learning='<div class="card"><div class="row"><h2>Learning loop</h2><span class="badge '+(learningEntries().length?'ok':'warn')+'">'+(learningEntries().length?'RUNTIME':'WAITING')+'</span></div><div class="list" style="margin-top:10px">'+(learningEntries().length?learningEntries().slice(0,3).map((x,i)=>'<div class="item"><strong>'+(i+1)+". "+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join(""):'<div class="small">Run Learning from Analytics after metrics are available.</div>')+'</div></div>';
  shell("Command Center","One idea → research → platform variants → review → schedule → analytics → learning",btn("+ New idea","newIdea()",true)+btn("Run local workflow","runWorkflow()"),cards+'<div class="grid two" style="margin-top:14px">'+pipe+right+'</div><div class="grid two" style="margin-top:14px">'+activity+learning+"</div>");
 }
 function ideas(){
@@ -232,7 +232,7 @@ function analytics(){
  const strategy= strategyEntries.length
    ? strategyEntries.slice(0,3).map(x=>'<div class="item"><strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join("")
    : '<div class="small">Run Learning after content has persisted strategy data and metrics.</div>';
- shell("Analytics","Normalized metrics feed the Learning Agent; strategy is now part of the feedback loop",btn("Run learning","runLearningNow()",true),
+ shell("Analytics","Normalized metrics feed the Learning Agent; strategy is now part of the feedback loop",btn("Import report","importAnalyticsReportPrompt()",false)+btn("Run learning","runLearningNow()",true),
  '<div class="grid kpis">'+
  kpi("Views",views.toLocaleString(),"normalized")+kpi("Reach",reach.toLocaleString(),"normalized")+
  kpi("Engagements",engagements.toLocaleString(),"normalized")+kpi("Avg engagement rate",avgRate.toFixed(1)+"%","engagements / reach")+
@@ -446,11 +446,18 @@ async function saveAiSettings(){
  const config={provider:document.getElementById("aiProvider").value,model:document.getElementById("aiModel").value.trim(),baseUrl:document.getElementById("aiBaseUrl").value.trim()};
  try{await window.orbitCoreReady;state=await window.orbitCore.setAiConfig(config);toast("AI settings saved");render()}catch(error){toast(error.message||"AI settings failed")}
 }
+async function importAnalyticsReportPrompt(){
+ const input=document.getElementById("analyticsFileInput");
+ if(!input)return;
+ input.value="";
+ input.click();
+}
 async function resetData(){
  if(!confirm("Reset local OrbitOS data?"))return;
  try{await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(seed));selectedId=state.ideas[0]?.id||null;toast("OrbitOS reset");render()}catch(error){toast(error.message||"Reset failed")}
 }
 document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const p=JSON.parse(r.result);if(!p.state||!p.state.ideas)throw new Error();await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(p.state));selectedId=state.ideas[0]?.id||null;toast("Backup restored");render()}catch(error){toast(error.message||"Invalid OrbitOS backup")}};r.readAsText(f)});
+document.getElementById("analyticsFileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{await window.orbitCoreReady;state=await window.orbitCore.importAnalyticsReport(String(r.result),{source:f.name,provider:f.type||"imported-report"});selectedId=state.ideas[0]?.id||null;toast("Analytics report imported");render()}catch(error){toast(error.message||"Invalid analytics report")}};r.readAsText(f)});
 window.orbitCoreReady=import("./src/runtime/application-browser-bridge.mjs")
  .then(async ({createOrbitApplicationBrowserBridge})=>{
    window.orbitCore=await createOrbitApplicationBrowserBridge({storage:window.localStorage,key:STORE});
