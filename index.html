@@ -86,7 +86,7 @@ save();
 let page="overview";
 let selectedId=state.ideas[0]?.id||null;
 function save(){localStorage.setItem(STORE,JSON.stringify(state))}
-function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#39;"}[m]))}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
 function log(agent,msg){state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
 function btn(label,fn,primary=false,extra=""){return '<button class="btn '+(primary?"primary ":"")+extra+'" onclick="'+fn+'">'+esc(label)+"</button>"}
