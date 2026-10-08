@@ -130,3 +130,19 @@ create table if not exists learning_insights (
   created_at timestamptz not null default now(),
   generated_at timestamptz not null default now()
 );
+
+
+-- Security baseline: exposed public tables stay protected until explicit
+-- workspace ownership policies are defined. The persistence adapter is a
+-- server-side boundary; never ship a secret/service key to the browser.
+
+alter table if exists workspaces enable row level security;
+alter table if exists brands enable row level security;
+alter table if exists ideas enable row level security;
+alter table if exists research_items enable row level security;
+alter table if exists content_items enable row level security;
+alter table if exists content_variants enable row level security;
+alter table if exists schedules enable row level security;
+alter table if exists analytics_snapshots enable row level security;
+alter table if exists agent_runs enable row level security;
+alter table if exists learning_insights enable row level security;
