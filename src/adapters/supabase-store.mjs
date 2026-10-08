@@ -430,25 +430,10 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
     );
 
-    const cleanupTargets = [
-      ["brands", persistedBrands.map((item) => item.id)],
-      ["ideas", state.ideas.map((item) => item.id)],
-      [
-        "research_items",
-        state.research.map((item, index) => item.id ?? id + ":research:" + index),
-      ],
-      ["content_items", state.contentItems.map((item) => item.id)],
-      ["content_variants", state.contentVariants.map((item) => item.id)],
-      ["schedules", state.schedules.map((item) => item.id)],
-      ["analytics_snapshots", state.metrics.map((item, index) => item.id ?? id + ":metric:" + index)],
-      ["agent_runs", state.audit.map((item) => item.id)],
-      ["learning_insights", state.learningInsights.map((item, index) => item.id ?? id + ":learning:" + index)],
-    ];
-
-    for (const [table, desiredIds] of cleanupTargets) {
-      await removeStale(table, desiredIds);
-    }
-
+    // Do not delete rows that are absent from this snapshot.
+    // The browser runtime can have concurrent sessions, so snapshot-based
+    // cleanup can remove another session's newly-created records.
+    // Explicit delete operations will be introduced as row-level commands.
     return state;
   }
 
