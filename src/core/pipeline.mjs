@@ -40,7 +40,11 @@ export async function runLocalPipeline(
   const workflowPlan = orchestratorAgent.plan({ idea });
 
   const researchAgent = createResearchAgent({ adapter: researchAdapter });
-  const research = await researchAgent.run({ idea, brand });
+  const rawResearch = await researchAgent.run({ idea, brand });
+  const research = {
+    ...rawResearch,
+    brandId: rawResearch?.brandId ?? brandId,
+  };
 
   const strategy = strategyAgent.run({ idea, research });
 
