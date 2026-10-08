@@ -386,11 +386,56 @@ export function createOrbitRuntime({
       throw new Error("Publishing requires an existing schedule.");
     }
 
-    return publisher.publish({
+    const publishingInput = {
       variant,
       schedule: schedule ?? scheduledItem.scheduledAt,
       approval: true,
-    });
+      idempotencyKey: scheduledItem.id + ":" + String(
+        state.contentVariants.find(
+          (item) =>
+            item.contentItemId === contentItem?.id &&
+            item.platform === platform,
+        )?.version ?? 1,
+      ),
+    };
+
+    try {
+      const result = await publisher.publish(publishingInput);
+      const latest = await snapshot();
+      await save({
+        ...latest,
+        audit: [
+          ...latest.audit,
+          createAgentRun({
+            agent: "Publishing",
+            task: "Publish scheduled content variant",
+            input: { ideaId, platform, scheduleId: scheduledItem.id },
+            output: { success: true, provider: publisher.provider ?? "adapter" },
+          }),
+        ],
+      });
+      return result;
+    } catch (error) {
+      const latest = await snapshot();
+      await save({
+        ...latest,
+        audit: [
+          ...latest.audit,
+          createAgentRun({
+            agent: "Publishing",
+            task: "Publish scheduled content variant",
+            status: "failed",
+            input: { ideaId, platform, scheduleId: scheduledItem.id },
+            output: {
+              success: false,
+              code: error?.code ?? "PUBLISH_FAILED",
+              message: String(error?.message ?? error),
+            },
+          }),
+        ],
+      });
+      throw error;
+    }
   }
 
   async function exportState() {
