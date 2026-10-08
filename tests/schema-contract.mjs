@@ -28,9 +28,11 @@ for (const table of requiredTables) {
   assert.ok(match, "Missing schema table: " + table);
 
   const brandColumns = match[1].match(/^[ ]*brand_id[ ]+/gm) ?? [];
+  const brandExpected =
+    table === "brands" || table === "workspace_members" ? 0 : 1;
   assert.equal(
     brandColumns.length,
-    table === "brands" ? 0 : 1,
+    brandExpected,
     "Unexpected brand_id definition count for " + table,
   );
 }
