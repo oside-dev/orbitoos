@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const sql = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
 const requiredTables = [
+  "workspace_members",
   "brands",
   "ideas",
   "research_items",
@@ -42,3 +43,30 @@ for (const table of requiredTables) {
 }
 
 console.log("OrbitOS schema contract tests passed.");
+
+const securityContract = [
+  "create schema if not exists private;",
+  "create or replace function private.user_workspace_ids()",
+  "security definer",
+  "set search_path = ''",
+  'grant execute on function private.user_workspace_ids() to authenticated;',
+  'revoke execute on function private.user_workspace_ids() from anon;',
+  'revoke all on table workspace_members from anon, authenticated;',
+  'grant select on table workspace_members to authenticated;',
+  'create policy "workspace_members_member_read"',
+  'create policy "brands_member_read"',
+  'create policy "ideas_member_read"',
+  'create policy "content_items_member_read"',
+  'create policy "learning_member_read"',
+];
+
+for (const fragment of securityContract) {
+  assert.ok(sql.includes(fragment), "Missing security contract fragment: " + fragment);
+}
+
+assert.ok(
+  sql.includes("workspace_id in (select private.user_workspace_ids())"),
+  "Workspace membership predicate missing from RLS policies.",
+);
+
+console.log("OrbitOS schema security contract tests passed.");
