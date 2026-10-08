@@ -23,10 +23,12 @@ export function createLearningAgent() {
       metrics = [],
       contentItems = [],
       contentVariants = [],
+      ideas = [],
     } = {}) {
       const rows = Array.isArray(metrics) ? metrics : [];
       const items = Array.isArray(contentItems) ? contentItems : [];
       const variants = Array.isArray(contentVariants) ? contentVariants : [];
+      const ideaRows = Array.isArray(ideas) ? ideas : [];
       const insights = [];
 
       if (rows.length === 0) {
@@ -84,6 +86,60 @@ export function createLearningAgent() {
             (variant?.hook ? " and inspect its hook pattern." : "."),
           category: "content-performance",
           confidence: confidence(rows.length, Boolean(strongestEngagementRate.isDemo)),
+          impact: "high",
+          status: "new",
+        });
+      }
+
+      const strategyScores = new Map();
+
+      for (const row of rows) {
+        const content = items.find((item) => item.id === row.contentItemId);
+        const idea = ideaRows.find((item) => item.id === content?.ideaId);
+        const angle = String(idea?.strategy?.angle ?? "").trim();
+        if (!angle) continue;
+
+        const bucket = strategyScores.get(angle) ?? {
+          angle,
+          count: 0,
+          engagementTotal: 0,
+          reachTotal: 0,
+        };
+
+        bucket.count += 1;
+        bucket.engagementTotal += engagementRate(row);
+        bucket.reachTotal += numeric(row.reach ?? row.views);
+        strategyScores.set(angle, bucket);
+      }
+
+      const strongestStrategy = [...strategyScores.values()]
+        .sort((a, b) =>
+          (b.engagementTotal / Math.max(b.count, 1)) -
+          (a.engagementTotal / Math.max(a.count, 1))
+        )[0];
+
+      if (strongestStrategy) {
+        const averageRate =
+          strongestStrategy.engagementTotal /
+          Math.max(strongestStrategy.count, 1);
+
+        insights.push({
+          title: "Reuse the strongest strategy angle",
+          detail:
+            "The strategy angle '" +
+            strongestStrategy.angle +
+            "' has the strongest observed engagement rate at an average of " +
+            averageRate.toFixed(1) +
+            "% across " +
+            strongestStrategy.count +
+            " metric record" +
+            (strongestStrategy.count === 1 ? "" : "s") +
+            ". Treat it as a candidate pattern for the next content cycle.",
+          category: "strategy-performance",
+          confidence: confidence(
+            strongestStrategy.count,
+            rows.every((row) => row.isDemo !== false),
+          ),
           impact: "high",
           status: "new",
         });
