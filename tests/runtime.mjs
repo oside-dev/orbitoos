@@ -102,6 +102,7 @@ await assert.rejects(
     error instanceof PublishingDisabledError &&
     error.code === "PUBLISHING_DISABLED",
 );
+state = await runtime.snapshot();
 assert.equal(state.audit.at(-1).agent, "Publishing");
 const publishingRuntime = createOrbitRuntime({
   store: new MemoryStore(createInitialState()),
