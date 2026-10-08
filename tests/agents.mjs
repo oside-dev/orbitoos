@@ -73,10 +73,28 @@ assert.equal(normalized.views, 1000);
 
 const learningAgent = createLearningAgent();
 const learning = learningAgent.run({
-  metrics: [normalized],
-  contentItems: [{ id: "content-1" }],
+  metrics: [
+    {
+      ...normalized,
+      contentItemId: "content-1",
+      provider: "local-fixture",
+      isDemo: true,
+    },
+  ],
+  contentItems: [{ id: "content-1", title: "Agent contract test" }],
+  contentVariants: [
+    {
+      contentItemId: "content-1",
+      platform: "TikTok",
+      hook: "A useful opening hook.",
+    },
+  ],
 });
 assert.equal(learningAgent.name, "Learning");
 assert.equal(learning.insights.length, 3);
+assert.match(learning.insights[0].title, /engagement rate/i);
+assert.match(learning.insights[0].detail, /Agent contract test/);
+assert.match(learning.insights[0].detail, /TikTok/);
+assert.equal(learning.insights[2].category, "governance");
 
 console.log("OrbitOS agent tests passed.");
