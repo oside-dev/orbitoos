@@ -3,17 +3,18 @@
 -- The local-first runtime remains the default until a real backend is connected.
 
 create table if not exists workspaces (
-  id uuid primary key,
+  id text primary key,
   name text not null,
   slug text unique not null,
   timezone text not null default 'UTC',
   settings jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  generated_at timestamptz not null default now()
 );
 
 create table if not exists brands (
-  id uuid primary key,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
   name text not null,
   voice text not null default '',
   audience text not null default '',
@@ -25,8 +26,8 @@ create table if not exists brands (
 );
 
 create table if not exists ideas (
-  id uuid primary key,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
   title text not null,
   objective text not null default '',
   audience text not null default '',
@@ -40,10 +41,25 @@ create table if not exists ideas (
   updated_at timestamptz not null default now()
 );
 
+
+
+create table if not exists research_items (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  idea_id text references ideas(id) on delete set null,
+  topic text not null default '',
+  summary text not null default '',
+  signals jsonb not null default '[]'::jsonb,
+  opportunity_score integer not null default 0,
+  sources jsonb not null default '[]'::jsonb,
+  generated_by text not null default 'backend',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists content_items (
-  id uuid primary key,
+  id text primary key,
   idea_id uuid references ideas(id) on delete set null,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  workspace_id text not null references workspaces(id) on delete cascade,
   title text not null,
   brief text not null default '',
   status text not null default 'draft',
@@ -52,8 +68,9 @@ create table if not exists content_items (
 );
 
 create table if not exists content_variants (
-  id uuid primary key,
-  content_item_id uuid not null references content_items(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  content_item_id text not null references content_items(id) on delete cascade,
   platform text not null,
   hook text not null default '',
   body text not null default '',
@@ -62,14 +79,15 @@ create table if not exists content_variants (
   creative_brief text not null default '',
   visual_direction text not null default '',
   status text not null default 'draft',
+  approved boolean not null default false,
   version integer not null default 1,
   updated_at timestamptz not null default now()
 );
 
 create table if not exists schedules (
-  id uuid primary key,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  content_item_id uuid not null references content_items(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  content_item_id text not null references content_items(id) on delete cascade,
   platform text not null,
   scheduled_at timestamptz not null,
   status text not null default 'scheduled',
@@ -77,8 +95,8 @@ create table if not exists schedules (
 );
 
 create table if not exists analytics_snapshots (
-  id uuid primary key,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
   content_item_id uuid references content_items(id) on delete set null,
   platform text not null,
   snapshot_date date not null,
@@ -90,8 +108,8 @@ create table if not exists analytics_snapshots (
 );
 
 create table if not exists agent_runs (
-  id uuid primary key,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
   agent text not null,
   task text not null,
   status text not null default 'queued',
@@ -102,8 +120,8 @@ create table if not exists agent_runs (
 );
 
 create table if not exists learning_insights (
-  id uuid primary key,
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
   title text not null,
   detail text not null default '',
   category text not null default 'general',
