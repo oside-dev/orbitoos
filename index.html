@@ -69,7 +69,7 @@ const seed={
   ["09:05","Writing Agent prepared six platform variants"],
   ["08:41","Analytics fixtures normalized across six platforms"]
  ],
- settings:{costGuard:true,autoResearch:true,publishing:false}
+ settings:{costGuard:true,autoResearch:true,publishing:false,ai:{provider:"local",model:"",baseUrl:"http://localhost:11434/api"}}
 };
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function load(){
@@ -205,8 +205,9 @@ function brand(){
  const rules=state.brand.rules.map((r,i)=>'<div class="item"><div class="row"><div><strong>'+esc(r)+'</strong></div><input type="checkbox" checked onchange="toggleRule('+i+',this.checked)"></div></div>').join("");
  shell("Brand","Persistent memory for every future agent",btn("Save memory","saveBrand()",true),'<div class="grid two"><div class="card"><div class="form"><label>Brand name<input class="input" id="brandName" value="'+esc(state.brand.name)+'"></label><label>Voice<textarea class="textarea" id="brandVoice">'+esc(state.brand.voice)+'</textarea></label><label>Audience<textarea class="textarea" id="brandAudience">'+esc(state.brand.audience)+'</textarea></label></div></div><div class="card"><h2>Guardrails</h2><div class="stack" style="margin-top:10px">'+rules+'</div></div></div>');
 }
-function settings(){
- shell("Settings","Free-first controls, backup, and safety gates","",'<div class="grid two"><div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div><div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div><div class="card"><h2>Local data</h2><p class="small">State lives in browser storage. JSON backups contain no secrets.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div><div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>Deterministic local simulation</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>Local storage adapter</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div></div><div class="card" style="margin-top:14px"><div class="notice">Next backend can replace persistence behind the same contracts. No UI rewrite is required.</div></div>');
+async function settings(){
+ const ai=state.settings?.ai||{provider:"local",model:"",baseUrl:"http://localhost:11434/api"};
+ shell("Settings","Free-first controls, backup, and safety gates","",'<div class="grid two"><div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div><div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div><div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+btn("Save AI settings","saveAiSettings()",true)+'</div></div><div class="card"><h2>Local data</h2><p class="small">State lives in browser storage. JSON backups contain no secrets.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div><div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>Local storage adapter</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div></div><div class="card" style="margin-top:14px"><div class="notice">Ollama mode is opt-in and stays on localhost. The default path remains free and deterministic.</div></div>');
 }
 function newIdea(){
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Create idea</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Idea title<input class="input" id="newTitle" placeholder="e.g. 3 mistakes creators make with hooks"></label><label>Pillar<input class="input" id="newPillar" placeholder="Education"></label><label>Audience<input class="input" id="newAudience" placeholder="Beginner creators"></label><label>Goal<select class="select" id="newGoal"><option>Reach</option><option>Engagement</option><option>Education</option><option>Leads</option></select></label><label>Brief<textarea class="textarea" id="newBrief" placeholder="What should this content teach?"></textarea></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Create & research","createIdea()",true)+'</div></div></div>';
@@ -293,11 +294,26 @@ async function approve(id){
 function approveFirst(){const i=state.ideas.find(x=>x.stage==="Draft"||x.stage==="Review");if(i)approve(i.id);else toast("No draft waiting for approval")}
 function refreshResearch(){state.signals=state.signals.map((s,i)=>({...s,score:Math.max(72,Math.min(97,s.score+(i%2?2:-1)))}));log("Research Agent","Refreshed local signals");save();render()}
 function refreshMetrics(){state.metrics=state.metrics.map((m,i)=>({...m,views:Math.round(m.views*(1.02+i*.006)),engagement:+(m.engagement+(i%2?.1:-.05)).toFixed(1)}));log("Analytics Agent","Refreshed demo metrics");save();render()}
-function saveBrand(){state.brand.name=document.getElementById("brandName").value.trim()||state.brand.name;state.brand.voice=document.getElementById("brandVoice").value.trim();state.brand.audience=document.getElementById("brandAudience").value.trim();log("Brand","Updated brand memory");save();render()}
-function toggleRule(i,on){if(!on){state.brand.rules[i]=state.brand.rules[i].replace(" [disabled]","")+" [disabled]"}else{state.brand.rules[i]=state.brand.rules[i].replace(" [disabled]","")}save()}
+async function saveBrand(){
+ const nextBrand={...state.brand,name:document.getElementById("brandName").value.trim()||state.brand.name,voice:document.getElementById("brandVoice").value.trim(),audience:document.getElementById("brandAudience").value.trim()};
+ try{await window.orbitCoreReady;state=await window.orbitCore.updateBrand(nextBrand);log("Brand","Updated brand memory through Orbit Runtime");save();render()}catch(error){toast(error.message||"Brand update failed")}
+}
+async function toggleRule(i,on){
+ const rules=[...(state.brand.rules||[])];
+ if(!rules[i])return;
+ rules[i]=on?rules[i].replace(" [disabled]",""):rules[i].replace(" [disabled]","")+" [disabled]";
+ try{await window.orbitCoreReady;state=await window.orbitCore.updateBrand({...state.brand,rules});save();render()}catch(error){toast(error.message||"Guardrail update failed")}
+}
 function exportData(){const data={version:4,exportedAt:new Date().toISOString(),state};const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="orbitoos-backup.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("Backup exported")}
-function resetData(){if(!confirm("Reset local OrbitOS data?"))return;state=clone(seed);selectedId=state.ideas[0].id;save();render()}
-document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const p=JSON.parse(r.result);if(!p.state||!p.state.ideas)throw new Error();state=Object.assign(clone(seed),p.state,{version:4});selectedId=state.ideas[0]?.id||null;save();toast("Backup restored");render()}catch{toast("Invalid OrbitOS backup")}};r.readAsText(f)});
+async function saveAiSettings(){
+ const config={provider:document.getElementById("aiProvider").value,model:document.getElementById("aiModel").value.trim(),baseUrl:document.getElementById("aiBaseUrl").value.trim()};
+ try{await window.orbitCoreReady;state=await window.orbitCore.setAiConfig(config);toast("AI settings saved");render()}catch(error){toast(error.message||"AI settings failed")}
+}
+async function resetData(){
+ if(!confirm("Reset local OrbitOS data?"))return;
+ try{await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(seed));selectedId=state.ideas[0]?.id||null;toast("OrbitOS reset");render()}catch(error){toast(error.message||"Reset failed")}
+}
+document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const p=JSON.parse(r.result);if(!p.state||!p.state.ideas)throw new Error();await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(p.state));selectedId=state.ideas[0]?.id||null;toast("Backup restored");render()}catch(error){toast(error.message||"Invalid OrbitOS backup")}};r.readAsText(f)});
 window.orbitCoreReady=import("./src/runtime/browser-bridge.mjs")
  .then(({createOrbitBrowserBridge})=>{
    window.orbitCore=createOrbitBrowserBridge({storage:window.localStorage,key:STORE});
