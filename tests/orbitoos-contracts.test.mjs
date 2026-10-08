@@ -12,6 +12,10 @@ import {
   normalizeAnalyticsReportRow,
   parseAnalyticsReport,
 } from "../src/adapters/analytics-report-parser.mjs";
+import {
+  fromPersistentBrandRow,
+  toPersistentBrandRow,
+} from "../src/adapters/supabase-store.mjs";
 
 test("domain models enforce the canonical pipeline contract", () => {
   const brand = createBrand({
@@ -19,6 +23,8 @@ test("domain models enforce the canonical pipeline contract", () => {
     name: "Test Brand",
     voice: "Clear",
     audience: "Creators",
+    pillars: ["Education", "Systems"],
+    rules: ["No invented facts"],
   });
 
   const idea = createIdea({
@@ -44,10 +50,37 @@ test("domain models enforce the canonical pipeline contract", () => {
   });
 
   assert.equal(brand.id, "brand-test");
+  assert.deepEqual(brand.pillars, ["Education", "Systems"]);
+  assert.deepEqual(brand.rules, ["No invented facts"]);
   assert.equal(idea.stage, "idea");
   assert.equal(idea.metadata.brandId, "brand-test");
   assert.equal(variant.platform, "TikTok");
   assert.equal(schedule.status, "scheduled");
+});
+
+test("brand persistence preserves pillars and guardrails", () => {
+  const row = toPersistentBrandRow(
+    {
+      id: "brand-test",
+      name: "Test Brand",
+      voice: "Clear",
+      audience: "Creators",
+      pillars: ["Education", "Systems"],
+      rules: ["No invented facts", "No auto-publish"],
+      visualDirection: "Clean",
+      postingGoals: { cadence: "weekly" },
+    },
+    "workspace-test",
+  );
+
+  assert.equal(row.workspace_id, "workspace-test");
+  assert.deepEqual(row.pillars, ["Education", "Systems"]);
+  assert.deepEqual(row.prohibited, ["No invented facts", "No auto-publish"]);
+
+  const restored = fromPersistentBrandRow(row);
+  assert.deepEqual(restored.pillars, ["Education", "Systems"]);
+  assert.deepEqual(restored.rules, ["No invented facts", "No auto-publish"]);
+  assert.equal(restored.visualDirection, "Clean");
 });
 
 test("UI and core stages round-trip", () => {
