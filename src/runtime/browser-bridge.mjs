@@ -2,6 +2,7 @@ import { createOrbitRuntime } from "../core/runtime.mjs";
 import { MemoryStore } from "../adapters/local-store.mjs";
 import { createInitialState } from "../domain/state.mjs";
 import { toCoreState, toUiState } from "./ui-state.mjs";
+import { createRuntimeEnvironment } from "./environment.mjs";
 
 const DEFAULT_UI_KEY = "orbit-v4";
 const DEFAULT_AI_CONFIG = Object.freeze({
@@ -93,6 +94,16 @@ export function createOrbitBrowserBridge({
     const nextUiState = toUiState(nextCoreState, previous);
 
     return writeStoredState(storage, key, nextUiState);
+  }
+
+  async function getEnvironment() {
+    const previous = readStoredState(storage, key);
+    return createRuntimeEnvironment({
+      mode: "local",
+      provider: "local-store",
+      workspaceId: previous.workspace?.id ?? null,
+      userId: null,
+    });
   }
 
   async function snapshot() {
@@ -191,6 +202,7 @@ export function createOrbitBrowserBridge({
 
   return Object.freeze({
     snapshot,
+    getEnvironment,
     createDraft,
     createBrand,
     listBrands,
