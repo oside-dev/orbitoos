@@ -46,7 +46,7 @@ src/runtime/ui-state.mjs owns the translation between these shapes.
 5. Review checks guardrails.
 6. Human approval marks variants approved.
 7. Schedule records are created per platform and per time.
-8. Publishing consumes an existing approved schedule only when an official adapter is enabled and passes the Publishing Gateway. The gateway requires official capability, ready credentials, idempotency support, and rate-limit readiness before it calls an adapter.
+8. Publishing consumes an existing approved schedule only when an official adapter is enabled and passes the Publishing Gateway. The gateway requires official capability, ready credentials, idempotency support, and rate-limit readiness before it calls an adapter. A due-schedule runner can execute ready schedules in a backend process; the browser runtime does not expose that execution path.
 9. Analytics normalizes results.
 10. Learning produces advisory insights.
 
