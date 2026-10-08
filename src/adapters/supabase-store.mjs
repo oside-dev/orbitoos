@@ -109,7 +109,18 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
 
     return normalizeState({
       workspace: workspaces[0] ?? { id },
-      brand: brands[0] ?? {},
+      brand: brands[0]
+        ? {
+            id: brands[0].id,
+            name: brands[0].name,
+            voice: brands[0].voice,
+            audience: brands[0].audience,
+            pillars: brands[0].pillars ?? [],
+            prohibited: brands[0].prohibited ?? [],
+            visualDirection: brands[0].visual_direction ?? "",
+            postingGoals: brands[0].posting_goals ?? {},
+          }
+        : {},
       ideas: mappedIdeas,
       research: researchItems.map((row) => ({
         id: row.id,
@@ -174,7 +185,10 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         startedAt: row.started_at,
         finishedAt: row.finished_at,
       })),
-      learning,
+      learning: {
+        generatedAt: learningRows[0]?.generated_at ?? null,
+        insights: learning,
+      },
       learningInsights: learning,
     });
   }
