@@ -203,6 +203,25 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
     }
   }
 
+  async function removeStale(table, desiredIds) {
+    const keep = new Set(desiredIds);
+    const existing = await rows(
+      table,
+      client.from(table).select("id").eq("workspace_id", id),
+    );
+
+    for (const row of existing) {
+      if (keep.has(row.id)) continue;
+
+      const result = await client.from(table).delete().eq("id", row.id);
+      if (result?.error) {
+        throw new Error(
+          "OrbitOS Supabase " + table + " cleanup failed: " + result.error.message,
+        );
+      }
+    }
+  }
+
   async function set(nextState) {
     const state = normalizeState(nextState);
     await upsert("workspaces", [
@@ -352,6 +371,25 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         generated_at: state.learning?.generatedAt ?? new Date().toISOString(),
       })),
     );
+
+    const cleanupTargets = [
+      ["brands", [state.brand.id ?? id + ":brand"]],
+      ["ideas", state.ideas.map((item) => item.id)],
+      [
+        "research_items",
+        state.research.map((item, index) => item.id ?? id + ":research:" + index),
+      ],
+      ["content_items", state.contentItems.map((item) => item.id)],
+      ["content_variants", state.contentVariants.map((item) => item.id)],
+      ["schedules", state.schedules.map((item) => item.id)],
+      ["analytics_snapshots", state.metrics.map((item, index) => item.id ?? id + ":metric:" + index)],
+      ["agent_runs", state.audit.map((item) => item.id)],
+      ["learning_insights", state.learningInsights.map((item, index) => item.id ?? id + ":learning:" + index)],
+    ];
+
+    for (const [table, desiredIds] of cleanupTargets) {
+      await removeStale(table, desiredIds);
+    }
 
     return state;
   }
