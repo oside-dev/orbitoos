@@ -29,6 +29,15 @@ assert.deepEqual(
   ["Orchestrator", "Research", "Strategy", "Writing", "Creative", "Review"],
 );
 assert.equal(state.contentItems.length, 1);
+
+state = await runtime.updateBrand({
+  name: "Updated OrbitOS",
+  voice: "direct",
+  audience: "Builders",
+  rules: ["No invented facts"],
+});
+assert.equal(state.brand.name, "Updated OrbitOS");
+assert.equal(state.brand.audience, "Builders");
 assert.equal(state.contentVariants.length, 6);
 assert.ok(
   state.contentVariants.every((variant) => variant.creativeBrief),
