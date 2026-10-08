@@ -140,6 +140,40 @@ const publishingSnapshot = await publishingRuntime.snapshot();
 assert.equal(publishingSnapshot.audit.at(-1).agent, "Publishing");
 assert.equal(publishingSnapshot.audit.at(-1).output.success, true);
 
+const duePublishingRuntime = createOrbitRuntime({
+  store: new MemoryStore(createInitialState()),
+  publisher: {
+    provider: "due-publisher",
+    enabled: true,
+    official: true,
+    credentialsReady: true,
+    supportsIdempotency: true,
+    rateLimitReady: true,
+    async publish(input) {
+      return { published: true, idempotencyKey: input.idempotencyKey };
+    },
+  },
+});
+let dueState = await duePublishingRuntime.createDraft({
+  title: "Due schedule runner",
+  audience: "Creators",
+  goal: "Education",
+});
+dueState = await duePublishingRuntime.approveIdea(dueState.ideas[0].id);
+dueState = await duePublishingRuntime.scheduleIdeaVariant({
+  ideaId: dueState.ideas[0].id,
+  platform: "TikTok",
+  scheduledAt: "2026-10-08T00:00:00Z",
+});
+const dueResult = await duePublishingRuntime.runDuePublishing(
+  Date.parse("2026-10-08T01:00:00Z"),
+);
+assert.deepEqual(dueResult.results, [
+  { scheduleId: dueState.schedules[0].id, status: "published" },
+]);
+const dueSnapshot = await duePublishingRuntime.snapshot();
+assert.equal(dueSnapshot.schedules[0].status, "published");
+
 state = await runtime.normalizeMetrics({
   platform: "TikTok",
   views: 1234,
