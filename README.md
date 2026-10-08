@@ -83,5 +83,6 @@ https://orbitoos.vercel.app
 - M8 — Workspace security foundation — membership boundary, authenticated RLS contract, secure helper schema, and backend-controlled provisioning
 - M9 — Application runtime shell — explicit local/remote runtime modes, workspace identity context, and authenticated-runtime handoff boundary
 - M10 — Persistent content operating loop — real Supabase Auth + workspace bootstrap + persisted create/edit/approve/schedule lifecycle
+- M11 — Content intelligence foundation — persisted Strategy Agent artifact linked to each idea and restored across workspace reloads
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
