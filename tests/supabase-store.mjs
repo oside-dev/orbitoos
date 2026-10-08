@@ -102,11 +102,26 @@ await store.set({
     timezone: "UTC",
   },
   brand: {
-    id: "brand-1",
-    name: "Northstar Studio",
-    voice: "clear",
-    audience: "Creators",
+    id: "brand-2",
+    name: "Second Brand",
+    voice: "bold",
+    audience: "Creators 2",
   },
+  brands: [
+    {
+      id: "brand-1",
+      name: "Northstar Studio",
+      voice: "clear",
+      audience: "Creators",
+    },
+    {
+      id: "brand-2",
+      name: "Second Brand",
+      voice: "bold",
+      audience: "Creators 2",
+    },
+  ],
+  activeBrandId: "brand-2",
   ideas: [
     {
       id: "idea-1",
@@ -117,6 +132,7 @@ await store.set({
       brief: "Persist the content lifecycle.",
       stage: "approved",
       score: 91,
+      metadata: { brandId: "brand-2" },
       variants: {
         TikTok: {
           platform: "TikTok",
@@ -147,6 +163,7 @@ await store.set({
     {
       id: "content-1",
       ideaId: "idea-1",
+      brandId: "brand-2",
       title: "Persistent OrbitOS",
       brief: "Persist the lifecycle.",
       status: "approved",
@@ -157,6 +174,7 @@ await store.set({
   contentVariants: [
     {
       id: "variant-1",
+      brandId: "brand-2",
       contentItemId: "content-1",
       platform: "TikTok",
       hook: "Persist this.",
@@ -189,7 +207,12 @@ assert.equal(persistentSnapshot.ideas[0].id, "idea-1");
 
 const restored = await store.get();
 assert.equal(restored.workspace.name, "Northstar Studio");
-assert.equal(restored.brand.name, "Northstar Studio");
+assert.equal(restored.brand.name, "Second Brand");
+assert.equal(restored.activeBrandId, "brand-2");
+assert.equal(restored.brands.length, 2);
+assert.equal(restored.ideas[0].metadata.brandId, "brand-2");
+assert.equal(restored.contentItems[0].brandId, "brand-2");
+assert.equal(restored.contentVariants[0].brandId, "brand-2");
 assert.equal(restored.ideas[0].stage, "approved");
 assert.equal(restored.ideas[0].variants.TikTok.approved, true);
 assert.equal(restored.research[0].generatedBy, "test");
