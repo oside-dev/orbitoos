@@ -17,7 +17,7 @@ import {
 } from "../agents/index.mjs";
 import { createPipelineAudit } from "./audit.mjs";
 
-export const PIPELINE_VERSION = "core-0.4";
+export const PIPELINE_VERSION = "core-0.5";
 
 export async function runLocalPipeline(
   rawIdea,
