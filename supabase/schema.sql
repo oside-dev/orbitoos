@@ -103,7 +103,9 @@ create table if not exists analytics_snapshots (
   reach integer not null default 0,
   engagements integer not null default 0,
   follower_delta integer not null default 0,
-  is_demo boolean not null default true
+  is_demo boolean not null default true,
+  source text not null default 'unknown',
+  provider text not null default 'unknown'
 );
 
 create table if not exists agent_runs (
