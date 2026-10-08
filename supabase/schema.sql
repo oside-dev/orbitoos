@@ -105,6 +105,7 @@ create table if not exists ideas (
   tone text not null default '',
   status text not null default 'idea',
   score integer not null default 50,
+  strategy jsonb not null default '{}'::jsonb,
   deadline date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
