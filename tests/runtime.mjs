@@ -102,6 +102,38 @@ await assert.rejects(
     error instanceof PublishingDisabledError &&
     error.code === "PUBLISHING_DISABLED",
 );
+assert.equal(state.audit.at(-1).agent, "Publishing");
+const publishingRuntime = createOrbitRuntime({
+  store: new MemoryStore(createInitialState()),
+  publisher: {
+    provider: "test-publisher",
+    enabled: true,
+    async publish(input) {
+      assert.equal(input.approval, true);
+      assert.match(input.idempotencyKey, /^schedule-/);
+      return { published: true, idempotencyKey: input.idempotencyKey };
+    },
+  },
+});
+let publishingState = await publishingRuntime.createDraft({
+  title: "Publishing gateway test",
+  audience: "Creators",
+  goal: "Education",
+});
+publishingState = await publishingRuntime.approveIdea(publishingState.ideas[0].id);
+publishingState = await publishingRuntime.scheduleIdeaVariant({
+  ideaId: publishingState.ideas[0].id,
+  platform: "TikTok",
+  scheduledAt: "2026-10-09T09:00:00Z",
+});
+const publishResult = await publishingRuntime.publishIdeaVariant({
+  ideaId: publishingState.ideas[0].id,
+  platform: "TikTok",
+});
+assert.equal(publishResult.published, true);
+const publishingSnapshot = await publishingRuntime.snapshot();
+assert.equal(publishingSnapshot.audit.at(-1).agent, "Publishing");
+assert.equal(publishingSnapshot.audit.at(-1).output.success, true);
 
 state = await runtime.normalizeMetrics({
   platform: "TikTok",
