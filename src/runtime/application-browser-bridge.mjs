@@ -4,6 +4,7 @@ import { toUiState } from "./ui-state.mjs";
 import { createSupabaseBrowserClient } from "../adapters/supabase-browser-client.mjs";
 import { createSupabaseAuthAdapter } from "../adapters/supabase-auth.mjs";
 import { createSupabaseWorkspaceContextAdapter } from "../adapters/supabase-workspace-context.mjs";
+import { parseAnalyticsReport } from "../adapters/analytics-report-parser.mjs";
 
 const DEFAULT_AI_CONFIG = Object.freeze({
   provider: "local",
@@ -48,6 +49,20 @@ function normalizeAiConfig(previous = {}, override = {}) {
   }
 
   return { provider, model, baseUrl };
+}
+
+function normalizeImportedMetric(row, state, options = {}) {
+  const brandId = row.brandId ?? options.brandId ?? state.activeBrandId ?? null;
+  const source = row.source ?? options.source ?? "analytics-report";
+  const provider = row.provider ?? options.provider ?? "imported-report";
+
+  return {
+    ...row,
+    brandId,
+    source,
+    provider,
+    isDemo: false,
+  };
 }
 
 export async function createOrbitApplicationBrowserBridge({
@@ -209,6 +224,34 @@ export async function createOrbitApplicationBrowserBridge({
     return remoteFn(remote.runtime);
   }
 
+  async function importAnalyticsReport(text, options = {}) {
+    const parsedRows = parseAnalyticsReport(text, options);
+
+    if (!remote) {
+      const state = await localBridge.snapshot();
+      const next = {
+        ...state,
+        metrics: [
+          ...(state.metrics ?? []),
+          ...parsedRows.map((row) => normalizeImportedMetric(row, state, options)),
+        ],
+      };
+      await localBridge.importState(JSON.stringify(next));
+      return localBridge.snapshot();
+    }
+
+    const current = await remote.runtime.snapshot();
+    const next = {
+      ...current,
+      metrics: [
+        ...(current.metrics ?? []),
+        ...parsedRows.map((row) => normalizeImportedMetric(row, current, options)),
+      ],
+    };
+    await remote.runtime.importState(JSON.stringify(next));
+    return snapshot();
+  }
+
   await initializeRemote();
 
   return Object.freeze({
@@ -349,6 +392,9 @@ export async function createOrbitApplicationBrowserBridge({
             activeRuntime.publishIdeaVariant(input),
           ),
       ),
+
+    importAnalyticsReport: (text, options = {}) =>
+      importAnalyticsReport(text, options),
 
     exportState: () =>
       remote ? remote.runtime.exportState() : localBridge.exportState(),
