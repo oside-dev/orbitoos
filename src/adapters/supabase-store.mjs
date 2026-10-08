@@ -85,6 +85,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
 
       return {
         id: row.id,
+        brandId: row.brand_id ?? null,
         title: row.title,
         pillar: row.pillar ?? "General",
         audience: row.audience ?? "General audience",
@@ -105,12 +106,24 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       confidence: row.confidence,
       impact: row.impact,
       status: row.status,
+      brandId: row.brand_id ?? null,
     }));
+
+    const activeBrandId =
+      workspaces[0]?.settings?.activeBrandId ??
+      mappedBrands[0]?.id ??
+      null;
+    const activeBrand =
+      mappedBrands.find((brand) => brand.id === activeBrandId) ??
+      mappedBrands[0] ??
+      {};
 
     return normalizeState({
       workspace: workspaces[0] ?? { id },
-      brand: brands[0]
-        ? {
+      brand: activeBrand,
+      brands: mappedBrands,
+      activeBrandId,
+      ideas: mappedIdeas,
             id: brands[0].id,
             name: brands[0].name,
             voice: brands[0].voice,
@@ -118,13 +131,11 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
             pillars: brands[0].pillars ?? [],
             prohibited: brands[0].prohibited ?? [],
             visualDirection: brands[0].visual_direction ?? "",
-            postingGoals: brands[0].posting_goals ?? {},
-          }
-        : {},
-      ideas: mappedIdeas,
+
       research: researchItems.map((row) => ({
         id: row.id,
         ideaId: row.idea_id ?? null,
+        brandId: row.brand_id ?? null,
         topic: row.topic,
         summary: row.summary,
         signals: row.signals ?? [],
@@ -135,6 +146,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       contentItems: contentItems.map((row) => ({
         id: row.id,
         ideaId: row.idea_id,
+        brandId: row.brand_id ?? null,
         title: row.title,
         brief: row.brief,
         status: row.status,
