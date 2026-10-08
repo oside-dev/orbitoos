@@ -473,6 +473,12 @@ export function createOrbitRuntime({
   async function runLearning() {
     const state = await snapshot();
     const result = learning.run({
+      ideas: state.ideas.filter(
+        (idea) =>
+          !state.activeBrandId ||
+          !idea.metadata?.brandId ||
+          idea.metadata.brandId === state.activeBrandId,
+      ),
       metrics: state.metrics.filter(
         (row) =>
           !state.activeBrandId ||
