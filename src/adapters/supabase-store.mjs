@@ -104,6 +104,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         brief: item?.brief ?? "",
         stage: row.status ?? "idea",
         score: Number.isFinite(row.score) ? row.score : null,
+        strategy: row.strategy ?? {},
         variants,
         metadata: {
           brandId: row.brand_id ?? null,
@@ -296,6 +297,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         tone: state.brand.voice ?? "",
         status: idea.stage,
         score: Number.isFinite(idea.score) ? idea.score : 50,
+        strategy: idea.strategy ?? {},
       })),
     );
 
