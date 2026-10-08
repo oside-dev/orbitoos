@@ -20,6 +20,7 @@ export const localMetricsAdapter = Object.freeze({
         : 0,
       isDemo: raw.isDemo !== false,
       source: String(raw.source ?? "local-fixture"),
+      provider: String(raw.provider ?? "local-metrics"),
     };
 
     return assertNormalizedMetrics(snapshot);
