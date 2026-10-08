@@ -46,6 +46,9 @@ export function createVariant(input = {}) {
     hook: String(input.hook ?? ""),
     body: String(input.body ?? ""),
     cta: String(input.cta ?? ""),
+    hashtags: Array.isArray(input.hashtags) ? input.hashtags.map(String) : [],
+    creativeBrief: String(input.creativeBrief ?? ""),
+    visualDirection: String(input.visualDirection ?? ""),
     approved: Boolean(input.approved),
   };
 }
@@ -85,6 +88,7 @@ export function createContentVariant(input = {}, now = Date.now()) {
     cta: String(input.cta ?? ""),
     hashtags: Array.isArray(input.hashtags) ? input.hashtags.map(String) : [],
     creativeBrief: String(input.creativeBrief ?? ""),
+    visualDirection: String(input.visualDirection ?? ""),
     status: String(input.status ?? "draft"),
     approved: Boolean(input.approved),
     version: Number.isInteger(input.version) ? input.version : 1,
@@ -102,5 +106,8 @@ export function normalizeBrand(brand = {}) {
     voice: String(brand.voice ?? "").trim(),
     audience: String(brand.audience ?? "").trim(),
     rules: Array.isArray(brand.rules) ? brand.rules.map(String) : [],
+    visualDirection: String(
+      brand.visualDirection ?? brand.visual_direction ?? "",
+    ).trim(),
   };
 }

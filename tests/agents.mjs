@@ -3,6 +3,7 @@ import { createOrchestratorAgent } from "../src/agents/orchestrator.mjs";
 import { createResearchAgent } from "../src/agents/research.mjs";
 import { createStrategyAgent } from "../src/agents/strategy.mjs";
 import { createWritingAgent } from "../src/agents/writing.mjs";
+import { createCreativeAgent } from "../src/agents/creative.mjs";
 import { createReviewAgent } from "../src/agents/review.mjs";
 import { createAnalyticsAgent } from "../src/agents/analytics.mjs";
 import { createLearningAgent } from "../src/agents/learning.mjs";
@@ -22,7 +23,7 @@ const plan = orchestrator.plan({ idea });
 
 assert.equal(plan[0].agent, "Research");
 assert.equal(plan[0].status, "ready");
-assert.ok(plan.some((step) => step.agent === "Writing"));
+assert.ok(plan.some((step) => step.agent === "Creative"));
 assert.ok(plan.some((step) => step.agent === "Learning"));
 
 const researchAgent = createResearchAgent({ adapter: localResearchAdapter });
@@ -42,8 +43,19 @@ const variants = writingAgent.run({ idea, strategy, brand: {} });
 assert.equal(writingAgent.name, "Writing");
 assert.deepEqual(Object.keys(variants), PLATFORMS);
 
+const creativeAgent = createCreativeAgent();
+const creativeVariants = creativeAgent.run({
+  variants,
+  brand: { visualDirection: "clean" },
+});
+assert.equal(creativeAgent.name, "Creative");
+assert.deepEqual(Object.keys(creativeVariants), PLATFORMS);
+assert.ok(
+  Object.values(creativeVariants).every((variant) => variant.creativeBrief),
+);
+
 const reviewAgent = createReviewAgent();
-const review = reviewAgent.run({ variants, brand: {} });
+const review = reviewAgent.run({ variants: creativeVariants, brand: {} });
 assert.equal(reviewAgent.name, "Review");
 assert.equal(review.pass, true);
 assert.equal(review.humanApprovalRequired, true);

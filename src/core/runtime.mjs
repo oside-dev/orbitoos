@@ -50,6 +50,7 @@ function materializeContent(state, idea, now = Date.now()) {
           cta: variant.cta,
           hashtags: variant.hashtags,
           creativeBrief: variant.creativeBrief,
+          visualDirection: variant.visualDirection,
           status: idea.stage === "approved" ? "approved" : "draft",
           approved: Boolean(variant.approved),
           version: existing?.version ?? 1,
@@ -202,10 +203,7 @@ export function createOrbitRuntime({
     return save({
       ...state,
       learning: result,
-      learningInsights: [
-        ...state.learningInsights,
-        ...result.insights,
-      ],
+      learningInsights: [...state.learningInsights, ...result.insights],
       audit: [
         ...state.audit,
         createAgentRun({

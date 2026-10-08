@@ -93,6 +93,15 @@ export function createPipelineAudit({
       now: now + 3,
     }),
     createAgentRun({
+      agent: "Creative",
+      task: "Attach platform-native creative direction",
+      input: { ideaId: idea.id },
+      output: {
+        platforms: Object.keys(idea.variants ?? {}),
+      },
+      now: now + 4,
+    }),
+    createAgentRun({
       agent: "Review",
       task: "Review generated variants against guardrails",
       input: { ideaId: idea.id },
@@ -101,7 +110,7 @@ export function createPipelineAudit({
         reasons: review.reasons,
         humanApprovalRequired: review.humanApprovalRequired,
       },
-      now: now + 4,
+      now: now + 5,
     }),
   ];
 }

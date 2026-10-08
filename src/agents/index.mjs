@@ -6,6 +6,7 @@ export {
 export { createResearchAgent } from "./research.mjs";
 export { createStrategyAgent, strategyAgent } from "./strategy.mjs";
 export { createWritingAgent } from "./writing.mjs";
+export { createCreativeAgent, creativeAgent } from "./creative.mjs";
 export { createReviewAgent, reviewAgent } from "./review.mjs";
 export { createAnalyticsAgent } from "./analytics.mjs";
 export { createLearningAgent, learningAgent } from "./learning.mjs";

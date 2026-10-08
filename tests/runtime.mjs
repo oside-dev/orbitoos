@@ -23,12 +23,27 @@ assert.equal(state.ideas.length, 1);
 assert.equal(state.ideas[0].stage, "draft");
 assert.equal(Object.keys(state.ideas[0].variants).length, 6);
 assert.equal(state.research.length, 1);
-assert.equal(state.audit.length, 5);
-assert.equal(state.audit[0].agent, "Orchestrator");
+assert.equal(state.audit.length, 6);
+assert.deepEqual(
+  state.audit.map((run) => run.agent),
+  ["Orchestrator", "Research", "Strategy", "Writing", "Creative", "Review"],
+);
 assert.equal(state.contentItems.length, 1);
 assert.equal(state.contentItems[0].ideaId, state.ideas[0].id);
 assert.equal(state.contentItems[0].status, "draft");
 assert.equal(state.contentVariants.length, 6);
+assert.equal(
+  state.contentVariants.every(
+    (variant) => variant.contentItemId === state.contentItems[0].id,
+  ),
+  true,
+);
+assert.equal(
+  state.contentVariants.every(
+    (variant) => variant.creativeBrief && variant.visualDirection === "",
+  ),
+  false,
+);
 
 state = await runtime.approveIdea(state.ideas[0].id);
 assert.equal(state.ideas[0].stage, "approved");
@@ -88,5 +103,9 @@ assert.equal(restored.metrics[0].platform, "TikTok");
 assert.equal(restored.contentItems[0].status, "approved");
 assert.equal(restored.contentVariants.length, 6);
 assert.equal(restored.learningInsights.length, 3);
+assert.equal(
+  restored.contentVariants.every((variant) => variant.creativeBrief),
+  true,
+);
 
 console.log("OrbitOS runtime integration tests passed.");

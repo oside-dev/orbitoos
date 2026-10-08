@@ -12,11 +12,12 @@ import {
   createResearchAgent,
   strategyAgent,
   createWritingAgent,
+  creativeAgent,
   reviewAgent,
 } from "../agents/index.mjs";
 import { createPipelineAudit } from "./audit.mjs";
 
-export const PIPELINE_VERSION = "core-0.3";
+export const PIPELINE_VERSION = "core-0.4";
 
 export function runLocalPipeline(
   rawIdea,
@@ -37,9 +38,7 @@ export function runLocalPipeline(
 
   const workflowPlan = orchestratorAgent.plan({ idea });
 
-  const researchAgent = createResearchAgent({
-    adapter: researchAdapter,
-  });
+  const researchAgent = createResearchAgent({ adapter: researchAdapter });
   const research = researchAgent.run({ idea, brand });
 
   const strategy = strategyAgent.run({ idea, research });
@@ -47,7 +46,12 @@ export function runLocalPipeline(
   const writingAgent = createWritingAgent({
     adapter: contentGenerator,
   });
-  const variants = writingAgent.run({ idea, strategy, brand });
+  const writtenVariants = writingAgent.run({ idea, strategy, brand });
+
+  const variants = creativeAgent.run({
+    variants: writtenVariants,
+    brand,
+  });
 
   const review = reviewAgent.run({ variants, brand });
 

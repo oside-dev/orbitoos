@@ -22,13 +22,15 @@ assert.equal(Object.keys(result.idea.variants).length, PLATFORMS.length);
 assert.equal(result.execution.publishingEnabled, false);
 assert.equal(result.execution.requiresHumanApproval, true);
 assert.equal(result.research.generatedBy, "local-research");
-assert.equal(result.audit.length, 5);
-assert.equal(result.audit[0].agent, "Orchestrator");
+assert.equal(result.audit.length, 6);
 assert.deepEqual(
   result.audit.map((run) => run.agent),
-  ["Orchestrator", "Research", "Strategy", "Writing", "Review"],
+  ["Orchestrator", "Research", "Strategy", "Writing", "Creative", "Review"],
 );
 assert.ok(result.workflowPlan.length > 0);
+assert.ok(
+  Object.values(result.variants).every((variant) => variant.creativeBrief),
+);
 
 const store = new MemoryStore({ ideas: [] });
 await store.update((state) => {

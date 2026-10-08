@@ -50,7 +50,10 @@ jobs:
           test -f src/agents/research.mjs
           test -f src/agents/strategy.mjs
           test -f src/agents/writing.mjs
+          test -f src/agents/creative.mjs
           test -f src/agents/review.mjs
+          test -f src/agents/analytics.mjs
+          test -f src/agents/learning.mjs
           test -f tests/smoke.mjs
           test -f tests/contracts.mjs
           test -f tests/runtime.mjs

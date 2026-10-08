@@ -30,10 +30,10 @@ Implementation: adapter-backed src/agents/writing.mjs.
 
 ## Creative
 
-Input: variant + brand visual direction.  
-Output: shot list, thumbnail/creative brief.
+Input: generated variants + brand visual direction.  
+Output: platform-specific creative brief and visual direction.
 
-Status: contract defined; implementation follows after the core content loop.
+Implementation: deterministic local src/agents/creative.mjs.
 
 ## Review
 
