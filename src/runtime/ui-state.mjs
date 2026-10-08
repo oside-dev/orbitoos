@@ -70,6 +70,8 @@ export function toCoreState(uiState = {}) {
       ? source.contentVariants
       : [],
     schedules: Array.isArray(source.schedules) ? source.schedules : [],
+    socialAccounts: Array.isArray(source.socialAccounts) ? source.socialAccounts : [],
+    publishingJobs: Array.isArray(source.publishingJobs) ? source.publishingJobs : [],
     metrics: Array.isArray(source.metrics) ? source.metrics : [],
     audit: Array.isArray(source.audit) ? source.audit : [],
     learning:
@@ -112,6 +114,8 @@ export function toUiState(coreState, previousUiState = {}) {
     contentItems: structuredClone(coreState.contentItems),
     contentVariants: structuredClone(coreState.contentVariants),
     schedules: structuredClone(coreState.schedules),
+    socialAccounts: structuredClone(coreState.socialAccounts),
+    publishingJobs: structuredClone(coreState.publishingJobs),
     audit: structuredClone(coreState.audit),
     learning: structuredClone(coreState.learning),
     learningInsights: structuredClone(coreState.learningInsights),
