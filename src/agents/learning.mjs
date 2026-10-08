@@ -3,11 +3,30 @@ function numeric(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function engagementRate(row) {
+  const engagements = numeric(row.engagements ?? row.engagement);
+  const denominator = numeric(row.reach ?? row.views);
+
+  if (denominator <= 0) return 0;
+  return (engagements / denominator) * 100;
+}
+
+function confidence(sampleCount, isDemo) {
+  const base = Math.min(0.92, 0.55 + Math.min(sampleCount, 10) * 0.035);
+  return isDemo ? Math.min(base, 0.7) : base;
+}
+
 export function createLearningAgent() {
   return Object.freeze({
     name: "Learning",
-    run({ metrics = [], contentItems = [] } = {}) {
+    run({
+      metrics = [],
+      contentItems = [],
+      contentVariants = [],
+    } = {}) {
       const rows = Array.isArray(metrics) ? metrics : [];
+      const items = Array.isArray(contentItems) ? contentItems : [];
+      const variants = Array.isArray(contentVariants) ? contentVariants : [];
       const insights = [];
 
       if (rows.length === 0) {
@@ -17,60 +36,110 @@ export function createLearningAgent() {
         };
       }
 
+      const strongestEngagementRate = [...rows].sort(
+        (a, b) => engagementRate(b) - engagementRate(a),
+      )[0];
+
+      const strongestReach = [...rows].sort(
+        (a, b) =>
+          numeric(b.reach ?? b.views) -
+          numeric(a.reach ?? a.views),
+      )[0];
+
       const strongestEngagement = [...rows].sort(
         (a, b) =>
           numeric(b.engagements ?? b.engagement) -
           numeric(a.engagements ?? a.engagement),
       )[0];
 
-      const strongestReach = [...rows].sort(
-        (a, b) =>
-          numeric(b.reach ?? b.views) - numeric(a.reach ?? a.views),
-      )[0];
+      const titleFor = (row) => {
+        const content = items.find((item) => item.id === row.contentItemId);
+        return content?.title ?? String(row.platform ?? "Platform");
+      };
 
-      if (strongestEngagement) {
-        const engagement = numeric(
-          strongestEngagement.engagements ?? strongestEngagement.engagement,
+      const variantFor = (row) => {
+        return variants.find(
+          (variant) =>
+            variant.contentItemId === row.contentItemId &&
+            variant.platform === row.platform,
         );
+      };
+
+      if (strongestEngagementRate) {
+        const rate = engagementRate(strongestEngagementRate);
+        const variant = variantFor(strongestEngagementRate);
+        const title = titleFor(strongestEngagementRate);
 
         insights.push({
-          title: "Prioritize the strongest engagement signal",
+          title: "Study the strongest engagement rate",
           detail:
-            String(strongestEngagement.platform ?? "One platform") +
-            " currently has the strongest engagement signal at " +
-            engagement +
-            ". Reframe winning topics for that audience before expanding.",
+            title +
+            " on " +
+            String(strongestEngagementRate.platform ?? "one platform") +
+            " is producing an estimated " +
+            rate.toFixed(1) +
+            "% engagement rate from " +
+            numeric(strongestEngagementRate.reach ?? strongestEngagementRate.views).toLocaleString() +
+            " reached/views. Preserve the winning structure" +
+            (variant?.hook ? " and inspect its hook pattern." : "."),
           category: "content-performance",
-          confidence: 0.78,
-          impact: "medium",
+          confidence: confidence(rows.length, Boolean(strongestEngagementRate.isDemo)),
+          impact: "high",
           status: "new",
         });
       }
 
       if (strongestReach) {
         const reach = numeric(strongestReach.reach ?? strongestReach.views);
+        const title = titleFor(strongestReach);
 
         insights.push({
           title: "Study the highest-reach format",
           detail:
-            String(strongestReach.platform ?? "One platform") +
-            " has the strongest reach signal at " +
-            reach +
-            ". Capture its hook and pacing patterns without blindly copying it.",
+            title +
+            " currently has the strongest distribution signal at " +
+            reach.toLocaleString() +
+            " reach/views on " +
+            String(strongestReach.platform ?? "one platform") +
+            ". Reframe the winning format for other platforms instead of blindly copying it.",
           category: "distribution",
-          confidence: 0.72,
+          confidence: confidence(rows.length, Boolean(strongestReach.isDemo)),
           impact: "medium",
           status: "new",
         });
       }
 
+      const allDemo = rows.every((row) => row.isDemo !== false);
+      const providerNames = [
+        ...new Set(
+          rows
+            .map((row) => row.provider ?? row.source)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
+
       insights.push({
-        title: "Keep learning advisory",
+        title: allDemo
+          ? "Keep learning advisory while data is simulated"
+          : "Use real analytics as the learning source",
         detail:
-          contentItems.length +
-          " content items are in the local history. Strategy changes remain human-reviewed until real analytics are connected.",
+          (allDemo
+            ? "Current metrics are demo/local data. "
+            : "At least one non-demo analytics record is present. ") +
+          rows.length +
+          " metric record" +
+          (rows.length === 1 ? "" : "s") +
+          " and " +
+          items.length +
+          " content item" +
+          (items.length === 1 ? "" : "s") +
+          " are available for learning." +
+          (providerNames.length
+            ? " Providers: " + providerNames.join(", ") + "."
+            : ""),
         category: "governance",
-        confidence: 0.95,
+        confidence: allDemo ? 0.95 : 0.9,
         impact: "high",
         status: "new",
       });
