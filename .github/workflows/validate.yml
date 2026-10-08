@@ -24,7 +24,7 @@ jobs:
           ! grep -q "function ensureVariants" index.html
           ! grep -q "function refreshResearch" index.html
           ! grep -q "function refreshMetrics" index.html
-          tmp_js=$(mktemp)
+          tmp_js=$(mktemp --suffix=.mjs)
           awk '/<script>/{flag=1;next}/<\/script>/{flag=0}flag' index.html > "$tmp_js"
           node --check "$tmp_js"
           rm -f "$tmp_js"
