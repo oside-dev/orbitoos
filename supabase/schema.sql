@@ -194,7 +194,30 @@ alter table if exists analytics_snapshots enable row level security;
 alter table if exists agent_runs enable row level security;
 alter table if exists learning_insights enable row level security;
 
--- Clean re-runs: replace only the policies owned by this contract.
+revoke all on table workspaces from anon, authenticated;
+revoke all on table workspace_members from anon, authenticated;
+revoke all on table brands from anon, authenticated;
+revoke all on table ideas from anon, authenticated;
+revoke all on table research_items from anon, authenticated;
+revoke all on table content_items from anon, authenticated;
+revoke all on table content_variants from anon, authenticated;
+revoke all on table schedules from anon, authenticated;
+revoke all on table analytics_snapshots from anon, authenticated;
+revoke all on table agent_runs from anon, authenticated;
+revoke all on table learning_insights from anon, authenticated;
+
+grant select, update on table workspaces to authenticated;
+grant select on table workspace_members to authenticated;
+grant select, insert, update, delete on table brands to authenticated;
+grant select, insert, update, delete on table ideas to authenticated;
+grant select, insert, update, delete on table research_items to authenticated;
+grant select, insert, update, delete on table content_items to authenticated;
+grant select, insert, update, delete on table content_variants to authenticated;
+grant select, insert, update, delete on table schedules to authenticated;
+grant select, insert, update, delete on table analytics_snapshots to authenticated;
+grant select, insert, update, delete on table agent_runs to authenticated;
+grant select, insert, update, delete on table learning_insights to authenticated;
+
 drop policy if exists "workspace_members_read" on workspace_members;
 drop policy if exists "workspaces_member_read" on workspaces;
 drop policy if exists "workspaces_member_update" on workspaces;
@@ -208,7 +231,7 @@ drop policy if exists "analytics_member_access" on analytics_snapshots;
 drop policy if exists "agent_runs_member_access" on agent_runs;
 drop policy if exists "learning_member_access" on learning_insights;
 
-create policy "workspace_members_read"
+create policy "workspace_members_member_read"
 on workspace_members
 for select
 to authenticated
@@ -235,102 +258,155 @@ with check (
   id in (select private.user_workspace_ids())
 );
 
-create policy "brands_member_access"
-on brands
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "brands_member_read"
+on brands for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
 
-create policy "ideas_member_access"
-on ideas
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "brands_member_insert"
+on brands for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
 
-create policy "research_member_access"
-on research_items
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "brands_member_update"
+on brands for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
 
-create policy "content_items_member_access"
-on content_items
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "brands_member_delete"
+on brands for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
 
-create policy "content_variants_member_access"
-on content_variants
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "ideas_member_read"
+on ideas for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
 
-create policy "schedules_member_access"
-on schedules
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "ideas_member_insert"
+on ideas for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
 
-create policy "analytics_member_access"
-on analytics_snapshots
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "ideas_member_update"
+on ideas for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
 
-create policy "agent_runs_member_access"
-on agent_runs
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "ideas_member_delete"
+on ideas for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
 
-create policy "learning_member_access"
-on learning_insights
-for all
-to authenticated
-using (
-  workspace_id in (select private.user_workspace_ids())
-)
-with check (
-  workspace_id in (select private.user_workspace_ids())
-);
+create policy "research_member_read"
+on research_items for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
 
+create policy "research_member_insert"
+on research_items for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "research_member_update"
+on research_items for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "research_member_delete"
+on research_items for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_read"
+on content_items for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_insert"
+on content_items for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_update"
+on content_items for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_delete"
+on content_items for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_read"
+on content_variants for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_insert"
+on content_variants for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_update"
+on content_variants for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_delete"
+on content_variants for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_read"
+on schedules for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_insert"
+on schedules for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_update"
+on schedules for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_delete"
+on schedules for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_read"
+on analytics_snapshots for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_insert"
+on analytics_snapshots for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_update"
+on analytics_snapshots for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_delete"
+on analytics_snapshots for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_read"
+on agent_runs for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_insert"
+on agent_runs for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_update"
+on agent_runs for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_delete"
+on agent_runs for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_read"
+on learning_insights for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_insert"
+on learning_insights for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_update"
+on learning_insights for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_delete"
+on learning_insights for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
