@@ -52,13 +52,13 @@ Output: provider job result. Disabled until an official adapter is connected.
 Input: platform metrics.  
 Output: normalized analytics snapshot.
 
-Implementation: local metrics adapter now; official ingestion later.
+Implementation: adapter-backed src/agents/analytics.mjs.
 
 ## Learning
 
 Input: analytics + content history.  
 Output: high-confidence recommendations stored as learning insights.
 
-Status: contract defined; advisory implementation follows after real analytics ingestion.
+Implementation: local deterministic src/agents/learning.mjs. Recommendations are advisory; strategy changes remain human-reviewed.
 
 All contracts are provider-neutral. The first implementation is local/deterministic.

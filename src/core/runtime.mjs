@@ -12,6 +12,7 @@ import { localResearchAdapter } from "../adapters/local-research.mjs";
 import { localContentGeneratorAdapter } from "../adapters/local-content-generator.mjs";
 import { localMetricsAdapter } from "../adapters/local-metrics.mjs";
 import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
+import { createAnalyticsAgent, learningAgent } from "../agents/index.mjs";
 
 function materializeContent(state, idea, now = Date.now()) {
   const current = state.contentItems.find((item) => item.ideaId === idea.id);
@@ -71,6 +72,8 @@ export function createOrbitRuntime({
   contentGenerator = localContentGeneratorAdapter,
   metrics = localMetricsAdapter,
   publisher = nullPublisherAdapter,
+  analytics = createAnalyticsAgent({ adapter: metrics }),
+  learning = learningAgent,
 } = {}) {
   assertAdapter("store", store);
   assertAdapter("research", research);
@@ -98,19 +101,14 @@ export function createOrbitRuntime({
     const nextIdeas = state.ideas.filter((item) => item.id !== result.idea.id);
     nextIdeas.push(result.idea);
 
-    const materialized = materializeContent(
-      state,
-      result.idea,
-      Date.now(),
-    );
+    const materialized = materializeContent(state, result.idea, Date.now());
     const nextContentItems = state.contentItems.filter(
       (item) => item.id !== materialized.contentItem.id,
     );
     nextContentItems.push(materialized.contentItem);
 
     const nextVariants = state.contentVariants.filter(
-      (variant) =>
-        variant.contentItemId !== materialized.contentItem.id,
+      (variant) => variant.contentItemId !== materialized.contentItem.id,
     );
     nextVariants.push(...materialized.contentVariants);
 
@@ -175,7 +173,7 @@ export function createOrbitRuntime({
   }
 
   async function normalizeMetrics(raw) {
-    const snapshotValue = metrics.normalize(raw);
+    const snapshotValue = analytics.run(raw);
     const state = await snapshot();
 
     return save({
@@ -188,6 +186,38 @@ export function createOrbitRuntime({
           task: "Normalize platform metrics",
           input: { platform: snapshotValue.platform },
           output: { snapshotDate: snapshotValue.snapshotDate },
+        }),
+      ],
+    });
+  }
+
+  async function runLearning() {
+    const state = await snapshot();
+    const result = learning.run({
+      metrics: state.metrics,
+      contentItems: state.contentItems,
+      contentVariants: state.contentVariants,
+    });
+
+    return save({
+      ...state,
+      learning: result,
+      learningInsights: [
+        ...state.learningInsights,
+        ...result.insights,
+      ],
+      audit: [
+        ...state.audit,
+        createAgentRun({
+          agent: "Learning",
+          task: "Generate advisory learning insights",
+          input: {
+            metricCount: state.metrics.length,
+            contentItemCount: state.contentItems.length,
+          },
+          output: {
+            insightCount: result.insights.length,
+          },
         }),
       ],
     });
@@ -225,6 +255,7 @@ export function createOrbitRuntime({
     createDraft,
     approveIdea,
     normalizeMetrics,
+    runLearning,
     publishIdeaVariant,
     exportState,
     importState,
