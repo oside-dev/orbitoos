@@ -459,6 +459,13 @@ export function createOrbitRuntime({
       );
 
       if (!idea) {
+        const latest = await snapshot();
+        await save({
+          ...latest,
+          schedules: latest.schedules.map((item) =>
+            item.id === schedule.id ? { ...item, status: "failed" } : item,
+          ),
+        });
         results.push({
           scheduleId: schedule.id,
           status: "failed",
