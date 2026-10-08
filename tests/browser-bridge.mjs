@@ -44,6 +44,10 @@ storage.setItem(
 
 const bridge = createOrbitBrowserBridge({ storage, key: "orbit-v4" });
 
+assert.equal(typeof bridge.publishIdeaVariant, "function");
+assert.equal(typeof bridge.ingestExternalMetrics, "undefined");
+assert.equal(typeof bridge.runDuePublishing, "undefined");
+
 let state = await bridge.snapshot();
 assert.equal(state.ideas[0].stage, "Draft");
 
