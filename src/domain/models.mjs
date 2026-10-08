@@ -102,6 +102,7 @@ export function createContentVariant(input = {}, now = Date.now()) {
         now,
       ),
     contentItemId: input.contentItemId ?? null,
+    brandId: input.brandId ?? null,
     platform,
     hook: String(input.hook ?? ""),
     body: String(input.body ?? ""),
