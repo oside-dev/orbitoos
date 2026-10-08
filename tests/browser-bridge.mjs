@@ -47,8 +47,22 @@ const bridge = createOrbitBrowserBridge({ storage, key: "orbit-v4" });
 assert.equal(typeof bridge.publishIdeaVariant, "function");
 assert.equal(typeof bridge.ingestExternalMetrics, "undefined");
 assert.equal(typeof bridge.runDuePublishing, "undefined");
+assert.equal(typeof bridge.createBrand, "function");
+assert.equal(typeof bridge.listBrands, "function");
+assert.equal(typeof bridge.setActiveBrand, "function");
 
 let state = await bridge.snapshot();
+assert.ok(Array.isArray(state.brands));
+const brand = await bridge.createBrand({
+  id: "brand-browser-2",
+  name: "Browser Brand 2",
+  voice: "bold",
+  audience: "Builders",
+});
+assert.equal(brand.brands.length >= 1, true);
+state = await bridge.setActiveBrand("brand-browser-2");
+assert.equal(state.activeBrandId, "brand-browser-2");
+assert.equal(state.brand.name, "Browser Brand 2");
 assert.equal(state.ideas[0].stage, "Draft");
 
 state = await bridge.createDraft(
