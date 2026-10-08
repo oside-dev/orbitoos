@@ -4,6 +4,8 @@ const DEFAULT_STATE = Object.freeze({
   version: STATE_VERSION,
   workspace: {},
   brand: {},
+  brands: [],
+  activeBrandId: null,
   ideas: [],
   research: [],
   contentItems: [],
@@ -35,6 +37,31 @@ export function normalizeState(raw = {}) {
           insights: [],
         };
 
+  const legacyBrand =
+    source.brand && typeof source.brand === "object"
+      ? structuredClone(source.brand)
+      : {};
+  const sourceBrands = Array.isArray(source.brands)
+    ? source.brands.filter((brand) => brand && typeof brand === "object")
+    : [];
+
+  const brands =
+    sourceBrands.length > 0
+      ? sourceBrands
+      : legacyBrand.name
+        ? [{ ...legacyBrand, id: legacyBrand.id ?? "brand-default" }]
+        : [];
+
+  const activeBrandId =
+    source.activeBrandId ??
+    brands[0]?.id ??
+    null;
+
+  const activeBrand =
+    brands.find((brand) => brand.id === activeBrandId) ??
+    legacyBrand ??
+    {};
+
   return {
     ...structuredClone(DEFAULT_STATE),
     ...structuredClone(source),
@@ -43,10 +70,9 @@ export function normalizeState(raw = {}) {
       source.workspace && typeof source.workspace === "object"
         ? structuredClone(source.workspace)
         : {},
-    brand:
-      source.brand && typeof source.brand === "object"
-        ? structuredClone(source.brand)
-        : {},
+    brand: structuredClone(activeBrand),
+    brands: structuredClone(brands),
+    activeBrandId,
     ideas: Array.isArray(source.ideas) ? structuredClone(source.ideas) : [],
     research: Array.isArray(source.research)
       ? structuredClone(source.research)
