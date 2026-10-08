@@ -20,7 +20,7 @@ const DEFAULT_SIGNALS = Object.freeze([
 ]);
 
 export const localResearchAdapter = Object.freeze({
-  async research({ idea }) {
+  research({ idea }) {
     const signals = DEFAULT_SIGNALS.map((signal) => ({ ...signal }));
 
     return {
