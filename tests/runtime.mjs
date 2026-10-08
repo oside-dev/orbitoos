@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createOrbitRuntime } from "../src/core/runtime.mjs";
 import { MemoryStore } from "../src/adapters/local-store.mjs";
 import { createInitialState } from "../src/domain/state.mjs";
-import { PublishingDisabledError } from "../src/adapters/null-publisher.mjs";
+import { PublishingGateError } from "../src/core/publishing-gateway.mjs";
 
 const runtime = createOrbitRuntime({
   store: new MemoryStore(
@@ -99,7 +99,7 @@ await assert.rejects(
       platform: "TikTok",
     }),
   (error) =>
-    error instanceof PublishingDisabledError &&
+    error instanceof PublishingGateError &&
     error.code === "PUBLISHING_DISABLED",
 );
 state = await runtime.snapshot();
@@ -109,6 +109,10 @@ const publishingRuntime = createOrbitRuntime({
   publisher: {
     provider: "test-publisher",
     enabled: true,
+    official: true,
+    credentialsReady: true,
+    supportsIdempotency: true,
+    rateLimitReady: true,
     async publish(input) {
       assert.equal(input.approval, true);
       assert.match(input.idempotencyKey, /^schedule-/);
