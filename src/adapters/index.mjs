@@ -3,6 +3,7 @@ export {
   assertNormalizedMetrics,
   ADAPTER_CONTRACTS,
 } from "../contracts/adapters.mjs";
+export { assertTextModel, TEXT_MODEL_CONTRACT } from "../contracts/ai.mjs";
 export { MemoryStore, createBrowserStore } from "./local-store.mjs";
 export {
   generateLocalVariants,
@@ -14,3 +15,5 @@ export {
   nullPublisherAdapter,
   PublishingDisabledError,
 } from "./null-publisher.mjs";
+export { createOllamaTextModel } from "./ollama-text-model.mjs";
+export { createOllamaContentGenerator } from "./ollama-content-generator.mjs";

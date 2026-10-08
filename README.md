@@ -23,13 +23,25 @@ The browser MVP is dependency-free and local-first:
 
 The browser UI uses a compatibility bridge into the modular runtime for core content operations. Existing v4 UI state remains intact while domain/core state moves toward the backend-ready data model.
 
+## Free/local AI
+
+OrbitOS now has an optional provider adapter for a locally running Ollama API.
+
+- The AI contract is provider-neutral.
+- The default runtime does not require a model.
+- Ollama is injected as a content-generator dependency when a local model is available.
+- No AI credentials are stored in the browser.
+- Deterministic local generation remains the fallback.
+
+The adapter targets Ollama's local API without taking a dependency on an Ollama SDK.
+
 ## Architecture
 
 The repository is split into four internal layers:
 
 - Domain — stable models, stages, content entities, schedules, and state
 - Agents/Core — orchestrator plus specialist agents and business rules
-- Adapters — replaceable persistence/content/research/publishing/metrics implementations
+- Adapters — replaceable persistence/content/research/publishing/metrics/AI implementations
 - Runtime UI — current static browser application plus the browser compatibility bridge
 
 Agents depend on contracts rather than vendor SDKs. That lets providers change without rewriting the product.
@@ -60,9 +72,9 @@ https://orbitoos.vercel.app
 ## Engineering roadmap
 
 - M0 — Foundation — complete
-- M1 — Content operating loop — in progress
+- M1 — Content operating loop — active
 - M2 — Internal domain/core/adapters split — active foundation work
-- M3 — Free/local AI adapter
+- M3 — Free/local AI adapter — adapter ready; runtime opt-in
 - M4 — Persistent backend adapter
 - M5 — Official publishing adapters
 - M6 — Real analytics ingestion + learning

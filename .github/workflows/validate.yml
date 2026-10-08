@@ -39,11 +39,14 @@ jobs:
           test -f src/core/audit.mjs
           test -f src/core/runtime.mjs
           test -f src/contracts/adapters.mjs
+          test -f src/contracts/ai.mjs
           test -f src/adapters/local-store.mjs
           test -f src/adapters/local-content-generator.mjs
           test -f src/adapters/local-research.mjs
           test -f src/adapters/local-metrics.mjs
           test -f src/adapters/null-publisher.mjs
+          test -f src/adapters/ollama-text-model.mjs
+          test -f src/adapters/ollama-content-generator.mjs
           test -f src/runtime/ui-state.mjs
           test -f src/runtime/browser-bridge.mjs
           test -f src/agents/orchestrator.mjs
@@ -59,6 +62,7 @@ jobs:
           test -f tests/runtime.mjs
           test -f tests/browser-bridge.mjs
           test -f tests/agents.mjs
+          test -f tests/local-ai.mjs
 
       - name: Run smoke tests
         run: node tests/smoke.mjs
@@ -74,3 +78,6 @@ jobs:
 
       - name: Run agent tests
         run: node tests/agents.mjs
+
+      - name: Run local AI adapter tests
+        run: node tests/local-ai.mjs
