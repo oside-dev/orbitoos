@@ -105,7 +105,9 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         stage: row.status ?? "idea",
         score: Number.isFinite(row.score) ? row.score : null,
         variants,
-        metadata: {},
+        metadata: {
+          brandId: row.brand_id ?? null,
+        },
       };
     });
 
