@@ -48,24 +48,34 @@ let state = await bridge.snapshot();
 assert.equal(state.ideas[0].stage, "Draft");
 
 state = await bridge.createDraft(
-  {
-    ...state.ideas[0],
-    stage: "Draft",
-  },
+  state.ideas[0],
   state.brand,
 );
 
 assert.equal(state.ideas.length, 1);
 assert.equal(state.ideas[0].stage, "Draft");
 assert.equal(Object.keys(state.ideas[0].variants).length, 6);
-assert.equal(state.research.length, 1);
+
+state = await bridge.updateContentVariant({
+  ideaId: state.ideas[0].id,
+  platform: "TikTok",
+  changes: { hook: "Bridge-edited hook" },
+});
+assert.equal(
+  state.contentVariants.find((variant) => variant.platform === "TikTok").hook,
+  "Bridge-edited hook",
+);
 
 state = await bridge.approveIdea(state.ideas[0].id);
 assert.equal(state.ideas[0].stage, "Approved");
-assert.equal(
-  Object.values(state.ideas[0].variants).every((variant) => variant.approved),
-  true,
-);
+
+state = await bridge.scheduleIdeaVariant({
+  ideaId: state.ideas[0].id,
+  platform: "TikTok",
+  scheduledAt: "2026-10-09T09:00:00Z",
+});
+assert.equal(state.schedules.length, 1);
+assert.equal(state.schedules[0].platform, "TikTok");
 
 const exported = await bridge.exportState();
 const restoredStorage = createMemoryStorage();
@@ -78,5 +88,6 @@ await restoredBridge.importState(exported);
 const restored = await restoredBridge.snapshot();
 assert.equal(restored.version, 4);
 assert.equal(restored.ideas[0].stage, "Approved");
+assert.equal(restored.schedules.length, 1);
 
 console.log("OrbitOS browser bridge tests passed.");

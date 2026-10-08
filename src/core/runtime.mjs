@@ -2,6 +2,7 @@ import {
   createContentItem,
   createContentVariant,
   createIdea,
+  createSchedule,
 } from "../domain/models.mjs";
 import { assertAdapter } from "../contracts/adapters.mjs";
 import { createInitialState, normalizeState } from "../domain/state.mjs";
@@ -39,6 +40,7 @@ function materializeContent(state, idea, now = Date.now()) {
   const contentVariants = Object.entries(idea.variants ?? {}).map(
     ([platform, variant]) => {
       const existing = existingByPlatform.get(platform);
+      const status = variant.approved ? "approved" : "draft";
 
       return createContentVariant(
         {
@@ -51,7 +53,7 @@ function materializeContent(state, idea, now = Date.now()) {
           hashtags: variant.hashtags,
           creativeBrief: variant.creativeBrief,
           visualDirection: variant.visualDirection,
-          status: idea.stage === "approved" ? "approved" : "draft",
+          status,
           approved: Boolean(variant.approved),
           version: existing?.version ?? 1,
           updatedAt: new Date(now).toISOString(),
@@ -61,10 +63,7 @@ function materializeContent(state, idea, now = Date.now()) {
     },
   );
 
-  return {
-    contentItem,
-    contentVariants,
-  };
+  return { contentItem, contentVariants };
 }
 
 export function createOrbitRuntime({
@@ -123,6 +122,73 @@ export function createOrbitRuntime({
     });
   }
 
+  async function updateContentVariant(
+    { ideaId, platform, changes = {} },
+    now = Date.now(),
+  ) {
+    const state = await snapshot();
+    const idea = state.ideas.find((item) => item.id === ideaId);
+    if (!idea) throw new Error("OrbitOS idea not found: " + ideaId);
+
+    const current = idea.variants?.[platform];
+    if (!current) {
+      throw new Error("OrbitOS content variant not found: " + platform);
+    }
+
+    if (idea.stage === "approved" || idea.stage === "scheduled") {
+      throw new Error("Approved content must be revised into a new draft.");
+    }
+
+    const existingContentVariant = state.contentVariants.find(
+      (variant) =>
+        variant.contentItemId ===
+          state.contentItems.find((item) => item.ideaId === idea.id)?.id &&
+        variant.platform === platform,
+    );
+
+    const updatedVariant = {
+      ...current,
+      ...changes,
+      platform,
+      approved: false,
+    };
+
+    const nextIdea = {
+      ...idea,
+      stage: "draft",
+      variants: {
+        ...idea.variants,
+        [platform]: updatedVariant,
+      },
+    };
+
+    const materialized = materializeContent(state, nextIdea, now);
+    const nextContentVariants = materialized.contentVariants.map((variant) =>
+      variant.platform === platform
+        ? {
+            ...variant,
+            version: (existingContentVariant?.version ?? 0) + 1,
+          }
+        : variant,
+    );
+
+    return save({
+      ...state,
+      ideas: state.ideas.map((item) =>
+        item.id === idea.id ? nextIdea : item,
+      ),
+      contentItems: state.contentItems
+        .filter((item) => item.id !== materialized.contentItem.id)
+        .concat(materialized.contentItem),
+      contentVariants: state.contentVariants
+        .filter(
+          (variant) =>
+            variant.contentItemId !== materialized.contentItem.id,
+        )
+        .concat(nextContentVariants),
+    });
+  }
+
   async function approveIdea(ideaId, now = Date.now()) {
     const state = await snapshot();
     const idea = state.ideas.find((item) => item.id === ideaId);
@@ -170,6 +236,67 @@ export function createOrbitRuntime({
         )
         .concat(materialized.contentVariants),
       audit: [...state.audit, run],
+    });
+  }
+
+  async function scheduleIdeaVariant(
+    { ideaId, platform, scheduledAt },
+    now = Date.now(),
+  ) {
+    const state = await snapshot();
+    const idea = state.ideas.find((item) => item.id === ideaId);
+    if (!idea) throw new Error("OrbitOS idea not found: " + ideaId);
+
+    const variant = idea.variants?.[platform];
+    if (!variant?.approved || idea.stage !== "approved") {
+      throw new Error("Scheduling requires an approved idea and variant.");
+    }
+
+    const contentItem = state.contentItems.find(
+      (item) => item.ideaId === ideaId,
+    );
+    if (!contentItem) throw new Error("Content item not found for idea.");
+
+    const existing = state.schedules.find(
+      (schedule) =>
+        schedule.contentItemId === contentItem.id &&
+        schedule.platform === platform &&
+        schedule.status === "scheduled",
+    );
+
+    if (existing) return state;
+
+    const schedule = createSchedule(
+      {
+        contentItemId: contentItem.id,
+        platform,
+        scheduledAt,
+        status: "scheduled",
+      },
+      now,
+    );
+
+    const nextContentVariants = state.contentVariants.map((item) =>
+      item.contentItemId === contentItem.id && item.platform === platform
+        ? { ...item, status: "scheduled", approved: true }
+        : item,
+    );
+
+    return save({
+      ...state,
+      schedules: [...state.schedules, schedule],
+      contentItems: state.contentItems,
+      contentVariants: nextContentVariants,
+      audit: [
+        ...state.audit,
+        createAgentRun({
+          agent: "Publishing",
+          task: "Prepare approved content schedule",
+          input: { ideaId, platform, scheduledAt },
+          output: { scheduleId: schedule.id, publishingEnabled: false },
+          now,
+        }),
+      ],
     });
   }
 
@@ -228,12 +355,28 @@ export function createOrbitRuntime({
 
     const variant = idea.variants?.[platform];
     if (!variant?.approved || idea.stage !== "approved") {
-      throw new Error("Publishing requires an approved idea and variant.");
+      throw new Error(
+        "Publishing requires an approved idea and scheduled variant.",
+      );
+    }
+
+    const contentItem = state.contentItems.find(
+      (item) => item.ideaId === ideaId,
+    );
+    const scheduledItem = state.schedules.find(
+      (item) =>
+        item.contentItemId === contentItem?.id &&
+        item.platform === platform &&
+        item.status === "scheduled",
+    );
+
+    if (!scheduledItem) {
+      throw new Error("Publishing requires an existing schedule.");
     }
 
     return publisher.publish({
       variant,
-      schedule,
+      schedule: schedule ?? scheduledItem.scheduledAt,
       approval: true,
     });
   }
@@ -251,7 +394,9 @@ export function createOrbitRuntime({
   return Object.freeze({
     snapshot,
     createDraft,
+    updateContentVariant,
     approveIdea,
+    scheduleIdeaVariant,
     normalizeMetrics,
     runLearning,
     publishIdeaVariant,

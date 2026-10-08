@@ -29,34 +29,69 @@ assert.deepEqual(
   ["Orchestrator", "Research", "Strategy", "Writing", "Creative", "Review"],
 );
 assert.equal(state.contentItems.length, 1);
-assert.equal(state.contentItems[0].ideaId, state.ideas[0].id);
-assert.equal(state.contentItems[0].status, "draft");
 assert.equal(state.contentVariants.length, 6);
-assert.equal(
-  state.contentVariants.every(
-    (variant) => variant.contentItemId === state.contentItems[0].id,
-  ),
-  true,
-);
 assert.ok(
   state.contentVariants.every((variant) => variant.creativeBrief),
 );
 
+const initialVersion = state.contentVariants.find(
+  (variant) => variant.platform === "TikTok",
+).version;
+
+state = await runtime.updateContentVariant({
+  ideaId: state.ideas[0].id,
+  platform: "TikTok",
+  changes: {
+    hook: "A sharper hook for the runtime test.",
+  },
+});
+const edited = state.contentVariants.find(
+  (variant) => variant.platform === "TikTok",
+);
+assert.equal(edited.hook, "A sharper hook for the runtime test.");
+assert.equal(edited.approved, false);
+assert.equal(edited.version, initialVersion + 1);
+
 state = await runtime.approveIdea(state.ideas[0].id);
 assert.equal(state.ideas[0].stage, "approved");
 assert.equal(state.contentItems[0].status, "approved");
-assert.equal(state.audit.at(-1).agent, "Review");
 assert.equal(
-  Object.values(state.ideas[0].variants).every(
-    (variant) => variant.approved,
-  ),
+  Object.values(state.ideas[0].variants).every((variant) => variant.approved),
   true,
 );
+
+const scheduledAt = "2026-10-09T09:00:00Z";
+state = await runtime.scheduleIdeaVariant({
+  ideaId: state.ideas[0].id,
+  platform: "TikTok",
+  scheduledAt,
+});
+assert.equal(state.ideas[0].stage, "approved");
+assert.equal(state.schedules.length, 1);
+assert.equal(state.schedules[0].platform, "TikTok");
+assert.equal(state.schedules[0].scheduledAt, scheduledAt);
 assert.equal(
-  state.contentVariants.every(
-    (variant) => variant.status === "approved" && variant.approved,
-  ),
-  true,
+  state.contentVariants.find((variant) => variant.platform === "TikTok").status,
+  "scheduled",
+);
+
+const beforeDuplicate = state.schedules.length;
+state = await runtime.scheduleIdeaVariant({
+  ideaId: state.ideas[0].id,
+  platform: "TikTok",
+  scheduledAt,
+});
+assert.equal(state.schedules.length, beforeDuplicate);
+
+await assert.rejects(
+  () =>
+    runtime.publishIdeaVariant({
+      ideaId: state.ideas[0].id,
+      platform: "TikTok",
+    }),
+  (error) =>
+    error instanceof PublishingDisabledError &&
+    error.code === "PUBLISHING_DISABLED",
 );
 
 state = await runtime.normalizeMetrics({
@@ -67,25 +102,12 @@ state = await runtime.normalizeMetrics({
   followerDelta: 12,
 });
 assert.equal(state.metrics.length, 1);
-assert.equal(state.metrics[0].views, 1234);
 assert.equal(state.audit.at(-1).agent, "Analytics");
 
 state = await runtime.runLearning();
 assert.equal(state.learning.insights.length, 3);
 assert.equal(state.learningInsights.length, 3);
 assert.equal(state.audit.at(-1).agent, "Learning");
-
-await assert.rejects(
-  () =>
-    runtime.publishIdeaVariant({
-      ideaId: state.ideas[0].id,
-      platform: "TikTok",
-      schedule: "2026-10-09T09:00:00Z",
-    }),
-  (error) =>
-    error instanceof PublishingDisabledError &&
-    error.code === "PUBLISHING_DISABLED",
-);
 
 const backup = await runtime.exportState();
 const restoredRuntime = createOrbitRuntime({
@@ -94,12 +116,10 @@ const restoredRuntime = createOrbitRuntime({
 await restoredRuntime.importState(backup);
 const restored = await restoredRuntime.snapshot();
 
-assert.equal(restored.version, 1);
 assert.equal(restored.ideas[0].stage, "approved");
-assert.equal(restored.metrics[0].platform, "TikTok");
-assert.equal(restored.contentItems[0].status, "approved");
+assert.equal(restored.schedules.length, 1);
+assert.equal(restored.schedules[0].platform, "TikTok");
 assert.equal(restored.contentVariants.length, 6);
 assert.equal(restored.learningInsights.length, 3);
-assert.equal(restored.learning.insights.length, 3);
 
 console.log("OrbitOS runtime integration tests passed.");

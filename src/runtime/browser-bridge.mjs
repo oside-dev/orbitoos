@@ -59,8 +59,20 @@ export function createOrbitBrowserBridge({
     return transact((runtime) => runtime.createDraft(rawIdea, brand));
   }
 
+  async function updateContentVariant(input) {
+    return transact((runtime) => runtime.updateContentVariant(input));
+  }
+
   async function approveIdea(ideaId) {
     return transact((runtime) => runtime.approveIdea(ideaId));
+  }
+
+  async function scheduleIdeaVariant(input) {
+    return transact((runtime) => runtime.scheduleIdeaVariant(input));
+  }
+
+  async function runLearning() {
+    return transact((runtime) => runtime.runLearning());
   }
 
   async function publishIdeaVariant(input) {
@@ -88,7 +100,10 @@ export function createOrbitBrowserBridge({
   return Object.freeze({
     snapshot,
     createDraft,
+    updateContentVariant,
     approveIdea,
+    scheduleIdeaVariant,
+    runLearning,
     publishIdeaVariant,
     exportState,
     importState,

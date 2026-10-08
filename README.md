@@ -6,7 +6,7 @@ A modular, zero-budget-first social media operating system.
 
 ## Core loop
 
-Idea → Research → Strategy → Draft → Platform Variants → Review → Approve → Schedule → Analytics → Learning
+Idea → Research → Strategy → Draft → Platform Variants → Creative → Review → Approve → Schedule → Publish → Analytics → Learning
 
 ## Current runtime
 
@@ -17,23 +17,24 @@ The browser MVP is dependency-free and local-first:
 - deterministic local content generation
 - local research and analytics fixtures
 - human approval before scheduling
+- per-platform schedule records without external publishing
 - external social publishing disabled
 - no paid AI/API dependency
 
-The browser UI now uses a compatibility bridge into the modular runtime for core content operations. Existing v4 UI state remains intact while domain/core state moves toward the backend-ready data model.
+The browser UI uses a compatibility bridge into the modular runtime for core content operations. Existing v4 UI state remains intact while domain/core state moves toward the backend-ready data model.
 
 ## Architecture
 
 The repository is split into four internal layers:
 
-- Domain — stable models, stages, content entities, and state
+- Domain — stable models, stages, content entities, schedules, and state
 - Agents/Core — orchestrator plus specialist agents and business rules
 - Adapters — replaceable persistence/content/research/publishing/metrics implementations
 - Runtime UI — current static browser application plus the browser compatibility bridge
 
 Agents depend on contracts rather than vendor SDKs. That lets providers change without rewriting the product.
 
-The runtime now materializes content_items and content_variants separately from ideas, matching the target backend contract.
+The runtime materializes content_items, content_variants, and schedules separately from ideas, matching the target backend contract.
 
 ## Zero-budget policy
 
@@ -43,7 +44,8 @@ Optional external providers may be added later, but:
 
 1. the local workflow must remain usable,
 2. secrets must never ship to the browser,
-3. publishing stays disabled until an official adapter and approval boundary exist.
+3. publishing stays disabled until an official adapter and approval boundary exist,
+4. schedules remain local records until publishing is explicitly enabled.
 
 ## Repository
 

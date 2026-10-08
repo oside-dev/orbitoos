@@ -96,6 +96,30 @@ export function createContentVariant(input = {}, now = Date.now()) {
   };
 }
 
+export function createSchedule(input = {}, now = Date.now()) {
+  const contentItemId = String(input.contentItemId ?? "").trim();
+  const platform = String(input.platform ?? "").trim();
+  const scheduledAt = String(input.scheduledAt ?? "").trim();
+
+  if (!contentItemId) throw new Error("Schedule content item is required.");
+  if (!platform) throw new Error("Schedule platform is required.");
+  if (!scheduledAt) throw new Error("Schedule time is required.");
+
+  const timestamp = Date.parse(scheduledAt);
+  if (Number.isNaN(timestamp)) {
+    throw new Error("Schedule time must be a valid ISO date.");
+  }
+
+  return {
+    id: input.id ?? createId("schedule", now),
+    contentItemId,
+    platform,
+    scheduledAt,
+    status: String(input.status ?? "scheduled"),
+    createdAt: input.createdAt ?? new Date(now).toISOString(),
+  };
+}
+
 export function isApproved(idea) {
   return idea?.stage === "approved";
 }

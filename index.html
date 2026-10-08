@@ -55,6 +55,7 @@ const seed={
   {topic:"Repurposing",signal:"Reframe by platform intent instead of copy-pasting the same post.",score:84,source:"OrbitOS heuristic"},
   {topic:"Proof",signal:"Concrete examples increase trust more than broad claims.",score:79,source:"OrbitOS heuristic"}
  ],
+ schedules:[],
  metrics:[
   {platform:"TikTok",views:38200,engagement:8.4,growth:310,posts:8},
   {platform:"Instagram Reels",views:29400,engagement:7.6,growth:205,posts:7},
@@ -145,16 +146,41 @@ function studio(){
  const selector='<select class="select" style="max-width:420px" onchange="selectedId=this.value;render()">'+state.ideas.map(x=>'<option value="'+esc(x.id)+'" '+(x.id===i.id?"selected":"")+'>'+esc(x.title)+'</option>').join("")+'</select>';
  const master='<div class="card"><div class="row"><h2>'+esc(i.title)+'</h2><div><span class="badge">'+esc(i.stage)+'</span> '+(i.stage==="Approved"?'<span class="badge ok">APPROVED</span>':"")+'</div></div><p class="small">'+esc(i.brief)+'</p><div class="row" style="margin-top:10px"><div>'+selector+'</div><div class="actions">'+btn("Regenerate","regenerateVariants('"+i.id+"')")+btn("Approve","approve('"+i.id+"')",true)+'</div></div></div>';
  const variants=platforms.map(p=>'<div class="platform"><div class="row"><h3>'+p+'</h3><span class="badge ok">LOCAL</span></div>'+
-  '<label class="small">Hook<textarea class="textarea" rows="3" oninput="editVariant(\''+i.id+'\',\''+p+'\',\'hook\',this.value)">'+esc(i.variants[p].hook)+'</textarea></label>'+
-  '<label class="small">Body<textarea class="textarea" rows="5" oninput="editVariant(\''+i.id+'\',\''+p+'\',\'body\',this.value)">'+esc(i.variants[p].body)+'</textarea></label>'+
-  '<label class="small">CTA<input class="input" value="'+esc(i.variants[p].cta)+'" oninput="editVariant(\''+i.id+'\',\''+p+'\',\'cta\',this.value)"></label>'+
+  '<label class="small">Hook<textarea class="textarea" rows="3" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'hook\',this.value)">'+esc(i.variants[p].hook)+'</textarea></label>'+
+  '<label class="small">Body<textarea class="textarea" rows="5" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'body\',this.value)">'+esc(i.variants[p].body)+'</textarea></label>'+
+  '<label class="small">CTA<input class="input" value="'+esc(i.variants[p].cta)+'" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'cta\',this.value)"></label>'+
   '</div>').join("");
- shell("Content Studio","Editable platform-native variants with local persistence",btn("Back to Ideas","go('ideas')")+btn("Approve for schedule","approve('"+i.id+"')",true),master+'<div class="platforms" style="margin-top:14px">'+variants+'</div><div class="notice" style="margin-top:14px">Editing is saved locally on every keystroke. This makes the UI useful now without requiring a backend or paid AI provider.</div>');
+ shell("Content Studio","Editable platform-native variants with local persistence",btn("Back to Ideas","go('ideas')")+btn("Approve for schedule","approve('"+i.id+"')",true),master+'<div class="platforms" style="margin-top:14px">'+variants+'</div><div class="notice" style="margin-top:14px">Editing is saved through the Orbit Runtime when a field changes. This makes the UI useful now without requiring a backend or paid AI provider.</div>');
+}
+async function scheduleVariant(id,platform){
+ document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Schedule '+esc(platform)+'</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Publish time<input class="input" id="scheduleAt" type="datetime-local"></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Save schedule","confirmSchedule('"+id+"','"+platform+"')",true)+'</div></div></div>';
+ const field=document.getElementById("scheduleAt");
+ const d=new Date(Date.now()+24*60*60*1000);
+ d.setHours(9,0,0,0);
+ field.value=d.toISOString().slice(0,16);
+}
+async function confirmSchedule(id,platform){
+ const field=document.getElementById("scheduleAt");
+ if(!field.value)return toast("Schedule time required");
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.scheduleIdeaVariant({ideaId:id,platform,scheduledAt:new Date(field.value).toISOString()});
+  closeModal();
+  log("Publishing Agent","Prepared schedule for "+platform);
+  save();toast("Schedule saved");render();
+ }catch(error){toast(error.message||"Scheduling failed")}
 }
 function calendar(){
  const approved=state.ideas.filter(x=>x.stage==="Approved"||x.stage==="Scheduled");
- const rows=approved.flatMap((i,idx)=>platforms.slice(0,3).map((p,j)=>'<tr><td>Day '+(idx+j+1)+'</td><td>'+p+'</td><td>'+esc(i.title)+'</td><td><span class="badge ok">READY</span></td></tr>')).join("");
- shell("Calendar","Planning is live locally; external publishing remains disabled",btn("Approve first draft","approveFirst()",true),'<div class="card"><div class="notice warn">Publishing is OFF. OrbitOS can prepare a schedule but cannot post to any social network from this build.</div><table class="table" style="margin-top:12px"><tr><th>Slot</th><th>Platform</th><th>Content</th><th>Status</th></tr>'+rows+' </table></div>');
+ const schedules=state.schedules||[];
+ const rows=approved.flatMap((i,idx)=>platforms.slice(0,3).map((p,j)=>{
+  const scheduled=schedules.find(s=>s.contentItemId===(state.contentItems||[]).find(c=>c.ideaId===i.id)?.id&&s.platform===p&&s.status==="scheduled");
+  const status=scheduled
+    ? '<span class="badge ok">SCHEDULED '+esc(new Date(scheduled.scheduledAt).toLocaleString())+'</span>'
+    : btn("Schedule","scheduleVariant('"+i.id+"','"+p+"')");
+  return '<tr><td>Day '+(idx+j+1)+'</td><td>'+p+'</td><td>'+esc(i.title)+'</td><td>'+status+'</td></tr>';
+ })).join("");
+ shell("Calendar","Planning is live locally; external publishing remains disabled",btn("Approve first draft","approveFirst()",true),'<div class="card"><div class="notice warn">Publishing is OFF. OrbitOS can prepare and schedule records, but it cannot post to any social network from this build.</div><table class="table" style="margin-top:12px"><tr><th>Slot</th><th>Platform</th><th>Content</th><th>Status</th></tr>'+rows+' </table></div>');
 }
 function analytics(){
  const views=state.metrics.reduce((a,x)=>a+x.views,0);
@@ -201,15 +227,41 @@ async function createIdea(){
  }catch(error){toast(error.message||"Orbit Runtime failed")}
 }
 function openIdea(id){selectedId=id;go("studio")}
-function advanceSelected(){const i=currentIdea();if(!i)return;const idx=stages.indexOf(i.stage);if(idx>=0&&idx<stages.length-1){i.stage=stages[idx+1];log("Orchestrator",i.title+" → "+i.stage);save();render()}}
-function runWorkflow(){
- const brief=document.getElementById("brief");
- if(brief&&brief.value.trim()){createIdeaFromBrief(brief.value.trim());return}
- let changed=0;
- state.ideas.forEach(i=>{if(i.stage==="Idea"){i.stage="Research";changed++}else if(i.stage==="Research"){i.stage="Strategy";changed++}else if(i.stage==="Strategy"){ensureVariants(i);i.stage="Draft";changed++}});
- log("Orchestrator","Ran local workflow across "+changed+" eligible ideas");save();render()
+async function advanceSelected(){
+ const i=currentIdea();if(!i)return;
+ if(!["Idea","Research","Strategy"].includes(i.stage)){toast("Use Content Studio and approval for the next controlled transition");return}
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.createDraft(i,state.brand);
+  selectedId=i.id;
+  log("Orchestrator",i.title+" → Draft through Orbit Runtime");
+  save();render();
+ }catch(error){toast(error.message||"Orbit Runtime failed")}
 }
-function createIdeaFromBrief(title){const i={id:"i"+Date.now(),title,pillar:"Workflow",audience:"General audience",goal:"Education",brief:"Generated from Command Center brief.",stage:"Draft",score:88,variants:{}};ensureVariants(i);state.ideas.unshift(i);selectedId=i.id;log("Orchestrator","Processed brief locally");log("Writing Agent","Prepared six platform variants");save();go("studio")}
+async function runWorkflow(){
+ const brief=document.getElementById("brief");
+ if(brief&&brief.value.trim()){await createIdeaFromBrief(brief.value.trim());return}
+ const i=state.ideas.find(x=>x.stage==="Idea"||x.stage==="Research"||x.stage==="Strategy");
+ if(!i){toast("No eligible idea is waiting for the local workflow");return}
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.createDraft(i,state.brand);
+  selectedId=i.id;
+  log("Orchestrator","Ran the local pipeline for "+i.title);
+  save();render();
+ }catch(error){toast(error.message||"Orbit Runtime failed")}
+}
+async function createIdeaFromBrief(title){
+ const idea={id:"i"+Date.now(),title,pillar:"Workflow",audience:"General audience",goal:"Education",brief:"Generated from Command Center brief.",stage:"Draft",score:88,variants:{}};
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.createDraft(idea,state.brand);
+  selectedId=idea.id;
+  log("Orchestrator","Processed brief through Orbit Runtime");
+  log("Writing Agent","Prepared six platform variants");
+  save();go("studio");
+ }catch(error){toast(error.message||"Orbit Runtime failed")}
+}
 async function regenerateVariants(id){
  const i=state.ideas.find(x=>x.id===id);if(!i)return;
  try{
@@ -220,7 +272,14 @@ async function regenerateVariants(id){
   save();render();
  }catch(error){toast(error.message||"Orbit Runtime failed")}
 }
-function editVariant(id,p,k,v){const i=state.ideas.find(x=>x.id===id);if(!i)return;ensureVariants(i);i.variants[p][k]=v;save()}
+async function editVariant(id,p,k,v){
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.updateContentVariant({ideaId:id,platform:p,changes:{[k]:v}});
+  selectedId=id;
+  save();
+ }catch(error){toast(error.message||"Variant update failed")}
+}
 async function approve(id){
  const i=state.ideas.find(x=>x.id===id);if(!i)return;
  try{
@@ -246,7 +305,7 @@ window.orbitCoreReady=import("./src/runtime/browser-bridge.mjs")
  })
  .catch(error=>{
    console.error("Orbit Runtime bridge failed",error);
-   toast("Core runtime unavailable; local UI mode remains active");
+   toast("Core runtime unavailable");
    throw error;
  });
 render();

@@ -4,7 +4,7 @@
 
 1. Control: Command Center, Ideas, Research, Content Studio, Calendar, Analytics, Agents, Brand, Settings.
 2. Intelligence: Orchestrator, Research, Strategy, Writing, Creative, Review, Publishing, Analytics, Learning.
-3. Core: domain models, pipeline rules, runtime services, audit trail.
+3. Core: domain models, pipeline rules, runtime services, schedule state, audit trail.
 4. Execution: persistence, research, content, analytics, AI, and publishing adapters.
 5. Runtime UI: browser compatibility layer that maps v4 UI state to canonical core state.
 
@@ -37,6 +37,21 @@ The canonical core state uses:
 
 src/runtime/ui-state.mjs owns the translation between these shapes.
 
+## Content lifecycle
+
+1. Idea enters the pipeline.
+2. Research and Strategy produce structured planning data.
+3. Writing generates platform variants.
+4. Creative adds platform-native visual direction.
+5. Review checks guardrails.
+6. Human approval marks variants approved.
+7. Schedule records are created per platform and per time.
+8. Publishing consumes an existing approved schedule only when an official adapter is enabled.
+9. Analytics normalizes results.
+10. Learning produces advisory insights.
+
+Scheduling is a planning/execution boundary, not proof of external publication.
+
 ## Safety rule
 
 External publishing stays disabled until:
@@ -45,7 +60,8 @@ External publishing stays disabled until:
 2. credentials are available through a secure runtime,
 3. idempotency/rate limiting controls exist,
 4. human approval is recorded,
-5. the action is audit logged.
+5. an approved schedule exists,
+6. the action is audit logged.
 
 ## Target backend data model
 
