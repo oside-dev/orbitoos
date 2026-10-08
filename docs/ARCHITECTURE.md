@@ -73,3 +73,8 @@ The current local state is deliberately shaped to make this backend mapping stra
 ## Analytics ingestion boundary
 
 External analytics providers are injected as adapters with explicit capability flags. The Analytics Gateway blocks disabled, unofficial, credential-unready, or rate-limit-unready providers before any fetch. Normalized records retain provider/source provenance and are marked non-demo only after passing that boundary. Learning then derives engagement-rate, distribution, content, and governance insights from normalized history rather than static recommendations.
+
+
+## Multi-brand boundary
+
+OrbitOS keeps a backward-compatible active-brand context while storing a brand registry. Ideas, content items, content variants, schedules, analytics snapshots, agent runs, and learning insights carry a brand ID. Legacy single-brand records are normalized into the active/default brand context. The browser only exposes brand creation and active-brand switching through the runtime bridge.
