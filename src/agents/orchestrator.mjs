@@ -2,6 +2,7 @@ export const WORKFLOW_STEPS = Object.freeze([
   { stage: "research", agent: "Research", action: "research" },
   { stage: "strategy", agent: "Strategy", action: "strategy" },
   { stage: "draft", agent: "Writing", action: "write" },
+  { stage: "creative", agent: "Creative", action: "design" },
   { stage: "review", agent: "Review", action: "review" },
   { stage: "approved", agent: "Human", action: "approve" },
   { stage: "scheduled", agent: "Publishing", action: "schedule" },
@@ -38,7 +39,7 @@ export function createOrchestratorAgent() {
         return startIndex <= 2;
       }
 
-      if (step.stage === "draft") {
+      if (step.stage === "draft" || step.stage === "creative") {
         return startIndex <= 3;
       }
 
