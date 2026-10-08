@@ -105,18 +105,38 @@ export function createOrbitRuntime({
 
   async function createDraft(rawIdea, brand) {
     const state = await snapshot();
-    const activeBrand =
+    let workingState = state;
+    let activeBrand =
       brand && Object.keys(brand).length > 0
         ? normalizeBrand(brand)
         : normalizeBrand(state.brand);
 
     if (!activeBrand.name) {
-      throw new Error("OrbitOS requires an active brand before creating content.");
+      const created = createBrand(
+        {
+          id: state.activeBrandId ?? "brand-default",
+          name: "OrbitOS Default",
+          voice: "Clear, direct, useful.",
+          audience: "General audience",
+        },
+        Date.now(),
+      );
+      activeBrand = created;
+      workingState = {
+        ...state,
+        brands: state.brands.some((item) => item.id === created.id)
+          ? state.brands.map((item) =>
+              item.id === created.id ? created : item,
+            )
+          : [...state.brands, created],
+        activeBrandId: created.id,
+        brand: created,
+      };
     }
 
     const idea = createIdea({
       ...rawIdea,
-      brandId: activeBrand.id ?? state.activeBrandId,
+      brandId: activeBrand.id ?? workingState.activeBrandId,
     });
     const result = await runLocalPipeline(idea, activeBrand, {
       research,
@@ -124,7 +144,7 @@ export function createOrbitRuntime({
       publisher,
     });
 
-    const currentState = state;
+    const currentState = workingState;
     const nextIdeas = currentState.ideas.filter((item) => item.id !== result.idea.id);
     nextIdeas.push(result.idea);
 
