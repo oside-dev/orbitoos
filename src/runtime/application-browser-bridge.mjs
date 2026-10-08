@@ -151,6 +151,8 @@ export async function createOrbitApplicationBrowserBridge({
     return remoteFn(remote.runtime);
   }
 
+  await initializeRemote();
+
   return Object.freeze({
     snapshot,
     refresh,
@@ -238,7 +240,12 @@ export async function createOrbitApplicationBrowserBridge({
       ),
 
     getAiConfig: () => localBridge.getAiConfig(),
-    setAiConfig: (config) => localBridge.setAiConfig(config),
+    setAiConfig: (config) =>
+      invoke(
+        "setAiConfig",
+        () => localBridge.setAiConfig(config),
+        () => localBridge.setAiConfig(config),
+      ),
 
     runLearning: () =>
       invoke(
