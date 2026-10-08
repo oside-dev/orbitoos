@@ -7,7 +7,12 @@ export class PublishingDisabledError extends Error {
 }
 
 export const nullPublisherAdapter = Object.freeze({
+  provider: "disabled",
   enabled: false,
+  official: false,
+  credentialsReady: false,
+  supportsIdempotency: false,
+  rateLimitReady: false,
 
   async publish() {
     throw new PublishingDisabledError(
