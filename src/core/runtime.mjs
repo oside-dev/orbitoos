@@ -15,6 +15,7 @@ import { localMetricsAdapter } from "../adapters/local-metrics.mjs";
 import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
 import { createContentGenerator } from "./content-generator-factory.mjs";
 import { createPublishingGateway } from "./publishing-gateway.mjs";
+import { createAnalyticsGateway } from "./analytics-gateway.mjs";
 import { createAnalyticsAgent, learningAgent } from "../agents/index.mjs";
 
 function materializeContent(state, idea, now = Date.now()) {
@@ -74,6 +75,7 @@ export function createOrbitRuntime({
   contentGenerator,
   ai = {},
   metrics = localMetricsAdapter,
+  analyticsProvider = null,
   publisher = nullPublisherAdapter,
   analytics = createAnalyticsAgent({ adapter: metrics }),
   learning = learningAgent,
@@ -86,6 +88,9 @@ export function createOrbitRuntime({
   assertAdapter("metrics", metrics);
   assertAdapter("publisher", publisher);
   const publishingGateway = createPublishingGateway({ adapter: publisher });
+  const analyticsGateway = analyticsProvider
+    ? createAnalyticsGateway({ adapter: analyticsProvider })
+    : null;
 
   async function snapshot() {
     return normalizeState(await store.get());
@@ -333,6 +338,36 @@ export function createOrbitRuntime({
     });
   }
 
+  async function ingestExternalMetrics(input = {}) {
+    if (!analyticsGateway) {
+      throw new Error("OrbitOS external analytics provider is not configured.");
+    }
+
+    const rawRecords = await analyticsGateway.fetch(input);
+    const normalizedRecords = rawRecords.map((raw) => analytics.run(raw));
+    const state = await snapshot();
+
+    return save({
+      ...state,
+      metrics: [...state.metrics, ...normalizedRecords],
+      audit: [
+        ...state.audit,
+        createAgentRun({
+          agent: "Analytics",
+          task: "Ingest external platform metrics",
+          input: {
+            provider: analyticsGateway.provider,
+            recordCount: normalizedRecords.length,
+          },
+          output: {
+            recordCount: normalizedRecords.length,
+            isDemo: false,
+          },
+        }),
+      ],
+    });
+  }
+
   async function runLearning() {
     const state = await snapshot();
     const result = learning.run({
@@ -536,6 +571,7 @@ export function createOrbitRuntime({
     approveIdea,
     scheduleIdeaVariant,
     normalizeMetrics,
+    ingestExternalMetrics,
     runLearning,
     publishIdeaVariant,
     runDuePublishing,
