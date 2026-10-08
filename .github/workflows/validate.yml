@@ -30,7 +30,7 @@ jobs:
           test -f supabase/schema.sql
           echo "Architecture checks passed"
 
-      - name: Validate modular core
+      - name: Validate modular core files
         run: |
           test -f src/domain/models.mjs
           test -f src/domain/state.mjs
@@ -46,7 +46,12 @@ jobs:
           test -f tests/smoke.mjs
           test -f tests/contracts.mjs
           test -f tests/runtime.mjs
-          node tests/smoke.mjs
-          node tests/contracts.mjs
-          node tests/runtime.mjs
-          echo "Core, adapter, and runtime tests passed"
+
+      - name: Run smoke tests
+        run: node tests/smoke.mjs
+
+      - name: Run adapter contract tests
+        run: node tests/contracts.mjs
+
+      - name: Run runtime integration tests
+        run: node tests/runtime.mjs
