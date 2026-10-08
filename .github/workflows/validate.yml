@@ -1,0 +1,17 @@
+name: OrbitOS validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate entrypoint
+        run: |
+          test -f index.html
+          grep -q "OrbitOS" index.html
+          echo "OrbitOS static entrypoint OK"
