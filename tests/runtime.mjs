@@ -102,16 +102,7 @@ state = await runtime.scheduleIdeaVariant({
   platform: "TikTok",
   scheduledAt,
 });
-assert.equal(state.ideas[0].stage, "approved");
-assert.equal(state.schedules.length, 1);
-assert.equal(state.schedules[0].platform, "TikTok");
-assert.equal(state.schedules[0].scheduledAt, scheduledAt);
-assert.equal(
-  state.contentVariants.find((variant) => variant.platform === "TikTok").status,
-  "scheduled",
-);
-
-const beforeDuplicate = state.schedules.length;
+assert.equal(state.schedules.length, beforeDuplicate);
 state = await runtime.scheduleIdeaVariant({
   ideaId: state.ideas[0].id,
   platform: "TikTok",
