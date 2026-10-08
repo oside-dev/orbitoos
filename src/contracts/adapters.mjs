@@ -4,6 +4,7 @@ export const ADAPTER_CONTRACTS = Object.freeze({
   contentGenerator: ["generate"],
   publisher: ["publish"],
   metrics: ["normalize"],
+  analyticsProvider: ["fetch"],
 });
 
 export function assertAdapter(kind, adapter) {
