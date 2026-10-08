@@ -48,7 +48,7 @@ src/runtime/ui-state.mjs owns the translation between these shapes.
 7. Schedule records are created per platform and per time.
 8. Publishing consumes an existing approved schedule only when an official adapter is enabled and passes the Publishing Gateway. The gateway requires official capability, ready credentials, idempotency support, and rate-limit readiness before it calls an adapter. A due-schedule runner can execute ready schedules in a backend process; the browser runtime does not expose that execution path.
 9. Analytics normalizes results.
-10. Learning produces advisory insights.
+10. Analytics ingestion providers pass a safety gateway, normalize through the Analytics Agent, persist provenance, then Learning produces advisory insights.
 
 Scheduling is a planning/execution boundary, not proof of external publication. The default AI path is deterministic and local; Ollama is an explicit localhost-only adapter choice.
 
@@ -68,3 +68,8 @@ External publishing stays disabled until:
 workspaces, brands, ideas, research_items, content_items, content_variants, schedules, analytics_snapshots, agent_runs, learning_insights.
 
 The current local state is deliberately shaped to make this backend mapping straightforward. The persistent backend adapter accepts a Supabase-compatible client without importing a vendor SDK, so it can be tested without a live backend project.
+
+
+## Analytics ingestion boundary
+
+External analytics providers are injected as adapters with explicit capability flags. The Analytics Gateway blocks disabled, unofficial, credential-unready, or rate-limit-unready providers before any fetch. Normalized records retain provider/source provenance and are marked non-demo only after passing that boundary.
