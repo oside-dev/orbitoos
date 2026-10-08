@@ -33,3 +33,6 @@ When a real backend is introduced, Auth supplies the user identity and RLS enfor
 ## Publishing boundary
 
 Database authentication does not enable social publishing. Publishing still requires the existing official-adapter, credentials, idempotency, rate-limit, schedule, human-approval, and audit gates.
+## Runtime honesty
+
+The UI must never label the local browser runtime as authenticated or backend-persistent. Runtime mode is explicit and comes from the runtime environment boundary. A future Supabase connection must provide a verified Auth user and workspace membership before switching to authenticated-persistent mode.
