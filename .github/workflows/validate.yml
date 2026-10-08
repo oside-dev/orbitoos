@@ -77,6 +77,7 @@ jobs:
           test -f src/agents/review.mjs
           test -f src/agents/analytics.mjs
           test -f src/agents/learning.mjs
+          test -f src/adapters/analytics-report-parser.mjs
           test -f tests/smoke.mjs
           test -f tests/contracts.mjs
           test -f tests/runtime.mjs
@@ -85,6 +86,7 @@ jobs:
           test -f tests/local-ai.mjs
           test -f tests/publishing-gateway.mjs
           test -f tests/analytics-gateway.mjs
+          test -f tests/analytics-report-parser.mjs
           test -f tests/multi-brand.mjs
           test -f tests/schema-contract.mjs
           test -f tests/auth.mjs
@@ -122,6 +124,9 @@ jobs:
 
       - name: Run analytics gateway tests
         run: node tests/analytics-gateway.mjs
+
+      - name: Run analytics report parser tests
+        run: node tests/analytics-report-parser.mjs
 
       - name: Run multi-brand tests
         run: node tests/multi-brand.mjs
