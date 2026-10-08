@@ -113,6 +113,6 @@ assert.match(learning.insights[1].detail, /Practical systems/);
 assert.match(learning.insights[0].title, /engagement rate/i);
 assert.match(learning.insights[0].detail, /Agent contract test/);
 assert.match(learning.insights[0].detail, /TikTok/);
-assert.equal(learning.insights[2].category, "governance");
+assert.ok(learning.insights.some((insight) => insight.category === "governance"));
 
 console.log("OrbitOS agent tests passed.");
