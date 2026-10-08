@@ -51,6 +51,11 @@ jobs:
           test -f src/core/analytics-gateway.mjs
           test -f src/contracts/adapters.mjs
           test -f src/contracts/ai.mjs
+          test -f src/contracts/auth.mjs
+          test -f src/domain/auth.mjs
+          test -f src/adapters/supabase-auth.mjs
+          test -f src/adapters/supabase-workspace-context.mjs
+          test -f src/runtime/authenticated-runtime.mjs
           test -f src/adapters/local-store.mjs
           test -f src/adapters/local-content-generator.mjs
           test -f src/adapters/local-research.mjs
@@ -81,6 +86,7 @@ jobs:
           test -f tests/analytics-gateway.mjs
           test -f tests/multi-brand.mjs
           test -f tests/schema-contract.mjs
+          test -f tests/auth.mjs
           test -f tests/supabase-store.mjs
           test -f tests/supabase-store.mjs
 
@@ -116,6 +122,9 @@ jobs:
 
       - name: Run schema contract tests
         run: node tests/schema-contract.mjs
+
+      - name: Run auth boundary tests
+        run: node tests/auth.mjs
 
       - name: Run persistent backend adapter tests
         run: node tests/supabase-store.mjs
