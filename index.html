@@ -236,9 +236,38 @@ function agents(){
  shell("Agents","Specialists share contracts and stay provider-neutral","",'<div class="grid three">'+list.map(a=>'<div class="card"><div class="row"><h2>'+a[0]+'</h2><span class="badge '+(a[2]==="LOCKED"?"warn":"ok")+'">'+a[2]+'</span></div><p class="small">'+a[1]+'</p></div>').join("")+'</div><div class="card" style="margin-top:14px"><div class="row"><h2>Dependency rule</h2><span class="badge ok">ARCHITECTURE</span></div><p class="small">Agents call interfaces, not vendor SDKs. Provider adapters can be swapped later without rewriting the agent contracts.</p></div>');
 }
 function brand(){
+ const brands=Array.isArray(state.brands)?state.brands:[];
  const rules=state.brand.rules.map((r,i)=>'<div class="item"><div class="row"><div><strong>'+esc(r)+'</strong></div><input type="checkbox" checked onchange="toggleRule('+i+',this.checked)"></div></div>').join("");
- shell("Brand","Persistent memory for every future agent",btn("Save memory","saveBrand()",true),'<div class="grid two"><div class="card"><div class="form"><label>Brand name<input class="input" id="brandName" value="'+esc(state.brand.name)+'"></label><label>Voice<textarea class="textarea" id="brandVoice">'+esc(state.brand.voice)+'</textarea></label><label>Audience<textarea class="textarea" id="brandAudience">'+esc(state.brand.audience)+'</textarea></label></div></div><div class="card"><h2>Guardrails</h2><div class="stack" style="margin-top:10px">'+rules+'</div></div></div>');
+ const brandSelect=brands.length
+   ? '<select class="select" onchange="switchBrand(this.value)">'+brands.map(b=>'<option value="'+esc(b.id)+'" '+(b.id===state.activeBrandId?"selected":"")+'>'+esc(b.name)+'</option>').join("")+'</select>'
+   : '<div class="small">No brand profiles yet.</div>';
+ const meta='<div class="card" style="margin-bottom:14px"><div class="row"><div><h2>Brand registry</h2><p class="small">Each content item, schedule, analytics record, and learning insight carries its active brand context.</p></div><div class="actions">'+brandSelect+btn("New brand","newBrand()",true)+'</div></div></div>';
+ shell("Brand","Persistent memory for every future agent","",meta+'<div class="grid two"><div class="card"><div class="form"><label>Brand name<input class="input" id="brandName" value="'+esc(state.brand.name)+'"></label><label>Voice<textarea class="textarea" id="brandVoice">'+esc(state.brand.voice)+'</textarea></label><label>Audience<textarea class="textarea" id="brandAudience">'+esc(state.brand.audience)+'</textarea></label></div><div class="actions" style="margin-top:10px">'+btn("Save memory","saveBrand()",true)+'</div></div><div class="card"><h2>Guardrails</h2><div class="stack" style="margin-top:10px">'+rules+'</div></div></div>');
 }
+async function switchBrand(brandId){
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.setActiveBrand(brandId);
+  selectedId=state.ideas.find(i=>i.metadata?.brandId===brandId)?.id||state.ideas[0]?.id||null;
+  log("Brand","Switched active brand context");
+  save();toast("Active brand changed");render();
+ }catch(error){toast(error.message||"Brand switch failed")}
+}
+function newBrand(){
+ document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>New brand</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Brand name<input class="input" id="brandNewName" placeholder="e.g. Northstar Studio"></label><label>Voice<textarea class="textarea" id="brandNewVoice" placeholder="Clear, direct, curious"></textarea></label><label>Audience<textarea class="textarea" id="brandNewAudience" placeholder="Who this brand serves"></textarea></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Create brand","createBrandProfile()",true)+'</div></div></div>';
+ document.getElementById("brandNewName").focus();
+}
+async function createBrandProfile(){
+ const name=document.getElementById("brandNewName").value.trim();
+ if(!name)return toast("Brand name required");
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.createBrand({name,voice:document.getElementById("brandNewVoice").value.trim(),audience:document.getElementById("brandNewAudience").value.trim()});
+  selectedId=state.ideas[0]?.id||null;
+  closeModal();log("Brand","Created new brand profile");save();toast("Brand created");render();
+ }catch(error){toast(error.message||"Brand creation failed")}
+}
+
 async function settings(){
  const ai=state.settings?.ai||{provider:"local",model:"",baseUrl:"http://localhost:11434/api"};
  shell("Settings","Free-first controls, backup, and safety gates","",'<div class="grid two"><div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div><div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div><div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+btn("Save AI settings","saveAiSettings()",true)+'</div></div><div class="card"><h2>Local data</h2><p class="small">State lives in browser storage. JSON backups contain no secrets.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div><div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>Local storage adapter</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div></div><div class="card" style="margin-top:14px"><div class="notice">Ollama mode is opt-in and stays on localhost. The default path remains free and deterministic.</div></div>');
