@@ -9,7 +9,7 @@ const idea = createIdea({
   goal: "Education",
 });
 
-const result = runLocalPipeline(idea, {
+const result = await runLocalPipeline(idea, {
   name: "OrbitOS",
   voice: "clear, direct, useful",
   audience: "creators",
