@@ -14,6 +14,7 @@ import { localResearchAdapter } from "../adapters/local-research.mjs";
 import { localMetricsAdapter } from "../adapters/local-metrics.mjs";
 import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
 import { createContentGenerator } from "./content-generator-factory.mjs";
+import { createPublishingGateway } from "./publishing-gateway.mjs";
 import { createAnalyticsAgent, learningAgent } from "../agents/index.mjs";
 
 function materializeContent(state, idea, now = Date.now()) {
@@ -84,6 +85,7 @@ export function createOrbitRuntime({
   assertAdapter("contentGenerator", selectedContentGenerator);
   assertAdapter("metrics", metrics);
   assertAdapter("publisher", publisher);
+  const publishingGateway = createPublishingGateway({ adapter: publisher });
 
   async function snapshot() {
     return normalizeState(await store.get());
@@ -400,7 +402,7 @@ export function createOrbitRuntime({
     };
 
     try {
-      const result = await publisher.publish(publishingInput);
+      const result = await publishingGateway.publish(publishingInput);
       const latest = await snapshot();
       await save({
         ...latest,
@@ -410,7 +412,7 @@ export function createOrbitRuntime({
             agent: "Publishing",
             task: "Publish scheduled content variant",
             input: { ideaId, platform, scheduleId: scheduledItem.id },
-            output: { success: true, provider: publisher.provider ?? "adapter" },
+            output: { success: true, provider: publishingGateway.provider },
           }),
         ],
       });
