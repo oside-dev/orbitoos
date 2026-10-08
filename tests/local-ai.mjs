@@ -91,8 +91,6 @@ assert.deepEqual(Object.keys(variants), PLATFORMS);
 assert.equal(variants.TikTok.hook, "Hook for TikTok");
 assert.deepEqual(variants.TikTok.hashtags, ["#orbitoos"]);
 
-console.log("OrbitOS local AI adapter tests passed.");
-
 
 const runtime = createOrbitRuntime({
   store: new MemoryStore(),
@@ -107,3 +105,5 @@ assert.equal(runtimeState.ideas.length, 1);
 assert.equal(Object.keys(runtimeState.ideas[0].variants).length, PLATFORMS.length);
 assert.equal(runtimeState.ideas[0].variants.TikTok.hook, "Hook for TikTok");
 
+
+console.log("OrbitOS local AI adapter tests passed.");
