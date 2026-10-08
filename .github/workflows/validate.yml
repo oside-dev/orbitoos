@@ -20,6 +20,7 @@ jobs:
           grep -q "OrbitOS" index.html
           grep -q "orbit-v4" index.html
           grep -q "function approve" index.html
+          grep -q "browser-runtime" index.html || grep -q "browser-bridge" index.html
           echo "Runtime checks passed"
 
       - name: Validate architecture
@@ -43,9 +44,12 @@ jobs:
           test -f src/adapters/local-research.mjs
           test -f src/adapters/local-metrics.mjs
           test -f src/adapters/null-publisher.mjs
+          test -f src/runtime/ui-state.mjs
+          test -f src/runtime/browser-bridge.mjs
           test -f tests/smoke.mjs
           test -f tests/contracts.mjs
           test -f tests/runtime.mjs
+          test -f tests/browser-bridge.mjs
 
       - name: Run smoke tests
         run: node tests/smoke.mjs
@@ -55,3 +59,6 @@ jobs:
 
       - name: Run runtime integration tests
         run: node tests/runtime.mjs
+
+      - name: Run browser bridge tests
+        run: node tests/browser-bridge.mjs
