@@ -326,7 +326,21 @@ window.orbitCoreReady=import("./src/runtime/browser-bridge.mjs")
    toast("Core runtime unavailable");
    throw error;
  });
-render();
+async function boot(){
+ try{
+  await window.orbitCoreReady;
+  const stored=localStorage.getItem(STORE);
+  state=stored
+    ? await window.orbitCore.snapshot()
+    : await window.orbitCore.importState(JSON.stringify(seed));
+  selectedId=state.ideas[0]?.id||null;
+  render();
+ }catch(error){
+  console.error("OrbitOS boot failed",error);
+  document.getElementById("root").innerHTML='<div class="app"><main class="main"><div class="wrap"><div class="card"><h1>OrbitOS runtime unavailable</h1><p class="small">The canonical browser runtime could not be initialized.</p></div></div></main></div>';
+ }
+}
+boot();
 </script>
 </body>
 </html>
