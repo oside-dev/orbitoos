@@ -20,16 +20,20 @@ The browser MVP is dependency-free and local-first:
 - external social publishing disabled
 - no paid AI/API dependency
 
+The browser UI now uses a compatibility bridge into the modular runtime for core content operations. Existing v4 UI state remains intact while domain/core state moves toward the backend-ready data model.
+
 ## Architecture
 
-The repository is being split into four internal layers:
+The repository is split into four internal layers:
 
-- **Domain** — stable models and pipeline stages
-- **Core** — orchestration and business rules
-- **Adapters** — replaceable persistence/content/research/publishing implementations
-- **Runtime UI** — current static browser application
+- Domain — stable models, stages, content entities, and state
+- Agents/Core — orchestrator plus specialist agents and business rules
+- Adapters — replaceable persistence/content/research/publishing/metrics implementations
+- Runtime UI — current static browser application plus the browser compatibility bridge
 
 Agents depend on contracts rather than vendor SDKs. That lets providers change without rewriting the product.
+
+The runtime now materializes content_items and content_variants separately from ideas, matching the target backend contract.
 
 ## Zero-budget policy
 
@@ -53,9 +57,9 @@ https://orbitoos.vercel.app
 
 ## Engineering roadmap
 
-- M0 — Foundation
-- M1 — Content operating loop
-- M2 — Internal domain/core/adapters split
+- M0 — Foundation — complete
+- M1 — Content operating loop — in progress
+- M2 — Internal domain/core/adapters split — active foundation work
 - M3 — Free/local AI adapter
 - M4 — Persistent backend adapter
 - M5 — Official publishing adapters

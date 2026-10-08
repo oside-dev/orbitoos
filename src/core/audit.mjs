@@ -10,6 +10,7 @@ export const AGENTS = Object.freeze([
   "Publishing",
   "Analytics",
   "Learning",
+  "Human",
 ]);
 
 export function createAgentRun({
@@ -33,23 +34,44 @@ export function createAgentRun({
     input,
     output,
     startedAt: new Date(now).toISOString(),
-    finishedAt: status === "running" || status === "queued"
-      ? null
-      : new Date(now).toISOString(),
+    finishedAt:
+      status === "running" || status === "queued"
+        ? null
+        : new Date(now).toISOString(),
   };
 }
 
-export function createPipelineAudit({ idea, research, strategy, review, now = Date.now() }) {
+export function createPipelineAudit({
+  idea,
+  research,
+  strategy,
+  review,
+  workflowPlan = [],
+  now = Date.now(),
+}) {
   return [
     createAgentRun({
+      agent: "Orchestrator",
+      task: "Plan content operating workflow",
+      input: { ideaId: idea.id },
+      output: {
+        steps: workflowPlan.map((step) => ({
+          order: step.order,
+          agent: step.agent,
+          action: step.action,
+        })),
+      },
+      now,
+    }),
+    createAgentRun({
       agent: "Research",
-      task: "Synthesize local research signals",
+      task: "Synthesize research signals",
       input: { ideaId: idea.id },
       output: {
         signalCount: research.signals.length,
         opportunityScore: research.opportunityScore,
       },
-      now,
+      now: now + 1,
     }),
     createAgentRun({
       agent: "Strategy",
@@ -59,7 +81,7 @@ export function createPipelineAudit({ idea, research, strategy, review, now = Da
         platforms: strategy.platforms,
         kpis: strategy.kpis,
       },
-      now: now + 1,
+      now: now + 2,
     }),
     createAgentRun({
       agent: "Writing",
@@ -68,7 +90,7 @@ export function createPipelineAudit({ idea, research, strategy, review, now = Da
       output: {
         variantCount: Object.keys(idea.variants ?? {}).length,
       },
-      now: now + 2,
+      now: now + 3,
     }),
     createAgentRun({
       agent: "Review",
@@ -79,7 +101,7 @@ export function createPipelineAudit({ idea, research, strategy, review, now = Da
         reasons: review.reasons,
         humanApprovalRequired: review.humanApprovalRequired,
       },
-      now: now + 3,
+      now: now + 4,
     }),
   ];
 }

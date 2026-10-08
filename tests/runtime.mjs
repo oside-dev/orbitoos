@@ -23,7 +23,8 @@ assert.equal(state.ideas.length, 1);
 assert.equal(state.ideas[0].stage, "draft");
 assert.equal(Object.keys(state.ideas[0].variants).length, 6);
 assert.equal(state.research.length, 1);
-assert.equal(state.audit.length, 4);
+assert.equal(state.audit.length, 5);
+assert.equal(state.audit[0].agent, "Orchestrator");
 assert.equal(state.contentItems.length, 1);
 assert.equal(state.contentItems[0].ideaId, state.ideas[0].id);
 assert.equal(state.contentItems[0].status, "draft");
@@ -38,6 +39,7 @@ assert.equal(
 state = await runtime.approveIdea(state.ideas[0].id);
 assert.equal(state.ideas[0].stage, "approved");
 assert.equal(state.contentItems[0].status, "approved");
+assert.equal(state.audit.at(-1).agent, "Review");
 assert.equal(
   Object.values(state.ideas[0].variants).every(
     (variant) => variant.approved,
