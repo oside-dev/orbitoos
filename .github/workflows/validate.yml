@@ -87,6 +87,7 @@ jobs:
           test -f tests/publishing-gateway.mjs
           test -f tests/analytics-gateway.mjs
           test -f tests/analytics-report-parser.mjs
+          test -f tests/analytics-report-import.mjs
           test -f tests/multi-brand.mjs
           test -f tests/schema-contract.mjs
           test -f tests/auth.mjs
@@ -127,6 +128,9 @@ jobs:
 
       - name: Run analytics report parser tests
         run: node tests/analytics-report-parser.mjs
+
+      - name: Run analytics report import tests
+        run: node tests/analytics-report-import.mjs
 
       - name: Run multi-brand tests
         run: node tests/multi-brand.mjs
