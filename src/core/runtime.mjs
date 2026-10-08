@@ -51,6 +51,7 @@ function materializeContent(state, idea, now = Date.now()) {
         {
           id: existing?.id,
           contentItemId: contentItem.id,
+          brandId: idea.metadata?.brandId ?? null,
           platform,
           hook: variant.hook,
           body: variant.body,
@@ -117,7 +118,7 @@ export function createOrbitRuntime({
       ...rawIdea,
       brandId: activeBrand.id ?? state.activeBrandId,
     });
-    const result = await runLocalPipeline(idea, brand, {
+    const result = await runLocalPipeline(idea, activeBrand, {
       research,
       contentGenerator: selectedContentGenerator,
       publisher,
@@ -188,10 +189,12 @@ export function createOrbitRuntime({
     });
 
     if (!normalized.id) {
+      const created = createBrand(normalized);
       return save({
         ...state,
-        brand: normalized,
-        brands: normalized.name ? [{ ...normalized, id: createBrand(normalized).id }] : [],
+        brand: created,
+        brands: [...state.brands, created],
+        activeBrandId: created.id,
       });
     }
 
@@ -356,6 +359,7 @@ export function createOrbitRuntime({
     const schedule = createSchedule(
       {
         contentItemId: contentItem.id,
+        brandId: idea.metadata?.brandId ?? state.activeBrandId ?? null,
         platform,
         scheduledAt,
         status: "scheduled",
@@ -379,6 +383,7 @@ export function createOrbitRuntime({
         createAgentRun({
           agent: "Publishing",
           task: "Prepare approved content schedule",
+          brandId: idea.metadata?.brandId ?? state.activeBrandId ?? null,
           input: { ideaId, platform, scheduledAt },
           output: { scheduleId: schedule.id, publishingEnabled: false },
           now,
@@ -390,17 +395,22 @@ export function createOrbitRuntime({
   async function normalizeMetrics(raw) {
     const snapshotValue = analytics.run(raw);
     const state = await snapshot();
+    const brandedSnapshot = {
+      ...snapshotValue,
+      brandId: raw?.brandId ?? state.activeBrandId ?? null,
+    };
 
     return save({
       ...state,
-      metrics: [...state.metrics, snapshotValue],
+      metrics: [...state.metrics, brandedSnapshot],
       audit: [
         ...state.audit,
         createAgentRun({
           agent: "Analytics",
           task: "Normalize platform metrics",
-          input: { platform: snapshotValue.platform },
-          output: { snapshotDate: snapshotValue.snapshotDate },
+          brandId: brandedSnapshot.brandId,
+          input: { platform: brandedSnapshot.platform },
+          output: { snapshotDate: brandedSnapshot.snapshotDate },
         }),
       ],
     });
@@ -412,8 +422,11 @@ export function createOrbitRuntime({
     }
 
     const rawRecords = await analyticsGateway.fetch(input);
-    const normalizedRecords = rawRecords.map((raw) => analytics.run(raw));
     const state = await snapshot();
+    const normalizedRecords = rawRecords.map((raw) => ({
+      ...analytics.run(raw),
+      brandId: raw?.brandId ?? input?.brandId ?? state.activeBrandId ?? null,
+    }));
 
     return save({
       ...state,
@@ -422,6 +435,7 @@ export function createOrbitRuntime({
         ...state.audit,
         createAgentRun({
           agent: "Analytics",
+          brandId: input?.brandId ?? state.activeBrandId ?? null,
           task: "Ingest external platform metrics",
           input: {
             provider: analyticsGateway.provider,
@@ -439,19 +453,48 @@ export function createOrbitRuntime({
   async function runLearning() {
     const state = await snapshot();
     const result = learning.run({
-      metrics: state.metrics,
-      contentItems: state.contentItems,
-      contentVariants: state.contentVariants,
+      metrics: state.metrics.filter(
+        (row) =>
+          !state.activeBrandId ||
+          !row.brandId ||
+          row.brandId === state.activeBrandId,
+      ),
+      contentItems: state.contentItems.filter(
+        (item) =>
+          !state.activeBrandId ||
+          !item.brandId ||
+          item.brandId === state.activeBrandId,
+      ),
+      contentVariants: state.contentVariants.filter(
+        (variant) => {
+          const item = state.contentItems.find(
+            (contentItem) => contentItem.id === variant.contentItemId,
+          );
+          return (
+            !state.activeBrandId ||
+            !item?.brandId ||
+            item.brandId === state.activeBrandId
+          );
+        },
+      ),
     });
+    const brandedInsights = result.insights.map((insight) => ({
+      ...insight,
+      brandId: state.activeBrandId ?? null,
+    }));
 
     return save({
       ...state,
-      learning: result,
-      learningInsights: [...state.learningInsights, ...result.insights],
+      learning: {
+        ...result,
+        insights: brandedInsights,
+      },
+      learningInsights: [...state.learningInsights, ...brandedInsights],
       audit: [
         ...state.audit,
         createAgentRun({
           agent: "Learning",
+          brandId: state.activeBrandId ?? null,
           task: "Generate advisory learning insights",
           input: {
             metricCount: state.metrics.length,
@@ -514,6 +557,7 @@ export function createOrbitRuntime({
           createAgentRun({
             agent: "Publishing",
             task: "Publish scheduled content variant",
+            brandId: idea.metadata?.brandId ?? state.activeBrandId ?? null,
             input: { ideaId, platform, scheduleId: scheduledItem.id },
             output: { success: true, provider: publishingGateway.provider },
           }),
