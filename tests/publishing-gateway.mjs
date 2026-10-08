@@ -45,7 +45,7 @@ await assert.rejects(
   () =>
     gateway.publish({
       schedule: "2026-10-09T09:00:00Z",
-      approval: true,
+      approval: false,
       idempotencyKey: "schedule-2:1",
     }),
   (error) =>
