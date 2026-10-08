@@ -60,6 +60,20 @@ const fakeClient = {
         tables.set(table, [...byId.values()]);
         return Promise.resolve({ data: rows, error: null });
       },
+      delete() {
+        const query = createQuery(table, "delete");
+        const originalEq = query.eq;
+        query.eq = (column, value) => {
+          originalEq.call(query, column, value);
+          const current = tables.get(table) ?? [];
+          tables.set(
+            table,
+            current.filter((row) => row[column] !== value),
+          );
+          return Promise.resolve({ data: [], error: null });
+        };
+        return query;
+      },
     };
   },
 };
@@ -152,6 +166,45 @@ await store.set({
   learning: { generatedAt: null, insights: [] },
   learningInsights: [],
 });
+
+tables.set("ideas", [
+  ...(tables.get("ideas") ?? []),
+  {
+    id: "stale-idea",
+    workspace_id: "workspace-1",
+    title: "Stale",
+    objective: "Education",
+    audience: "Creators",
+    status: "idea",
+  },
+]);
+
+await store.set({
+  workspace: { id: "workspace-1", name: "Northstar Studio", slug: "northstar", timezone: "UTC" },
+  brand: { id: "brand-1", name: "Northstar Studio", voice: "clear", audience: "Creators" },
+  ideas: [
+    {
+      id: "idea-1",
+      title: "Persistent OrbitOS",
+      pillar: "Systems",
+      audience: "Creators",
+      goal: "Education",
+      stage: "approved",
+      score: 91,
+      variants: {},
+    },
+  ],
+  research: [],
+  contentItems: [],
+  contentVariants: [],
+  schedules: [],
+  metrics: [],
+  audit: [],
+  learning: { generatedAt: null, insights: [] },
+  learningInsights: [],
+});
+
+assert.equal((tables.get("ideas") ?? []).some((row) => row.id === "stale-idea"), false);
 
 const persistentRuntime = createPersistentOrbitRuntime({
   client: fakeClient,
