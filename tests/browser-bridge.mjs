@@ -45,6 +45,7 @@ storage.setItem(
 const bridge = createOrbitBrowserBridge({ storage, key: "orbit-v4" });
 
 assert.equal(typeof bridge.publishIdeaVariant, "function");
+assert.equal(typeof bridge.importAnalyticsReport, "function");
 assert.equal(typeof bridge.ingestExternalMetrics, "undefined");
 assert.equal(typeof bridge.runDuePublishing, "undefined");
 assert.equal(typeof bridge.getEnvironment, "function");
@@ -107,6 +108,17 @@ const aiConfig = await bridge.getAiConfig();
 assert.equal(aiConfig.provider, "ollama");
 assert.equal(aiConfig.model, "test-local-model");
 
+const importedReport = await bridge.importAnalyticsReport(
+  `platform,snapshotDate,views,reach,engagements,followerDelta,provider,source,brandId\nTikTok,2026-10-08,1200,900,120,14,tiktok,export,brand-browser-2`,
+  { source: "csv-import", provider: "manual-import" },
+);
+assert.equal(importedReport.metrics.length, 1);
+assert.equal(importedReport.metrics[0].brandId, "brand-browser-2");
+assert.equal(importedReport.metrics[0].provider, "tiktok");
+assert.equal(importedReport.metrics[0].source, "export");
+assert.equal(importedReport.metrics[0].views, 1200);
+assert.equal(importedReport.metrics[0].isDemo, false);
+
 const exported = await bridge.exportState();
 const restoredStorage = createMemoryStorage();
 const restoredBridge = createOrbitBrowserBridge({
@@ -119,5 +131,6 @@ const restored = await restoredBridge.snapshot();
 assert.equal(restored.version, 4);
 assert.equal(restored.ideas[0].stage, "Approved");
 assert.equal(restored.schedules.length, 1);
+assert.equal(restored.metrics.length, 1);
 
 console.log("OrbitOS browser bridge tests passed.");
