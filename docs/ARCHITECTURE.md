@@ -12,7 +12,7 @@
 
 Intelligence components depend on contracts, not vendor SDKs.
 
-The browser UI may depend on the browser runtime bridge, but the domain and core layers must never import browser APIs, Vercel SDKs, Supabase SDKs, social SDKs, or AI vendor SDKs.
+The browser UI may depend on the browser runtime bridge, but the domain and core layers must never import browser APIs, Vercel SDKs, Supabase SDKs, social SDKs, or AI vendor SDKs. AI providers are selected through a provider-neutral content-generator factory.
 
 ## State boundary
 
@@ -50,7 +50,7 @@ src/runtime/ui-state.mjs owns the translation between these shapes.
 9. Analytics normalizes results.
 10. Learning produces advisory insights.
 
-Scheduling is a planning/execution boundary, not proof of external publication.
+Scheduling is a planning/execution boundary, not proof of external publication. The default AI path is deterministic and local; Ollama is an explicit localhost-only adapter choice.
 
 ## Safety rule
 
