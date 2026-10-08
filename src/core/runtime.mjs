@@ -1,4 +1,8 @@
-import { createIdea } from "../domain/models.mjs";
+import {
+  createContentItem,
+  createContentVariant,
+  createIdea,
+} from "../domain/models.mjs";
 import { assertAdapter } from "../contracts/adapters.mjs";
 import { createInitialState, normalizeState } from "../domain/state.mjs";
 import { runLocalPipeline } from "./pipeline.mjs";
@@ -8,6 +12,58 @@ import { localResearchAdapter } from "../adapters/local-research.mjs";
 import { localContentGeneratorAdapter } from "../adapters/local-content-generator.mjs";
 import { localMetricsAdapter } from "../adapters/local-metrics.mjs";
 import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
+
+function materializeContent(state, idea, now = Date.now()) {
+  const current = state.contentItems.find((item) => item.ideaId === idea.id);
+
+  const contentItem = createContentItem(
+    {
+      id: current?.id,
+      ideaId: idea.id,
+      title: idea.title,
+      brief: idea.brief,
+      status: idea.stage === "approved" ? "approved" : "draft",
+      createdAt: current?.createdAt,
+      updatedAt: new Date(now).toISOString(),
+    },
+    now,
+  );
+
+  const existingByPlatform = new Map(
+    state.contentVariants
+      .filter((variant) => variant.contentItemId === contentItem.id)
+      .map((variant) => [variant.platform, variant]),
+  );
+
+  const contentVariants = Object.entries(idea.variants ?? {}).map(
+    ([platform, variant]) => {
+      const existing = existingByPlatform.get(platform);
+
+      return createContentVariant(
+        {
+          id: existing?.id,
+          contentItemId: contentItem.id,
+          platform,
+          hook: variant.hook,
+          body: variant.body,
+          cta: variant.cta,
+          hashtags: variant.hashtags,
+          creativeBrief: variant.creativeBrief,
+          status: idea.stage === "approved" ? "approved" : "draft",
+          approved: Boolean(variant.approved),
+          version: existing?.version ?? 1,
+          updatedAt: new Date(now).toISOString(),
+        },
+        now,
+      );
+    },
+  );
+
+  return {
+    contentItem,
+    contentVariants,
+  };
+}
 
 export function createOrbitRuntime({
   store = new MemoryStore(createInitialState()),
@@ -42,10 +98,28 @@ export function createOrbitRuntime({
     const nextIdeas = state.ideas.filter((item) => item.id !== result.idea.id);
     nextIdeas.push(result.idea);
 
+    const materialized = materializeContent(
+      state,
+      result.idea,
+      Date.now(),
+    );
+    const nextContentItems = state.contentItems.filter(
+      (item) => item.id !== materialized.contentItem.id,
+    );
+    nextContentItems.push(materialized.contentItem);
+
+    const nextVariants = state.contentVariants.filter(
+      (variant) =>
+        variant.contentItemId !== materialized.contentItem.id,
+    );
+    nextVariants.push(...materialized.contentVariants);
+
     return save({
       ...state,
       ideas: nextIdeas,
       research: [...state.research, result.research],
+      contentItems: nextContentItems,
+      contentVariants: nextVariants,
       audit: [...state.audit, ...result.audit],
     });
   }
@@ -59,28 +133,43 @@ export function createOrbitRuntime({
       throw new Error("An idea needs platform variants before approval.");
     }
 
-    idea.stage = "approved";
-    idea.variants = Object.fromEntries(
-      Object.entries(idea.variants).map(([platform, variant]) => [
-        platform,
-        { ...variant, approved: true },
-      ]),
-    );
+    const approvedIdea = {
+      ...idea,
+      stage: "approved",
+      variants: Object.fromEntries(
+        Object.entries(idea.variants).map(([platform, variant]) => [
+          platform,
+          { ...variant, approved: true },
+        ]),
+      ),
+    };
 
+    const materialized = materializeContent(state, approvedIdea, now);
     const run = createAgentRun({
       agent: "Review",
       task: "Record human approval",
       input: { ideaId },
       output: {
         stage: "approved",
-        variantCount: Object.keys(idea.variants).length,
+        variantCount: Object.keys(approvedIdea.variants).length,
       },
       now,
     });
 
     return save({
       ...state,
-      ideas: state.ideas.map((item) => (item.id === idea.id ? idea : item)),
+      ideas: state.ideas.map((item) =>
+        item.id === idea.id ? approvedIdea : item,
+      ),
+      contentItems: state.contentItems
+        .filter((item) => item.id !== materialized.contentItem.id)
+        .concat(materialized.contentItem),
+      contentVariants: state.contentVariants
+        .filter(
+          (variant) =>
+            variant.contentItemId !== materialized.contentItem.id,
+        )
+        .concat(materialized.contentVariants),
       audit: [...state.audit, run],
     });
   }

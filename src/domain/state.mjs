@@ -6,9 +6,13 @@ const DEFAULT_STATE = Object.freeze({
   brand: {},
   ideas: [],
   research: [],
+  contentItems: [],
+  contentVariants: [],
+  schedules: [],
   metrics: [],
   audit: [],
   learning: [],
+  learningInsights: [],
 });
 
 export function createInitialState(overrides = {}) {
@@ -34,10 +38,24 @@ export function normalizeState(raw = {}) {
     research: Array.isArray(source.research)
       ? structuredClone(source.research)
       : [],
-    metrics: Array.isArray(source.metrics) ? structuredClone(source.metrics) : [],
+    contentItems: Array.isArray(source.contentItems)
+      ? structuredClone(source.contentItems)
+      : [],
+    contentVariants: Array.isArray(source.contentVariants)
+      ? structuredClone(source.contentVariants)
+      : [],
+    schedules: Array.isArray(source.schedules)
+      ? structuredClone(source.schedules)
+      : [],
+    metrics: Array.isArray(source.metrics)
+      ? structuredClone(source.metrics)
+      : [],
     audit: Array.isArray(source.audit) ? structuredClone(source.audit) : [],
     learning: Array.isArray(source.learning)
       ? structuredClone(source.learning)
+      : [],
+    learningInsights: Array.isArray(source.learningInsights)
+      ? structuredClone(source.learningInsights)
       : [],
   };
 }

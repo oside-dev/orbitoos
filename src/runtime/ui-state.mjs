@@ -51,13 +51,21 @@ export function toCoreState(uiState = {}) {
     version: STATE_VERSION,
     workspace: source.workspace ?? {},
     brand: source.brand ?? {},
-    ideas: Array.isArray(source.ideas)
-      ? source.ideas.map(toCoreIdea)
-      : [],
+    ideas: Array.isArray(source.ideas) ? source.ideas.map(toCoreIdea) : [],
     research: Array.isArray(source.research) ? source.research : [],
+    contentItems: Array.isArray(source.contentItems)
+      ? source.contentItems
+      : [],
+    contentVariants: Array.isArray(source.contentVariants)
+      ? source.contentVariants
+      : [],
+    schedules: Array.isArray(source.schedules) ? source.schedules : [],
     metrics: Array.isArray(source.metrics) ? source.metrics : [],
     audit: Array.isArray(source.audit) ? source.audit : [],
     learning: Array.isArray(source.learning) ? source.learning : [],
+    learningInsights: Array.isArray(source.learningInsights)
+      ? source.learningInsights
+      : [],
   });
 }
 
@@ -76,8 +84,12 @@ export function toUiState(coreState, previousUiState = {}) {
     brand: structuredClone(coreState.brand),
     ideas: coreState.ideas.map(toUiIdea),
     research: structuredClone(coreState.research),
+    contentItems: structuredClone(coreState.contentItems),
+    contentVariants: structuredClone(coreState.contentVariants),
+    schedules: structuredClone(coreState.schedules),
     audit: structuredClone(coreState.audit),
     learning: structuredClone(coreState.learning),
+    learningInsights: structuredClone(coreState.learningInsights),
     signals:
       latestResearch?.signals?.length > 0
         ? structuredClone(latestResearch.signals)

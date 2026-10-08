@@ -29,7 +29,8 @@ export function createIdea(input, now = Date.now()) {
     id: input.id ?? createId("idea", now),
     title,
     pillar: String(input.pillar ?? "General").trim() || "General",
-    audience: String(input.audience ?? "General audience").trim() || "General audience",
+    audience:
+      String(input.audience ?? "General audience").trim() || "General audience",
     goal: String(input.goal ?? "Education").trim() || "Education",
     brief: String(input.brief ?? "").trim(),
     stage: PIPELINE_STAGES.includes(input.stage) ? input.stage : "idea",
@@ -46,6 +47,48 @@ export function createVariant(input = {}) {
     body: String(input.body ?? ""),
     cta: String(input.cta ?? ""),
     approved: Boolean(input.approved),
+  };
+}
+
+export function createContentItem(input = {}, now = Date.now()) {
+  const title = String(input.title ?? "").trim();
+  if (!title) throw new Error("Content item title is required.");
+
+  const createdAt = input.createdAt ?? new Date(now).toISOString();
+
+  return {
+    id: input.id ?? createId("content", now),
+    ideaId: input.ideaId ?? null,
+    title,
+    brief: String(input.brief ?? "").trim(),
+    status: String(input.status ?? "draft"),
+    createdAt,
+    updatedAt: input.updatedAt ?? createdAt,
+  };
+}
+
+export function createContentVariant(input = {}, now = Date.now()) {
+  const platform = String(input.platform ?? "").trim();
+  if (!platform) throw new Error("Content variant platform is required.");
+
+  return {
+    id:
+      input.id ??
+      createId(
+        "variant-" + platform.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        now,
+      ),
+    contentItemId: input.contentItemId ?? null,
+    platform,
+    hook: String(input.hook ?? ""),
+    body: String(input.body ?? ""),
+    cta: String(input.cta ?? ""),
+    hashtags: Array.isArray(input.hashtags) ? input.hashtags.map(String) : [],
+    creativeBrief: String(input.creativeBrief ?? ""),
+    status: String(input.status ?? "draft"),
+    approved: Boolean(input.approved),
+    version: Number.isInteger(input.version) ? input.version : 1,
+    updatedAt: input.updatedAt ?? new Date(now).toISOString(),
   };
 }
 
