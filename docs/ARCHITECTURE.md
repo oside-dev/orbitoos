@@ -67,4 +67,4 @@ External publishing stays disabled until:
 
 workspaces, brands, ideas, research_items, content_items, content_variants, schedules, analytics_snapshots, agent_runs, learning_insights.
 
-The current local state is deliberately shaped to make this backend mapping straightforward.
+The current local state is deliberately shaped to make this backend mapping straightforward. The persistent backend adapter accepts a Supabase-compatible client without importing a vendor SDK, so it can be tested without a live backend project.
