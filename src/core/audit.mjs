@@ -49,11 +49,13 @@ export function createPipelineAudit({
   strategy,
   review,
   workflowPlan = [],
+  brandId = null,
   now = Date.now(),
 }) {
   return [
     createAgentRun({
       agent: "Orchestrator",
+      brandId,
       task: "Plan content operating workflow",
       input: { ideaId: idea.id },
       output: {
@@ -67,6 +69,7 @@ export function createPipelineAudit({
     }),
     createAgentRun({
       agent: "Research",
+      brandId,
       task: "Synthesize research signals",
       input: { ideaId: idea.id },
       output: {
@@ -77,6 +80,7 @@ export function createPipelineAudit({
     }),
     createAgentRun({
       agent: "Strategy",
+      brandId,
       task: "Build platform strategy and KPIs",
       input: { ideaId: idea.id },
       output: {
@@ -87,6 +91,7 @@ export function createPipelineAudit({
     }),
     createAgentRun({
       agent: "Writing",
+      brandId,
       task: "Generate platform-native variants",
       input: { ideaId: idea.id },
       output: {
@@ -96,6 +101,7 @@ export function createPipelineAudit({
     }),
     createAgentRun({
       agent: "Creative",
+      brandId,
       task: "Attach platform-native creative direction",
       input: { ideaId: idea.id },
       output: {
@@ -105,6 +111,7 @@ export function createPipelineAudit({
     }),
     createAgentRun({
       agent: "Review",
+      brandId,
       task: "Review generated variants against guardrails",
       input: { ideaId: idea.id },
       output: {
