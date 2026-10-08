@@ -11,7 +11,6 @@ import { runLocalPipeline } from "./pipeline.mjs";
 import { createAgentRun } from "./audit.mjs";
 import { MemoryStore } from "../adapters/local-store.mjs";
 import { localResearchAdapter } from "../adapters/local-research.mjs";
-import { localContentGeneratorAdapter } from "../adapters/local-content-generator.mjs";
 import { localMetricsAdapter } from "../adapters/local-metrics.mjs";
 import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
 import { createContentGenerator } from "./content-generator-factory.mjs";
@@ -407,6 +406,7 @@ export function createOrbitRuntime({
   return Object.freeze({
     snapshot,
     createDraft,
+    updateBrand,
     updateContentVariant,
     approveIdea,
     scheduleIdeaVariant,
