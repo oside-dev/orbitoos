@@ -225,17 +225,22 @@ function analytics(){
   const provenance=(m.isDemo===false?'<span class="badge ok">REAL</span>':'<span class="badge">DEMO</span>');
   return '<tr><td>'+esc(m.platform)+'</td><td>'+metricViews(m).toLocaleString()+'</td><td>'+metricReach(m).toLocaleString()+'</td><td>'+metricEngagements(m).toLocaleString()+'</td><td>'+metricRate(m).toFixed(1)+'%</td><td>'+provenance+'</td></tr>';
  }).join("");
+ const strategyEntries=entries.filter(x=>x.category==="strategy-performance");
  const learning=entries.length
-   ? entries.slice(0,5).map(x=>'<div class="item"><strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join("")
+   ? entries.slice(0,5).map(x=>'<div class="item"><div class="row"><strong>'+esc(x.title)+'</strong><span class="badge">'+esc(x.category||"insight")+'</span></div><small>'+esc(x.detail)+'</small></div>').join("")
    : '<div class="small">No runtime learning insights yet.</div>';
- shell("Analytics","Normalized metrics feed the Learning Agent; provenance stays attached",btn("Run learning","runLearningNow()",true),
+ const strategy= strategyEntries.length
+   ? strategyEntries.slice(0,3).map(x=>'<div class="item"><strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join("")
+   : '<div class="small">Run Learning after content has persisted strategy data and metrics.</div>';
+ shell("Analytics","Normalized metrics feed the Learning Agent; strategy is now part of the feedback loop",btn("Run learning","runLearningNow()",true),
  '<div class="grid kpis">'+
  kpi("Views",views.toLocaleString(),"normalized")+kpi("Reach",reach.toLocaleString(),"normalized")+
  kpi("Engagements",engagements.toLocaleString(),"normalized")+kpi("Avg engagement rate",avgRate.toFixed(1)+"%","engagements / reach")+
  kpi("Follower delta",followerDelta.toLocaleString(),"normalized")+
  '</div><div class="card" style="margin-top:14px"><table class="table"><tr><th>Platform</th><th>Views</th><th>Reach</th><th>Engagements</th><th>Rate</th><th>Source</th></tr>'+rows+
- '</table></div><div class="grid two" style="margin-top:14px"><div class="card"><div class="row"><h2>Learning recommendations</h2><span class="badge ok">'+entries.length+' STORED</span></div><div class="list" style="margin-top:10px">'+learning+
- '</div></div><div class="card"><h2>Learning contract</h2><p class="small">Analytics Agent normalizes metrics. Learning Agent derives platform/content insights from the normalized history. Strategy changes remain human-reviewed.</p></div></div>');
+ '</table></div><div class="grid two" style="margin-top:14px"><div class="card"><div class="row"><h2>Strategy signals</h2><span class="badge ok">'+strategyEntries.length+' DETECTED</span></div><div class="list" style="margin-top:10px">'+strategy+
+ '</div></div><div class="card"><div class="row"><h2>Learning recommendations</h2><span class="badge ok">'+entries.length+' STORED</span></div><div class="list" style="margin-top:10px">'+learning+
+ '</div></div></div><div class="card" style="margin-top:14px"><h2>Learning contract</h2><p class="small">Analytics Agent normalizes metrics. Learning Agent correlates performance back to persisted content strategy, then produces advisory insights. Strategy changes remain human-reviewed.</p></div>');
 }
 function agents(){
  const list=[
@@ -247,7 +252,7 @@ function agents(){
  ["Review","Draft + guardrails → pass/fail","LOCAL"],
  ["Publishing","Approved post → provider job","LOCKED"],
  ["Analytics","Platform metrics → normalized snapshot","LOCAL"],
- ["Learning","Normalized metrics + history → advisory insights","LOCAL"]
+ ["Learning","Metrics + persisted strategy → advisory insights","LOCAL"]
  ];
  shell("Agents","Specialists share contracts and stay provider-neutral","",'<div class="grid three">'+list.map(a=>'<div class="card"><div class="row"><h2>'+a[0]+'</h2><span class="badge '+(a[2]==="LOCKED"?"warn":"ok")+'">'+a[2]+'</span></div><p class="small">'+a[1]+'</p></div>').join("")+'</div><div class="card" style="margin-top:14px"><div class="row"><h2>Dependency rule</h2><span class="badge ok">ARCHITECTURE</span></div><p class="small">Agents call interfaces, not vendor SDKs. Provider adapters can be swapped later without rewriting the agent contracts.</p></div>');
 }
