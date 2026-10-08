@@ -85,5 +85,6 @@ https://orbitoos.vercel.app
 - M10 — Persistent content operating loop — real Supabase Auth + workspace bootstrap + persisted create/edit/approve/schedule lifecycle
 - M11 — Content intelligence foundation — persisted Strategy Agent artifact linked to each idea and restored across workspace reloads
 - M12 — Strategy-aware learning — performance metrics are correlated back to persisted strategy angles
+- M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
