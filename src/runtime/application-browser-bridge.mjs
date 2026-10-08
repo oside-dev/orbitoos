@@ -5,6 +5,51 @@ import { createSupabaseBrowserClient } from "../adapters/supabase-browser-client
 import { createSupabaseAuthAdapter } from "../adapters/supabase-auth.mjs";
 import { createSupabaseWorkspaceContextAdapter } from "../adapters/supabase-workspace-context.mjs";
 
+const DEFAULT_AI_CONFIG = Object.freeze({
+  provider: "local",
+  model: "",
+  baseUrl: "http://localhost:11434/api",
+});
+
+function normalizeAiConfig(previous = {}, override = {}) {
+  const source = previous?.workspace?.settings?.ai ?? {};
+  const provider = String(
+    override.provider ?? source.provider ?? DEFAULT_AI_CONFIG.provider,
+  ).toLowerCase();
+  const model = String(
+    override.model ?? source.model ?? DEFAULT_AI_CONFIG.model,
+  ).trim();
+  const baseUrl = String(
+    override.baseUrl ?? source.baseUrl ?? DEFAULT_AI_CONFIG.baseUrl,
+  ).trim();
+
+  if (!["local", "ollama"].includes(provider)) {
+    throw new Error("OrbitOS AI provider must be local or ollama.");
+  }
+
+  if (provider === "ollama" && !model) {
+    throw new Error("An Ollama model name is required.");
+  }
+
+  if (provider === "ollama") {
+    let url;
+    try {
+      url = new URL(baseUrl);
+    } catch {
+      throw new Error("Ollama base URL must be a valid URL.");
+    }
+
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      !["localhost", "127.0.0.1"].includes(url.hostname)
+    ) {
+      throw new Error("OrbitOS only permits a local Ollama base URL.");
+    }
+  }
+
+  return { provider, model, baseUrl };
+}
+
 export async function createOrbitApplicationBrowserBridge({
   storage = globalThis.localStorage,
   key = "orbit-v4",
@@ -40,13 +85,26 @@ export async function createOrbitApplicationBrowserBridge({
     }
 
     const bootstrap = await bootstrapWorkspace();
-    const secured = await createApplicationRuntime({
+    let secured = await createApplicationRuntime({
       mode: "authenticated-persistent",
       auth,
       workspaceContext,
       client,
       workspaceId: bootstrap?.workspaceId ?? null,
     });
+
+    const persisted = await secured.runtime.snapshot();
+    const persistedAi = persisted?.workspace?.settings?.ai;
+    if (persistedAi && typeof persistedAi === "object") {
+      secured = await createApplicationRuntime({
+        mode: "authenticated-persistent",
+        auth,
+        workspaceContext,
+        client,
+        workspaceId: bootstrap?.workspaceId ?? null,
+        ai: normalizeAiConfig(persisted),
+      });
+    }
 
     remote = secured;
     return secured;
@@ -239,13 +297,38 @@ export async function createOrbitApplicationBrowserBridge({
           ),
       ),
 
-    getAiConfig: () => localBridge.getAiConfig(),
-    setAiConfig: (config) =>
-      invoke(
-        "setAiConfig",
-        () => localBridge.setAiConfig(config),
-        () => localBridge.setAiConfig(config),
-      ),
+    getAiConfig: async () => {
+      if (!remote) return localBridge.getAiConfig();
+      const state = await remote.runtime.snapshot();
+      return normalizeAiConfig(state);
+    },
+
+    setAiConfig: async (nextConfig = {}) => {
+      if (!remote) return localBridge.setAiConfig(nextConfig);
+
+      const previous = await remote.runtime.snapshot();
+      const config = normalizeAiConfig(previous, nextConfig);
+      const settings = {
+        ...(previous.workspace?.settings ?? {}),
+        ai: config,
+        activeBrandId: previous.activeBrandId ?? null,
+      };
+
+      const { error } = await client
+        .from("workspaces")
+        .update({ settings })
+        .eq("id", remote.environment.workspaceId);
+
+      if (error) {
+        throw new Error(
+          "OrbitOS workspace AI settings update failed: " +
+            String(error.message ?? error),
+        );
+      }
+
+      await initializeRemote();
+      return config;
+    },
 
     runLearning: () =>
       invoke(
