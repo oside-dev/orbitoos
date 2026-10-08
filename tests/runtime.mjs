@@ -174,6 +174,34 @@ assert.deepEqual(dueResult.results, [
 const dueSnapshot = await duePublishingRuntime.snapshot();
 assert.equal(dueSnapshot.schedules[0].status, "published");
 
+const externalAnalyticsRuntime = createOrbitRuntime({
+  store: new MemoryStore(createInitialState()),
+  analyticsProvider: {
+    provider: "test-analytics",
+    enabled: true,
+    official: true,
+    credentialsReady: true,
+    rateLimitReady: true,
+    async fetch() {
+      return [
+        {
+          platform: "TikTok",
+          snapshotDate: "2026-10-08",
+          views: 2500,
+          reach: 1800,
+          engagements: 220,
+          followerDelta: 18,
+        },
+      ];
+    },
+  },
+});
+const externalState = await externalAnalyticsRuntime.ingestExternalMetrics();
+assert.equal(externalState.metrics.length, 1);
+assert.equal(externalState.metrics[0].isDemo, false);
+assert.equal(externalState.metrics[0].provider, "test-analytics");
+assert.equal(externalState.audit.at(-1).agent, "Analytics");
+
 state = await runtime.normalizeMetrics({
   platform: "TikTok",
   views: 1234,
