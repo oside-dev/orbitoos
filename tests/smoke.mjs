@@ -18,8 +18,15 @@ const result = runLocalPipeline(idea, {
 
 assert.equal(result.idea.stage, "draft");
 assert.equal(Object.keys(result.variants).length, PLATFORMS.length);
+assert.equal(Object.keys(result.idea.variants).length, PLATFORMS.length);
 assert.equal(result.execution.publishingEnabled, false);
 assert.equal(result.execution.requiresHumanApproval, true);
+assert.equal(result.research.generatedBy, "local-research");
+assert.equal(result.audit.length, 4);
+assert.deepEqual(
+  result.audit.map((run) => run.agent),
+  ["Research", "Strategy", "Writing", "Review"],
+);
 
 const store = new MemoryStore({ ideas: [] });
 await store.update((state) => {

@@ -18,3 +18,7 @@ export function generateLocalVariants({ idea, brand = {} }) {
     ]),
   );
 }
+
+export const localContentGeneratorAdapter = Object.freeze({
+  generate: generateLocalVariants,
+});

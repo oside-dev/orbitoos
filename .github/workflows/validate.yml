@@ -34,8 +34,15 @@ jobs:
         run: |
           test -f src/domain/models.mjs
           test -f src/core/pipeline.mjs
+          test -f src/core/audit.mjs
+          test -f src/contracts/adapters.mjs
           test -f src/adapters/local-store.mjs
           test -f src/adapters/local-content-generator.mjs
+          test -f src/adapters/local-research.mjs
+          test -f src/adapters/local-metrics.mjs
+          test -f src/adapters/null-publisher.mjs
           test -f tests/smoke.mjs
+          test -f tests/contracts.mjs
           node tests/smoke.mjs
-          echo "Core smoke tests passed"
+          node tests/contracts.mjs
+          echo "Core and adapter contract tests passed"

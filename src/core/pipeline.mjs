@@ -2,39 +2,15 @@ import {
   PLATFORMS,
   PIPELINE_STAGES,
   createIdea,
-  createVariant,
   normalizeBrand,
 } from "../domain/models.mjs";
+import { assertAdapter } from "../contracts/adapters.mjs";
+import { localResearchAdapter } from "../adapters/local-research.mjs";
+import { localContentGeneratorAdapter } from "../adapters/local-content-generator.mjs";
+import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
+import { createPipelineAudit } from "./audit.mjs";
 
-export const PIPELINE_VERSION = "core-0.1";
-
-const DEFAULT_SIGNALS = Object.freeze([
-  {
-    topic: "Hook specificity",
-    signal: "Specific audience plus a clear tension usually creates a sharper opening.",
-    score: 92,
-    source: "local-heuristic",
-  },
-  {
-    topic: "Native formatting",
-    signal: "Platform-native pacing is preferable to blind cross-posting.",
-    score: 86,
-    source: "local-heuristic",
-  },
-  {
-    topic: "Concrete proof",
-    signal: "Specific examples are more useful than broad claims.",
-    score: 79,
-    source: "local-heuristic",
-  },
-]);
-
-function researchIdea(idea) {
-  return {
-    signals: DEFAULT_SIGNALS.map((signal) => ({ ...signal })),
-    summary: "Local research synthesis for " + idea.title,
-  };
-}
+export const PIPELINE_VERSION = "core-0.2";
 
 function buildStrategy(idea, research) {
   return {
@@ -44,24 +20,6 @@ function buildStrategy(idea, research) {
     platforms: [...PLATFORMS],
     kpis: ["reach", "engagement", "saves"],
   };
-}
-
-function buildVariants(idea, strategy, brand) {
-  const voice = brand.voice || "clear and useful";
-  return Object.fromEntries(
-    strategy.platforms.map((platform) => [
-      platform,
-      createVariant({
-        platform,
-        hook: "Why " + idea.title + " matters more than you think.",
-        body:
-          "Teach one concrete example, one principle, and one next step. " +
-          "Voice: " +
-          voice,
-        cta: "Save this and test it this week.",
-      }),
-    ]),
-  );
 }
 
 function reviewVariants(variants, brand) {
@@ -84,25 +42,52 @@ function reviewVariants(variants, brand) {
   };
 }
 
-export function runLocalPipeline(rawIdea, rawBrand = {}) {
+export function runLocalPipeline(
+  rawIdea,
+  rawBrand = {},
+  dependencies = {},
+) {
   const idea = createIdea(rawIdea);
   const brand = normalizeBrand(rawBrand);
 
-  const research = researchIdea(idea);
+  const researchAdapter = dependencies.research ?? localResearchAdapter;
+  const contentGenerator =
+    dependencies.contentGenerator ?? localContentGeneratorAdapter;
+  const publisher = dependencies.publisher ?? nullPublisherAdapter;
+
+  assertAdapter("research", researchAdapter);
+  assertAdapter("contentGenerator", contentGenerator);
+  assertAdapter("publisher", publisher);
+
+  const research = researchAdapter.research({ idea, brand });
   const strategy = buildStrategy(idea, research);
-  const variants = buildVariants(idea, strategy, brand);
+  const variants = contentGenerator.generate({ idea, strategy, brand });
   const review = reviewVariants(variants, brand);
+  const draftIdea = {
+    ...idea,
+    stage: PIPELINE_STAGES[3],
+    variants,
+  };
+
+  const audit = createPipelineAudit({
+    idea: draftIdea,
+    research,
+    strategy,
+    review,
+  });
 
   return {
     version: PIPELINE_VERSION,
-    idea: { ...idea, stage: PIPELINE_STAGES[3] },
+    idea: draftIdea,
     research,
     strategy,
     variants,
     review,
+    audit,
     execution: {
-      publishingEnabled: false,
+      publishingEnabled: Boolean(publisher.enabled),
       requiresHumanApproval: review.humanApprovalRequired,
+      publishingProvider: publisher.constructor?.name ?? "adapter",
     },
   };
 }
