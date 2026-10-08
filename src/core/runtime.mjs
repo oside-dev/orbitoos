@@ -1,5 +1,6 @@
 import {
   createContentItem,
+  createBrand,
   createContentVariant,
   createIdea,
   createSchedule,
@@ -25,6 +26,7 @@ function materializeContent(state, idea, now = Date.now()) {
     {
       id: current?.id,
       ideaId: idea.id,
+      brandId: idea.metadata?.brandId ?? null,
       title: idea.title,
       brief: idea.brief,
       status: idea.stage === "approved" ? "approved" : "draft",
@@ -100,44 +102,110 @@ export function createOrbitRuntime({
     return store.set(normalizeState(next));
   }
 
-  async function createDraft(rawIdea, brand = {}) {
-    const idea = createIdea(rawIdea);
+  async function createDraft(rawIdea, brand) {
+    const state = await snapshot();
+    const activeBrand =
+      brand && Object.keys(brand).length > 0
+        ? normalizeBrand(brand)
+        : normalizeBrand(state.brand);
+
+    if (!activeBrand.name) {
+      throw new Error("OrbitOS requires an active brand before creating content.");
+    }
+
+    const idea = createIdea({
+      ...rawIdea,
+      brandId: activeBrand.id ?? state.activeBrandId,
+    });
     const result = await runLocalPipeline(idea, brand, {
       research,
       contentGenerator: selectedContentGenerator,
       publisher,
     });
 
-    const state = await snapshot();
-    const nextIdeas = state.ideas.filter((item) => item.id !== result.idea.id);
+    const currentState = state;
+    const nextIdeas = currentState.ideas.filter((item) => item.id !== result.idea.id);
     nextIdeas.push(result.idea);
 
-    const materialized = materializeContent(state, result.idea, Date.now());
-    const nextContentItems = state.contentItems.filter(
+    const materialized = materializeContent(currentState, result.idea, Date.now());
+    const nextContentItems = currentState.contentItems.filter(
       (item) => item.id !== materialized.contentItem.id,
     );
     nextContentItems.push(materialized.contentItem);
 
-    const nextVariants = state.contentVariants.filter(
+    const nextVariants = currentState.contentVariants.filter(
       (variant) => variant.contentItemId !== materialized.contentItem.id,
     );
     nextVariants.push(...materialized.contentVariants);
 
     return save({
-      ...state,
+      ...currentState,
       ideas: nextIdeas,
-      research: [...state.research, result.research],
+      research: [...currentState.research, result.research],
       contentItems: nextContentItems,
       contentVariants: nextVariants,
-      audit: [...state.audit, ...result.audit],
+      audit: [...currentState.audit, ...result.audit],
+    });
+  }
+
+  async function createBrandProfile(brand = {}, now = Date.now()) {
+    const state = await snapshot();
+    const created = createBrand(brand, now);
+    const brands = [...state.brands, created];
+    const shouldActivate = !state.activeBrandId;
+
+    return save({
+      ...state,
+      brands,
+      activeBrandId: shouldActivate ? created.id : state.activeBrandId,
+      brand: shouldActivate ? created : state.brand,
+    });
+  }
+
+  async function listBrands() {
+    const state = await snapshot();
+    return state.brands;
+  }
+
+  async function setActiveBrand(brandId) {
+    const state = await snapshot();
+    const active = state.brands.find((brand) => brand.id === brandId);
+    if (!active) throw new Error("OrbitOS brand not found: " + brandId);
+
+    return save({
+      ...state,
+      activeBrandId: active.id,
+      brand: active,
     });
   }
 
   async function updateBrand(brand = {}) {
     const state = await snapshot();
+    const normalized = normalizeBrand({
+      ...state.brand,
+      ...brand,
+      id: brand.id ?? state.activeBrandId ?? state.brand.id ?? null,
+    });
+
+    if (!normalized.id) {
+      return save({
+        ...state,
+        brand: normalized,
+        brands: normalized.name ? [{ ...normalized, id: createBrand(normalized).id }] : [],
+      });
+    }
+
+    const brands = state.brands.some((item) => item.id === normalized.id)
+      ? state.brands.map((item) =>
+          item.id === normalized.id ? normalized : item,
+        )
+      : [...state.brands, normalized];
+
     return save({
       ...state,
-      brand: normalizeBrand(brand),
+      brands,
+      activeBrandId: normalized.id,
+      brand: normalized,
     });
   }
 
@@ -575,6 +643,9 @@ export function createOrbitRuntime({
   return Object.freeze({
     snapshot,
     createDraft,
+    createBrandProfile,
+    listBrands,
+    setActiveBrand,
     updateBrand,
     updateContentVariant,
     approveIdea,
