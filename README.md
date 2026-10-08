@@ -79,6 +79,6 @@ https://orbitoos.vercel.app
 - M4 — Persistent backend adapter — SDK-independent adapter foundation + schema contract
 - M5 — Publishing safety gateway — complete; official platform adapters remain gated
 - M6 — Analytics + learning loop — ingestion safety, provenance, metric-derived learning; real platform adapters remain gated
-- M7 — Multi-brand automation
+- M7 — Multi-brand foundation — brand registry, active-brand runtime context, legacy migration, persistence scoping, and UI isolation
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
