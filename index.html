@@ -105,6 +105,19 @@ function render(){
  window.scrollTo({top:0,behavior:"smooth"});
 }
 function kpi(label,value,sub){return '<div class="card"><div class="label">'+esc(label)+'</div><div class="value">'+esc(value)+'</div><div class="small">'+esc(sub)+'</div></div>'}
+function metricViews(m){return Number(m.views??0)}
+function metricEngagements(m){return Number(m.engagements??m.engagement??0)}
+function metricReach(m){return Number(m.reach??m.views??0)}
+function metricRate(m){const d=metricReach(m);return d>0?(metricEngagements(m)/d)*100:0}
+function learningEntries(){return Array.isArray(state.learningInsights)?state.learningInsights.slice(-5).reverse():[]}
+async function runLearningNow(){
+ try{
+  await window.orbitCoreReady;
+  state=await window.orbitCore.runLearning();
+  log("Learning Agent","Generated advisory insights from current analytics");
+  save();toast("Learning updated");render();
+ }catch(error){toast(error.message||"Learning run failed")}
+}
 function overview(){
  const active=state.ideas.filter(x=>x.stage!=="Archived").length;
  const approved=state.ideas.filter(x=>x.stage==="Approved").length;
@@ -114,11 +127,8 @@ function overview(){
  const pipe='<div class="card"><div class="row"><h2>Operating pipeline</h2><span class="badge ok">LOCAL</span></div><div class="pipeline" style="margin-top:12px">'+stages.slice(0,6).map((s,i)=>'<div class="step"><span>'+s+'</span><b>'+state.ideas.filter(x=>x.stage===s).length+'</b></div>').join("")+'</div><div class="small" style="margin-top:9px">Idea → Research → Strategy → Draft → Review → Approved. Schedule remains a separate execution step.</div></div>';
  const right='<div class="card"><div class="row"><h2>System guardrails</h2><span class="badge warn">FREE-FIRST</span></div><div class="notice" style="margin-top:10px">No paid provider calls. No social account credentials. No automatic external publishing. Human approval remains mandatory.</div><div class="small" style="margin-top:10px">Runtime v4 • local persistence • portable JSON backup</div></div>';
  const activity='<div class="card"><div class="row"><h2>Activity</h2><span class="badge">EVENT LOG</span></div><div class="timeline" style="margin-top:10px">'+state.events.slice(0,8).map(e=>'<div class="event"><div class="time">'+esc(e[0])+'</div><div class="eventBody">'+esc(e[1])+'</div></div>').join("")+'</div></div>';
- const learning='<div class="card"><div class="row"><h2>Learning loop</h2><span class="badge ok">DEMO</span></div><div class="list" style="margin-top:10px">'+[
- "Short-form wins when the first sentence creates tension.",
- "One source idea should be reframed, not duplicated, across platforms.",
- "Proof and concrete examples are stronger than broad claims."
- ].map((x,i)=>'<div class="item"><strong>'+(i+1)+". "+esc(x)+'</strong></div>').join("")+'</div></div>';
+ const entries=learningEntries();
+ const learning='<div class="card"><div class="row"><h2>Learning loop</h2><span class="badge '+(entries.length?'ok':'warn')+'">'+(entries.length?'RUNTIME':'WAITING')+'</span></div><div class="list" style="margin-top:10px">'+(entries.length?entries.slice(0,3).map((x,i)=>'<div class="item"><strong>'+(i+1)+". "+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join(""):'<div class="small">Run Learning from Analytics after metrics are available.</div>')+'</div></div>';
  shell("Command Center","One idea → research → platform variants → review → schedule → analytics → learning",btn("+ New idea","newIdea()",true)+btn("Run local workflow","runWorkflow()"),cards+'<div class="grid two" style="margin-top:14px">'+pipe+right+'</div><div class="grid two" style="margin-top:14px">'+activity+learning+"</div>");
 }
 function ideas(){
@@ -187,9 +197,29 @@ function calendar(){
  shell("Calendar","Planning is live locally; external publishing remains disabled",btn("Approve first draft","approveFirst()",true),'<div class="card"><div class="notice warn">Publishing is OFF. OrbitOS can prepare and schedule records, but it cannot post to any social network from this build.</div><table class="table" style="margin-top:12px"><tr><th>Slot</th><th>Platform</th><th>Content</th><th>Status</th></tr>'+rows+' </table></div>');
 }
 function analytics(){
- const views=state.metrics.reduce((a,x)=>a+x.views,0);
- const avg=(state.metrics.reduce((a,x)=>a+x.engagement,0)/state.metrics.length).toFixed(1);
- shell("Analytics","Normalized demo metrics power the Learning Agent","",'<div class="grid kpis">'+kpi("Views",views.toLocaleString(),"+12% demo window")+kpi("Avg engagement",avg+"%","normalized")+kpi("Posts",state.metrics.reduce((a,x)=>a+x.posts,0),"fixture dataset")+kpi("Follower growth",state.metrics.reduce((a,x)=>a+x.growth,0).toLocaleString(),"demo net growth")+'</div><div class="card" style="margin-top:14px"><table class="table"><tr><th>Platform</th><th>Views</th><th>Engagement</th><th>Growth</th><th>Posts</th></tr>'+state.metrics.map(m=>'<tr><td>'+m.platform+'</td><td>'+m.views.toLocaleString()+'</td><td>'+m.engagement+'%</td><td>+'+m.growth+'</td><td>'+m.posts+'</td></tr>').join("")+'</table></div><div class="grid two" style="margin-top:14px"><div class="card"><h2>Learning recommendations</h2><div class="list" style="margin-top:10px"><div class="item"><strong>Keep tension in the first beat</strong><small>Use a sharper contrast before explanation.</small></div><div class="item"><strong>Reframe winners</strong><small>Turn high-performing short-form into text and carousel versions.</small></div><div class="item"><strong>Do not auto-mutate strategy</strong><small>Learning stays advisory until real analytics are connected.</small></div></div></div><div class="card"><h2>Learning contract</h2><p class="small">Analytics Agent normalizes metrics; Learning Agent creates recommendations. Strategy changes remain human-reviewed.</p></div></div>');
+ const views=state.metrics.reduce((a,x)=>a+metricViews(x),0);
+ const engagements=state.metrics.reduce((a,x)=>a+metricEngagements(x),0);
+ const reach=state.metrics.reduce((a,x)=>a+metricReach(x),0);
+ const followerDelta=state.metrics.reduce((a,x)=>a+Number(x.followerDelta??x.growth??0),0);
+ const avgRate=state.metrics.length
+   ? state.metrics.reduce((a,x)=>a+metricRate(x),0)/state.metrics.length
+   : 0;
+ const entries=learningEntries();
+ const rows=state.metrics.map(m=>{
+  const provenance=(m.isDemo===false?'<span class="badge ok">REAL</span>':'<span class="badge">DEMO</span>');
+  return '<tr><td>'+esc(m.platform)+'</td><td>'+metricViews(m).toLocaleString()+'</td><td>'+metricReach(m).toLocaleString()+'</td><td>'+metricEngagements(m).toLocaleString()+'</td><td>'+metricRate(m).toFixed(1)+'%</td><td>'+provenance+'</td></tr>';
+ }).join("");
+ const learning=entries.length
+   ? entries.slice(0,5).map(x=>'<div class="item"><strong>'+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join("")
+   : '<div class="small">No runtime learning insights yet.</div>';
+ shell("Analytics","Normalized metrics feed the Learning Agent; provenance stays attached",btn("Run learning","runLearningNow()",true),
+ '<div class="grid kpis">'+
+ kpi("Views",views.toLocaleString(),"normalized")+kpi("Reach",reach.toLocaleString(),"normalized")+
+ kpi("Engagements",engagements.toLocaleString(),"normalized")+kpi("Avg engagement rate",avgRate.toFixed(1)+"%","engagements / reach")+
+ kpi("Follower delta",followerDelta.toLocaleString(),"normalized")+
+ '</div><div class="card" style="margin-top:14px"><table class="table"><tr><th>Platform</th><th>Views</th><th>Reach</th><th>Engagements</th><th>Rate</th><th>Source</th></tr>'+rows+
+ '</table></div><div class="grid two" style="margin-top:14px"><div class="card"><div class="row"><h2>Learning recommendations</h2><span class="badge ok">'+entries.length+' STORED</span></div><div class="list" style="margin-top:10px">'+learning+
+ '</div></div><div class="card"><h2>Learning contract</h2><p class="small">Analytics Agent normalizes metrics. Learning Agent derives platform/content insights from the normalized history. Strategy changes remain human-reviewed.</p></div></div>');
 }
 function agents(){
  const list=[
@@ -200,8 +230,8 @@ function agents(){
  ["Creative","Variant → visual direction","PLANNED"],
  ["Review","Draft + guardrails → pass/fail","LOCAL"],
  ["Publishing","Approved post → provider job","LOCKED"],
- ["Analytics","Platform metrics → normalized snapshot","DEMO"],
- ["Learning","Metrics + history → recommendations","DEMO"]
+ ["Analytics","Platform metrics → normalized snapshot","LOCAL"],
+ ["Learning","Normalized metrics + history → advisory insights","LOCAL"]
  ];
  shell("Agents","Specialists share contracts and stay provider-neutral","",'<div class="grid three">'+list.map(a=>'<div class="card"><div class="row"><h2>'+a[0]+'</h2><span class="badge '+(a[2]==="LOCKED"?"warn":"ok")+'">'+a[2]+'</span></div><p class="small">'+a[1]+'</p></div>').join("")+'</div><div class="card" style="margin-top:14px"><div class="row"><h2>Dependency rule</h2><span class="badge ok">ARCHITECTURE</span></div><p class="small">Agents call interfaces, not vendor SDKs. Provider adapters can be swapped later without rewriting the agent contracts.</p></div>');
 }
