@@ -37,7 +37,7 @@ Deno.serve(
           timezone: "UTC",
           settings: { activeBrandId: brandId },
         },
-        { onConflict: "id" },
+        { onConflict: "id", ignoreDuplicates: true },
       );
 
     if (workspaceError) throw workspaceError;
@@ -51,7 +51,7 @@ Deno.serve(
           user_id: userId,
           role: "owner",
         },
-        { onConflict: "id" },
+        { onConflict: "id", ignoreDuplicates: true },
       );
 
     if (membershipError) throw membershipError;
@@ -70,7 +70,7 @@ Deno.serve(
           visual_direction: "Clean, focused, useful.",
           posting_goals: {},
         },
-        { onConflict: "id" },
+        { onConflict: "id", ignoreDuplicates: true },
       );
 
     if (brandError) throw brandError;
