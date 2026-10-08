@@ -24,7 +24,7 @@ Deno.serve(
 
     const workspaceId = "workspace-" + userId;
     const membershipId = "membership-" + userId;
-    const brandId = "brand-default";
+    const brandId = "brand-default-" + userId;
 
     const { error: workspaceError } = await ctx.supabaseAdmin
       .from("workspaces")
