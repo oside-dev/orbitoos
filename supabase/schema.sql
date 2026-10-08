@@ -27,6 +27,7 @@ create table if not exists brands (
 create table if not exists ideas (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   title text not null,
   objective text not null default '',
   audience text not null default '',
@@ -45,6 +46,7 @@ create table if not exists ideas (
 create table if not exists research_items (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   idea_id text references ideas(id) on delete set null,
   topic text not null default '',
   summary text not null default '',
@@ -58,7 +60,9 @@ create table if not exists research_items (
 create table if not exists content_items (
   id text primary key,
   idea_id text references ideas(id) on delete set null,
+  brand_id text references brands(id) on delete set null,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   title text not null,
   brief text not null default '',
   status text not null default 'draft',
@@ -69,6 +73,7 @@ create table if not exists content_items (
 create table if not exists content_variants (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   content_item_id text not null references content_items(id) on delete cascade,
   platform text not null,
   hook text not null default '',
@@ -86,6 +91,7 @@ create table if not exists content_variants (
 create table if not exists schedules (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   content_item_id text not null references content_items(id) on delete cascade,
   platform text not null,
   scheduled_at timestamptz not null,
@@ -96,6 +102,7 @@ create table if not exists schedules (
 create table if not exists analytics_snapshots (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   content_item_id text references content_items(id) on delete set null,
   platform text not null,
   snapshot_date date not null,
@@ -111,6 +118,7 @@ create table if not exists analytics_snapshots (
 create table if not exists agent_runs (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   agent text not null,
   task text not null,
   status text not null default 'queued',
