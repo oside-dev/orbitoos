@@ -91,6 +91,7 @@ jobs:
           test -f tests/environment.mjs
           test -f tests/application-runtime.mjs
           test -f tests/supabase-store.mjs
+          test -f tests/persistent-content-loop.mjs
 
       - name: Run smoke tests
         run: node tests/smoke.mjs
@@ -112,6 +113,9 @@ jobs:
 
       - name: Run persistent adapter tests
         run: node tests/supabase-store.mjs
+
+      - name: Run persistent content loop tests
+        run: node tests/persistent-content-loop.mjs
 
       - name: Run publishing gateway tests
         run: node tests/publishing-gateway.mjs
