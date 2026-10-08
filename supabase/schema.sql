@@ -62,7 +62,6 @@ create table if not exists content_items (
   idea_id text references ideas(id) on delete set null,
   brand_id text references brands(id) on delete set null,
   workspace_id text not null references workspaces(id) on delete cascade,
-  brand_id text references brands(id) on delete set null,
   title text not null,
   brief text not null default '',
   status text not null default 'draft',
@@ -131,6 +130,7 @@ create table if not exists agent_runs (
 create table if not exists learning_insights (
   id text primary key,
   workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
   title text not null,
   detail text not null default '',
   category text not null default 'general',
