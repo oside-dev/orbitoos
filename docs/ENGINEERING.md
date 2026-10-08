@@ -55,3 +55,14 @@ No background process may bypass approval.
 ## Cost safety
 
 A free/local implementation must remain available for core workflows. Optional paid providers must never become mandatory to open, edit, review, or export workspace data.
+
+
+## Authentication boundary
+
+Authentication is an adapter boundary, not a core dependency.
+
+- Core/domain code never imports a Supabase SDK.
+- The Supabase auth adapter returns sanitized session metadata only; access and refresh tokens stay inside the auth client.
+- A workspace context adapter resolves the authenticated user's accessible workspaces.
+- The authenticated persistent runtime refuses to initialize without a real authenticated user and a workspace membership.
+- Workspace provisioning and membership mutation remain backend-controlled until an explicit invitation/bootstrap flow exists.
