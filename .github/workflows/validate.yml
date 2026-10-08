@@ -52,6 +52,7 @@ jobs:
           test -f src/adapters/supabase-store.mjs
           test -f src/runtime/ui-state.mjs
           test -f src/runtime/browser-bridge.mjs
+          test -f src/runtime/persistent-runtime.mjs
           test -f src/agents/orchestrator.mjs
           test -f src/agents/research.mjs
           test -f src/agents/strategy.mjs
