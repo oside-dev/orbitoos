@@ -84,6 +84,33 @@ assert.equal(
   "scheduled",
 );
 
+const blockedDue = await runtime.runDuePublishing(
+  Date.parse("2026-10-10T09:00:00Z"),
+);
+assert.deepEqual(blockedDue, {
+  processed: 0,
+  blocked: true,
+  code: "PUBLISHING_DISABLED",
+  results: [],
+});
+state = await runtime.snapshot();
+assert.equal(state.schedules[0].status, "scheduled");
+
+const beforeDuplicate = state.schedules.length;
+state = await runtime.scheduleIdeaVariant({
+  ideaId: state.ideas[0].id,
+  platform: "TikTok",
+  scheduledAt,
+});
+assert.equal(state.ideas[0].stage, "approved");
+assert.equal(state.schedules.length, 1);
+assert.equal(state.schedules[0].platform, "TikTok");
+assert.equal(state.schedules[0].scheduledAt, scheduledAt);
+assert.equal(
+  state.contentVariants.find((variant) => variant.platform === "TikTok").status,
+  "scheduled",
+);
+
 const beforeDuplicate = state.schedules.length;
 state = await runtime.scheduleIdeaVariant({
   ideaId: state.ideas[0].id,
