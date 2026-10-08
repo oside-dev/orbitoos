@@ -78,3 +78,8 @@ External analytics providers are injected as adapters with explicit capability f
 ## Multi-brand boundary
 
 OrbitOS keeps a backward-compatible active-brand context while storing a brand registry. Ideas, content items, content variants, schedules, analytics snapshots, agent runs, and learning insights carry a brand ID. Legacy single-brand records are normalized into the active/default brand context. The browser only exposes brand creation and active-brand switching through the runtime bridge.
+
+
+## Workspace security boundary
+
+The target persistent backend uses workspace membership as the authorization boundary. Authenticated users are resolved to workspace IDs through a private RLS helper, and application tables require authenticated membership for access. Provisioning a workspace or changing membership is intentionally a backend-controlled operation until the invitation/bootstrap flow is implemented.
