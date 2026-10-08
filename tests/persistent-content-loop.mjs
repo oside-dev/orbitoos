@@ -130,6 +130,8 @@ assert.equal(state.ideas[0].metadata.brandId, "brand-b");
 assert.equal(state.contentItems[0].brandId, "brand-b");
 assert.equal(state.contentVariants.length, 6);
 assert.equal(state.research[0].brandId, "brand-b");
+assert.equal(typeof state.ideas[0].strategy, "object");
+assert.ok(state.ideas[0].strategy.angle);
 
 state = await runtime.updateContentVariant({
   ideaId: "idea-loop-1",
@@ -173,6 +175,8 @@ assert.equal(reloaded.ideas[0].stage, "approved");
 assert.equal(reloaded.ideas[0].variants.TikTok.approved, true);
 assert.equal(reloaded.contentVariants.length, 6);
 assert.equal(reloaded.contentVariants.find((item) => item.platform === "TikTok")?.version, 2);
+assert.equal(typeof reloaded.ideas[0].strategy, "object");
+assert.equal(reloaded.ideas[0].strategy.angle, state.ideas[0].strategy.angle);
 assert.equal(reloaded.schedules[0].platform, "TikTok");
 assert.equal(reloaded.schedules[0].brandId, "brand-b");
 
