@@ -56,6 +56,7 @@ jobs:
           test -f src/adapters/supabase-auth.mjs
           test -f src/adapters/supabase-workspace-context.mjs
           test -f src/runtime/authenticated-runtime.mjs
+          test -f src/runtime/environment.mjs
           test -f src/adapters/local-store.mjs
           test -f src/adapters/local-content-generator.mjs
           test -f src/adapters/local-research.mjs
@@ -87,6 +88,7 @@ jobs:
           test -f tests/multi-brand.mjs
           test -f tests/schema-contract.mjs
           test -f tests/auth.mjs
+          test -f tests/environment.mjs
           test -f tests/supabase-store.mjs
           test -f tests/supabase-store.mjs
 
@@ -125,6 +127,9 @@ jobs:
 
       - name: Run auth boundary tests
         run: node tests/auth.mjs
+
+      - name: Run runtime environment tests
+        run: node tests/environment.mjs
 
       - name: Run persistent backend adapter tests
         run: node tests/supabase-store.mjs
