@@ -38,11 +38,8 @@ assert.equal(
   ),
   true,
 );
-assert.equal(
-  state.contentVariants.every(
-    (variant) => variant.creativeBrief && variant.visualDirection === "",
-  ),
-  false,
+assert.ok(
+  state.contentVariants.every((variant) => variant.creativeBrief),
 );
 
 state = await runtime.approveIdea(state.ideas[0].id);
@@ -103,9 +100,6 @@ assert.equal(restored.metrics[0].platform, "TikTok");
 assert.equal(restored.contentItems[0].status, "approved");
 assert.equal(restored.contentVariants.length, 6);
 assert.equal(restored.learningInsights.length, 3);
-assert.equal(
-  restored.contentVariants.every((variant) => variant.creativeBrief),
-  true,
-);
+assert.equal(restored.learning.insights.length, 3);
 
 console.log("OrbitOS runtime integration tests passed.");

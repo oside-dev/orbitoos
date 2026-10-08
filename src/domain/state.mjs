@@ -11,7 +11,10 @@ const DEFAULT_STATE = Object.freeze({
   schedules: [],
   metrics: [],
   audit: [],
-  learning: [],
+  learning: {
+    generatedAt: null,
+    insights: [],
+  },
   learningInsights: [],
 });
 
@@ -21,6 +24,16 @@ export function createInitialState(overrides = {}) {
 
 export function normalizeState(raw = {}) {
   const source = raw && typeof raw === "object" ? raw : {};
+
+  const learning =
+    source.learning &&
+    typeof source.learning === "object" &&
+    !Array.isArray(source.learning)
+      ? structuredClone(source.learning)
+      : {
+          generatedAt: null,
+          insights: [],
+        };
 
   return {
     ...structuredClone(DEFAULT_STATE),
@@ -47,13 +60,9 @@ export function normalizeState(raw = {}) {
     schedules: Array.isArray(source.schedules)
       ? structuredClone(source.schedules)
       : [],
-    metrics: Array.isArray(source.metrics)
-      ? structuredClone(source.metrics)
-      : [],
+    metrics: Array.isArray(source.metrics) ? structuredClone(source.metrics) : [],
     audit: Array.isArray(source.audit) ? structuredClone(source.audit) : [],
-    learning: Array.isArray(source.learning)
-      ? structuredClone(source.learning)
-      : [],
+    learning,
     learningInsights: Array.isArray(source.learningInsights)
       ? structuredClone(source.learningInsights)
       : [],

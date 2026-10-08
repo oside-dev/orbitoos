@@ -62,7 +62,12 @@ export function toCoreState(uiState = {}) {
     schedules: Array.isArray(source.schedules) ? source.schedules : [],
     metrics: Array.isArray(source.metrics) ? source.metrics : [],
     audit: Array.isArray(source.audit) ? source.audit : [],
-    learning: Array.isArray(source.learning) ? source.learning : [],
+    learning:
+      source.learning &&
+      typeof source.learning === "object" &&
+      !Array.isArray(source.learning)
+        ? source.learning
+        : { generatedAt: null, insights: [] },
     learningInsights: Array.isArray(source.learningInsights)
       ? source.learningInsights
       : [],
