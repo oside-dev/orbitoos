@@ -127,30 +127,34 @@ function ideas(){
 }
 function research(){
  const cards=state.signals.map(s=>'<div class="card"><div class="row"><span class="badge">'+esc(s.source)+'</span><b class="ok">'+s.score+'</b></div><h3 style="margin-top:10px">'+esc(s.topic)+'</h3><p class="small">'+esc(s.signal)+'</p><div class="bar"><i style="width:'+s.score+'%"></i></div></div>').join("");
- shell("Research","Local signals now; external research providers are adapter slots",btn("Refresh signals","refreshResearch()",true),'<div class="grid three">'+cards+'</div><div class="card" style="margin-top:14px"><div class="row"><h2>Provider contract</h2><span class="badge ok">READY FOR ADAPTER</span></div><table class="table" style="margin-top:9px"><tr><th>Input</th><th>Output</th><th>Current</th></tr><tr><td>Topic + audience</td><td>Signals + evidence labels + opportunity score</td><td>Local heuristic</td></tr><tr><td>External provider</td><td>Structured evidence + citations</td><td>Not connected</td></tr></table></div>');
+ shell("Research","Local signals now; external research providers are adapter slots","",'<div class="grid three">'+cards+'</div><div class="card" style="margin-top:14px"><div class="row"><h2>Provider contract</h2><span class="badge ok">READY FOR ADAPTER</span></div><table class="table" style="margin-top:9px"><tr><th>Input</th><th>Output</th><th>Current</th></tr><tr><td>Topic + audience</td><td>Signals + evidence labels + opportunity score</td><td>Local heuristic</td></tr><tr><td>External provider</td><td>Structured evidence + citations</td><td>Not connected</td></tr></table></div>');
 }
 function currentIdea(){return state.ideas.find(x=>x.id===selectedId)||state.ideas[0]}
-function ensureVariants(i){
- i.variants=i.variants||{};
- platforms.forEach(p=>{
-  if(!i.variants[p]) i.variants[p]={hook:"",body:"",cta:"Save this and test it this week."};
-  if(!i.variants[p].hook)i.variants[p].hook="Why "+i.title+" matters more than you think.";
-  if(!i.variants[p].body)i.variants[p].body="Explain one concrete example, one principle, and one next step without fluff.";
- });
- save();
-}
 function studio(){
  const i=currentIdea();
  if(!i){shell("Content Studio","Create an idea first","",'<div class="empty">No idea available.</div>');return}
- ensureVariants(i);
+ const hasVariants=platforms.every(p=>Boolean(i.variants&&i.variants[p]));
  const selector='<select class="select" style="max-width:420px" onchange="selectedId=this.value;render()">'+state.ideas.map(x=>'<option value="'+esc(x.id)+'" '+(x.id===i.id?"selected":"")+'>'+esc(x.title)+'</option>').join("")+'</select>';
- const master='<div class="card"><div class="row"><h2>'+esc(i.title)+'</h2><div><span class="badge">'+esc(i.stage)+'</span> '+(i.stage==="Approved"?'<span class="badge ok">APPROVED</span>':"")+'</div></div><p class="small">'+esc(i.brief)+'</p><div class="row" style="margin-top:10px"><div>'+selector+'</div><div class="actions">'+btn("Regenerate","regenerateVariants('"+i.id+"')")+btn("Approve","approve('"+i.id+"')",true)+'</div></div></div>';
- const variants=platforms.map(p=>'<div class="platform"><div class="row"><h3>'+p+'</h3><span class="badge ok">LOCAL</span></div>'+
-  '<label class="small">Hook<textarea class="textarea" rows="3" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'hook\',this.value)">'+esc(i.variants[p].hook)+'</textarea></label>'+
-  '<label class="small">Body<textarea class="textarea" rows="5" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'body\',this.value)">'+esc(i.variants[p].body)+'</textarea></label>'+
-  '<label class="small">CTA<input class="input" value="'+esc(i.variants[p].cta)+'" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'cta\',this.value)"></label>'+
-  '</div>').join("");
- shell("Content Studio","Editable platform-native variants with local persistence",btn("Back to Ideas","go('ideas')")+btn("Approve for schedule","approve('"+i.id+"')",true),master+'<div class="platforms" style="margin-top:14px">'+variants+'</div><div class="notice" style="margin-top:14px">Editing is saved through the Orbit Runtime when a field changes. This makes the UI useful now without requiring a backend or paid AI provider.</div>');
+ const generationAction=hasVariants
+   ? btn("Regenerate","regenerateVariants('"+i.id+"')")
+   : btn("Generate variants","regenerateVariants('"+i.id+"')",true);
+ const approveAction=hasVariants&&["Draft","Review"].includes(i.stage)
+   ? btn("Approve","approve('"+i.id+"')",true)
+   : "";
+ const master='<div class="card"><div class="row"><h2>'+esc(i.title)+'</h2><div><span class="badge">'+esc(i.stage)+'</span> '+(i.stage==="Approved"?'<span class="badge ok">APPROVED</span>':"")+'</div></div><p class="small">'+esc(i.brief)+'</p><div class="row" style="margin-top:10px"><div>'+selector+'</div><div class="actions">'+generationAction+approveAction+'</div></div></div>';
+ if(!hasVariants){
+   shell("Content Studio","Prepare a real runtime draft before editing platform variants",master+'<div class="notice" style="margin-top:14px">This idea has no generated variants yet. Generate through the Orbit Runtime to create the canonical content item and six platform variants.</div>');
+   return;
+ }
+ const variants=platforms.map(p=>{
+   const variant=i.variants[p]||{};
+   return '<div class="platform"><div class="row"><h3>'+p+'</h3><span class="badge ok">LOCAL</span></div>'+
+    '<label class="small">Hook<textarea class="textarea" rows="3" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'hook\',this.value)">'+esc(variant.hook)+'</textarea></label>'+
+    '<label class="small">Body<textarea class="textarea" rows="5" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'body\',this.value)">'+esc(variant.body)+'</textarea></label>'+
+    '<label class="small">CTA<input class="input" value="'+esc(variant.cta)+'" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'cta\',this.value)"></label>'+
+    '</div>';
+ }).join("");
+ shell("Content Studio","Editable platform-native variants with local persistence",btn("Back to Ideas","go('ideas')")+approveAction,master+'<div class="platforms" style="margin-top:14px">'+variants+'</div><div class="notice" style="margin-top:14px">Editing is saved through the Orbit Runtime. No render-time mutation is used.</div>');
 }
 async function scheduleVariant(id,platform){
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Schedule '+esc(platform)+'</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Publish time<input class="input" id="scheduleAt" type="datetime-local"></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Save schedule","confirmSchedule('"+id+"','"+platform+"')",true)+'</div></div></div>';
@@ -185,7 +189,7 @@ function calendar(){
 function analytics(){
  const views=state.metrics.reduce((a,x)=>a+x.views,0);
  const avg=(state.metrics.reduce((a,x)=>a+x.engagement,0)/state.metrics.length).toFixed(1);
- shell("Analytics","Normalized demo metrics power the Learning Agent",btn("Refresh metrics","refreshMetrics()",true),'<div class="grid kpis">'+kpi("Views",views.toLocaleString(),"+12% demo window")+kpi("Avg engagement",avg+"%","normalized")+kpi("Posts",state.metrics.reduce((a,x)=>a+x.posts,0),"fixture dataset")+kpi("Follower growth",state.metrics.reduce((a,x)=>a+x.growth,0).toLocaleString(),"demo net growth")+'</div><div class="card" style="margin-top:14px"><table class="table"><tr><th>Platform</th><th>Views</th><th>Engagement</th><th>Growth</th><th>Posts</th></tr>'+state.metrics.map(m=>'<tr><td>'+m.platform+'</td><td>'+m.views.toLocaleString()+'</td><td>'+m.engagement+'%</td><td>+'+m.growth+'</td><td>'+m.posts+'</td></tr>').join("")+'</table></div><div class="grid two" style="margin-top:14px"><div class="card"><h2>Learning recommendations</h2><div class="list" style="margin-top:10px"><div class="item"><strong>Keep tension in the first beat</strong><small>Use a sharper contrast before explanation.</small></div><div class="item"><strong>Reframe winners</strong><small>Turn high-performing short-form into text and carousel versions.</small></div><div class="item"><strong>Do not auto-mutate strategy</strong><small>Learning stays advisory until real analytics are connected.</small></div></div></div><div class="card"><h2>Learning contract</h2><p class="small">Analytics Agent normalizes metrics; Learning Agent creates recommendations. Strategy changes remain human-reviewed.</p></div></div>');
+ shell("Analytics","Normalized demo metrics power the Learning Agent","",'<div class="grid kpis">'+kpi("Views",views.toLocaleString(),"+12% demo window")+kpi("Avg engagement",avg+"%","normalized")+kpi("Posts",state.metrics.reduce((a,x)=>a+x.posts,0),"fixture dataset")+kpi("Follower growth",state.metrics.reduce((a,x)=>a+x.growth,0).toLocaleString(),"demo net growth")+'</div><div class="card" style="margin-top:14px"><table class="table"><tr><th>Platform</th><th>Views</th><th>Engagement</th><th>Growth</th><th>Posts</th></tr>'+state.metrics.map(m=>'<tr><td>'+m.platform+'</td><td>'+m.views.toLocaleString()+'</td><td>'+m.engagement+'%</td><td>+'+m.growth+'</td><td>'+m.posts+'</td></tr>').join("")+'</table></div><div class="grid two" style="margin-top:14px"><div class="card"><h2>Learning recommendations</h2><div class="list" style="margin-top:10px"><div class="item"><strong>Keep tension in the first beat</strong><small>Use a sharper contrast before explanation.</small></div><div class="item"><strong>Reframe winners</strong><small>Turn high-performing short-form into text and carousel versions.</small></div><div class="item"><strong>Do not auto-mutate strategy</strong><small>Learning stays advisory until real analytics are connected.</small></div></div></div><div class="card"><h2>Learning contract</h2><p class="small">Analytics Agent normalizes metrics; Learning Agent creates recommendations. Strategy changes remain human-reviewed.</p></div></div>');
 }
 function agents(){
  const list=[
@@ -292,8 +296,6 @@ async function approve(id){
  }catch(error){toast(error.message||"Approval failed")}
 }
 function approveFirst(){const i=state.ideas.find(x=>x.stage==="Draft"||x.stage==="Review");if(i)approve(i.id);else toast("No draft waiting for approval")}
-function refreshResearch(){state.signals=state.signals.map((s,i)=>({...s,score:Math.max(72,Math.min(97,s.score+(i%2?2:-1)))}));log("Research Agent","Refreshed local signals");save();render()}
-function refreshMetrics(){state.metrics=state.metrics.map((m,i)=>({...m,views:Math.round(m.views*(1.02+i*.006)),engagement:+(m.engagement+(i%2?.1:-.05)).toFixed(1)}));log("Analytics Agent","Refreshed demo metrics");save();render()}
 async function saveBrand(){
  const nextBrand={...state.brand,name:document.getElementById("brandName").value.trim()||state.brand.name,voice:document.getElementById("brandVoice").value.trim(),audience:document.getElementById("brandAudience").value.trim()};
  try{await window.orbitCoreReady;state=await window.orbitCore.updateBrand(nextBrand);log("Brand","Updated brand memory through Orbit Runtime");save();render()}catch(error){toast(error.message||"Brand update failed")}
