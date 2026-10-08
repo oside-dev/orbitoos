@@ -81,7 +81,13 @@ const learning = learningAgent.run({
       isDemo: true,
     },
   ],
-  contentItems: [{ id: "content-1", title: "Agent contract test" }],
+  contentItems: [
+    {
+      id: "content-1",
+      ideaId: "idea-1",
+      title: "Agent contract test",
+    },
+  ],
   contentVariants: [
     {
       contentItemId: "content-1",
@@ -89,9 +95,21 @@ const learning = learningAgent.run({
       hook: "A useful opening hook.",
     },
   ],
+  ideas: [
+    {
+      id: "idea-1",
+      metadata: { brandId: null },
+      strategy: {
+        angle: "Practical systems",
+        kpis: ["reach", "engagement"],
+      },
+    },
+  ],
 });
 assert.equal(learningAgent.name, "Learning");
-assert.equal(learning.insights.length, 3);
+assert.equal(learning.insights.length, 4);
+assert.equal(learning.insights[1].category, "strategy-performance");
+assert.match(learning.insights[1].detail, /Practical systems/);
 assert.match(learning.insights[0].title, /engagement rate/i);
 assert.match(learning.insights[0].detail, /Agent contract test/);
 assert.match(learning.insights[0].detail, /TikTok/);
