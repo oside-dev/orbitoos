@@ -31,13 +31,13 @@ Deno.serve(
       .upsert(
         {
           id: workspaceId,
-          name: "Northstar Studio",
+          name: "OrbitoOS Workspace",
           slug:
-            "northstar-" + userId.replaceAll("-", "").slice(0, 12),
+            "orbitoos-" + userId.replaceAll("-", "").slice(0, 12),
           timezone: "UTC",
           settings: { activeBrandId: brandId },
         },
-        { onConflict: "id" },
+        { onConflict: "id", ignoreDuplicates: true },
       );
 
     if (workspaceError) throw workspaceError;
@@ -51,7 +51,7 @@ Deno.serve(
           user_id: userId,
           role: "owner",
         },
-        { onConflict: "id" },
+        { onConflict: "id", ignoreDuplicates: true },
       );
 
     if (membershipError) throw membershipError;
@@ -62,7 +62,7 @@ Deno.serve(
         {
           id: brandId,
           workspace_id: workspaceId,
-          name: "Northstar Studio",
+          name: "OrbitoOS",
           voice: "Clear, direct, curious. Teach first; sell second.",
           audience: "Early-stage creators and small teams.",
           pillars: ["Education", "Systems", "Workflow"],
@@ -70,7 +70,7 @@ Deno.serve(
           visual_direction: "Clean, focused, useful.",
           posting_goals: {},
         },
-        { onConflict: "id" },
+        { onConflict: "id", ignoreDuplicates: true },
       );
 
     if (brandError) throw brandError;

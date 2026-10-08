@@ -1,6 +1,37 @@
 import { assertAdapter } from "../contracts/adapters.mjs";
 import { normalizeState } from "../domain/state.mjs";
 
+export function toPersistentBrandRow(brand = {}, workspaceId = "") {
+  return {
+    id: brand.id ?? null,
+    workspace_id: workspaceId,
+    name: brand.name ?? "",
+    voice: brand.voice ?? "",
+    audience: brand.audience ?? "",
+    pillars: Array.isArray(brand.pillars) ? brand.pillars.map(String) : [],
+    prohibited: Array.isArray(brand.rules)
+      ? brand.rules.map(String)
+      : Array.isArray(brand.prohibited)
+        ? brand.prohibited.map(String)
+        : [],
+    visual_direction: brand.visualDirection ?? brand.visual_direction ?? "",
+    posting_goals: brand.postingGoals ?? brand.posting_goals ?? {},
+  };
+}
+
+export function fromPersistentBrandRow(row = {}) {
+  return {
+    id: row.id ?? null,
+    name: row.name ?? "",
+    voice: row.voice ?? "",
+    audience: row.audience ?? "",
+    pillars: Array.isArray(row.pillars) ? row.pillars.map(String) : [],
+    rules: Array.isArray(row.prohibited) ? row.prohibited.map(String) : [],
+    visualDirection: row.visual_direction ?? "",
+    postingGoals: row.posting_goals ?? {},
+  };
+}
+
 export function createSupabaseStateStore({ client, workspaceId } = {}) {
   if (!client || typeof client.from !== "function") {
     throw new Error("OrbitOS Supabase adapter requires a compatible client.");
@@ -57,16 +88,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       learningRows,
     ] = results;
 
-    const mappedBrands = brands.map((row) => ({
-      id: row.id,
-      name: row.name,
-      voice: row.voice,
-      audience: row.audience,
-      pillars: row.pillars ?? [],
-      prohibited: row.prohibited ?? [],
-      visualDirection: row.visual_direction ?? "",
-      postingGoals: row.posting_goals ?? {},
-    }));
+    const mappedBrands = brands.map(fromPersistentBrandRow);
 
     const itemMap = new Map(contentItems.map((item) => [item.id, item]));
     const variantsByItem = new Map();
@@ -270,17 +292,7 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
 
     await upsert(
       "brands",
-      persistedBrands.map((brand) => ({
-        id: brand.id,
-        workspace_id: id,
-        name: brand.name,
-        voice: brand.voice ?? "",
-        audience: brand.audience ?? "",
-        pillars: brand.pillars ?? [],
-        prohibited: brand.prohibited ?? [],
-        visual_direction: brand.visualDirection ?? "",
-        posting_goals: brand.postingGoals ?? {},
-      })),
+      persistedBrands.map((brand) => toPersistentBrandRow(brand, id)),
     );
 
     await upsert(
@@ -418,25 +430,10 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
     );
 
-    const cleanupTargets = [
-      ["brands", persistedBrands.map((item) => item.id)],
-      ["ideas", state.ideas.map((item) => item.id)],
-      [
-        "research_items",
-        state.research.map((item, index) => item.id ?? id + ":research:" + index),
-      ],
-      ["content_items", state.contentItems.map((item) => item.id)],
-      ["content_variants", state.contentVariants.map((item) => item.id)],
-      ["schedules", state.schedules.map((item) => item.id)],
-      ["analytics_snapshots", state.metrics.map((item, index) => item.id ?? id + ":metric:" + index)],
-      ["agent_runs", state.audit.map((item) => item.id)],
-      ["learning_insights", state.learningInsights.map((item, index) => item.id ?? id + ":learning:" + index)],
-    ];
-
-    for (const [table, desiredIds] of cleanupTargets) {
-      await removeStale(table, desiredIds);
-    }
-
+    // Do not delete rows that are absent from this snapshot.
+    // The browser runtime can have concurrent sessions, so snapshot-based
+    // cleanup can remove another session's newly-created records.
+    // Explicit delete operations will be introduced as row-level commands.
     return state;
   }
 

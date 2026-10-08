@@ -30,6 +30,7 @@ export function createBrand(input = {}, now = Date.now()) {
     name,
     voice: String(input.voice ?? "").trim(),
     audience: String(input.audience ?? "").trim(),
+    pillars: Array.isArray(input.pillars) ? input.pillars.map(String) : [],
     rules: Array.isArray(input.rules) ? input.rules.map(String) : [],
     visualDirection: String(
       input.visualDirection ?? input.visual_direction ?? "",
@@ -151,6 +152,7 @@ export function normalizeBrand(brand = {}) {
     name: String(brand.name ?? "").trim(),
     voice: String(brand.voice ?? "").trim(),
     audience: String(brand.audience ?? "").trim(),
+    pillars: Array.isArray(brand.pillars) ? brand.pillars.map(String) : [],
     rules: Array.isArray(brand.rules) ? brand.rules.map(String) : [],
     visualDirection: String(
       brand.visualDirection ?? brand.visual_direction ?? "",
