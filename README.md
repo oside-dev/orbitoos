@@ -88,3 +88,7 @@ https://orbitoos.vercel.app
 - M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
+
+## Validation
+
+Pull requests and main-branch pushes run the existing runtime checks plus framework-free Node contract tests for domain stages and analytics report parsing.
