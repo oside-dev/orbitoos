@@ -72,7 +72,7 @@ The current local state is deliberately shaped to make this backend mapping stra
 
 ## Analytics ingestion boundary
 
-External analytics providers are injected as adapters with explicit capability flags. The Analytics Gateway blocks disabled, unofficial, credential-unready, or rate-limit-unready providers before any fetch. Normalized records retain provider/source provenance and are marked non-demo only after passing that boundary. Learning then derives engagement-rate, distribution, content, and governance insights from normalized history rather than static recommendations.
+External analytics providers are injected as adapters with explicit capability flags. The Analytics Gateway blocks disabled, unofficial, credential-unready, or rate-limit-unready providers before any fetch. Imported analytics reports use a dedicated provider adapter that wraps CSV/JSON parsing behind the same fetch contract, so the UI and future connectors can share a consistent import shape. Normalized records retain provider/source provenance and are marked non-demo only after passing that boundary. Learning then derives engagement-rate, distribution, content, strategy, and governance insights from normalized history rather than static recommendations.
 
 
 ## Content intelligence boundary
