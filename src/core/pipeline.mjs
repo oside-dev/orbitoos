@@ -26,6 +26,7 @@ export async function runLocalPipeline(
 ) {
   const idea = createIdea(rawIdea);
   const brand = normalizeBrand(rawBrand);
+  const brandId = brand.id ?? rawIdea?.brandId ?? null;
 
   const researchAdapter = dependencies.research ?? localResearchAdapter;
   const contentGenerator =
@@ -59,14 +60,22 @@ export async function runLocalPipeline(
     ...idea,
     stage: PIPELINE_STAGES[3],
     variants,
+    metadata: {
+      ...(idea.metadata ?? {}),
+      brandId,
+    },
   };
 
   const audit = createPipelineAudit({
     idea: draftIdea,
-    research,
+    research: {
+      ...research,
+      brandId,
+    },
     strategy,
     review,
     workflowPlan,
+    brandId,
   });
 
   return {
