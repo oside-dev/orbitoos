@@ -19,7 +19,7 @@ import { createPipelineAudit } from "./audit.mjs";
 
 export const PIPELINE_VERSION = "core-0.4";
 
-export function runLocalPipeline(
+export async function runLocalPipeline(
   rawIdea,
   rawBrand = {},
   dependencies = {},
@@ -39,14 +39,14 @@ export function runLocalPipeline(
   const workflowPlan = orchestratorAgent.plan({ idea });
 
   const researchAgent = createResearchAgent({ adapter: researchAdapter });
-  const research = researchAgent.run({ idea, brand });
+  const research = await researchAgent.run({ idea, brand });
 
   const strategy = strategyAgent.run({ idea, research });
 
   const writingAgent = createWritingAgent({
     adapter: contentGenerator,
   });
-  const writtenVariants = writingAgent.run({ idea, strategy, brand });
+  const writtenVariants = await writingAgent.run({ idea, strategy, brand });
 
   const variants = creativeAgent.run({
     variants: writtenVariants,
