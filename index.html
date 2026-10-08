@@ -106,7 +106,7 @@ function shell(title,sub,actions,body){
  const workspace=state.workspace?.name||"Local Workspace";
  const brandName=state.brand?.name||"No brand";
  const mode=runtimeModeLabel();
- document.getElementById("root").innerHTML='<div class="app">'+nav()+'<main class="main"><header class="top"><div class="crumb">'+esc(page.toUpperCase())+"</div><div class='topContext'><span>"+esc(workspace)+"</span><span>•</span><span>"+esc(brandName)+"</span><span class="badge "+(mode==="LOCAL"?"ok":"")+">"+mode+"</span><div class='actions'>"+(actions||"")+"</div></div></header><div class='wrap'><div class='head'><div><h1>"+esc(title)+"</h1><p>"+esc(sub)+"</p></div></div>"+body+"</div></main></div>";
+ document.getElementById("root").innerHTML=`<div class="app">${nav()}<main class="main"><header class="top"><div class="crumb">${esc(page.toUpperCase())}</div><div class="topContext"><span>${esc(workspace)}</span><span>•</span><span>${esc(brandName)}</span><span class="badge ${mode==="LOCAL"?"ok":""}">${mode}</span><div class="actions">${actions||""}</div></div></header><div class="wrap"><div class="head"><div><h1>${esc(title)}</h1><p>${esc(sub)}</p></div></div>${body}</div></main></div>`;
 }
 function go(p){page=p;render()}
 function render(){
