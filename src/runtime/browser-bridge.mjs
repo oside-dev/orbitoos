@@ -3,6 +3,7 @@ import { MemoryStore } from "../adapters/local-store.mjs";
 import { createInitialState } from "../domain/state.mjs";
 import { toCoreState, toUiState } from "./ui-state.mjs";
 import { createRuntimeEnvironment } from "./environment.mjs";
+import { parseAnalyticsReport } from "../adapters/analytics-report-parser.mjs";
 
 const DEFAULT_UI_KEY = "orbit-v4";
 const DEFAULT_AI_CONFIG = Object.freeze({
@@ -73,6 +74,20 @@ function validateAiConfig(config) {
   }
 
   return { provider, model, baseUrl };
+}
+
+function normalizeImportedMetric(row, state, options = {}) {
+  const brandId = row.brandId ?? row.brandid ?? row.brand_id ?? options.brandId ?? state.activeBrandId ?? null;
+  const source = row.source ?? row.reportSource ?? row.origin ?? options.source ?? "analytics-report";
+  const provider = row.provider ?? row.network ?? row.platformProvider ?? options.provider ?? "imported-report";
+
+  return {
+    ...row,
+    brandId,
+    source,
+    provider,
+    isDemo: false,
+  };
 }
 
 export function createOrbitBrowserBridge({
@@ -174,6 +189,20 @@ export function createOrbitBrowserBridge({
     });
   }
 
+  async function importAnalyticsReport(text, options = {}) {
+    const parsedRows = parseAnalyticsReport(text, options);
+    const previous = readStoredState(storage, key);
+    const next = {
+      ...previous,
+      metrics: [
+        ...(previous.metrics ?? []),
+        ...parsedRows.map((row) => normalizeImportedMetric(row, previous, options)),
+      ],
+    };
+
+    return writeStoredState(storage, key, next);
+  }
+
   async function runLearning() {
     return transact((runtime) => runtime.runLearning());
   }
@@ -213,6 +242,7 @@ export function createOrbitBrowserBridge({
     scheduleIdeaVariant,
     getAiConfig,
     setAiConfig,
+    importAnalyticsReport,
     runLearning,
     publishIdeaVariant,
     exportState,
