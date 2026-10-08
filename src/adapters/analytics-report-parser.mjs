@@ -10,9 +10,12 @@ function asString(value, fallback = "") {
 
 function firstText(row, keys, fallback = "") {
   for (const key of keys) {
-    const value = row?.[key];
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value).trim();
+    const variants = [key, String(key).toLowerCase()];
+    for (const variant of variants) {
+      const value = row?.[variant];
+      if (value !== null && value !== undefined && String(value).trim() !== "") {
+        return String(value).trim();
+      }
     }
   }
   return fallback;
@@ -133,7 +136,7 @@ export function normalizeAnalyticsReportRow(row = {}, options = {}) {
   );
 
   const followerDelta = integer(
-    row.followerDelta ?? row.followers ?? row.growth ?? row.netFollowers,
+    row.followerDelta ?? row.followerdelta ?? row.followers ?? row.growth ?? row.netFollowers,
   );
 
   return {
@@ -146,8 +149,8 @@ export function normalizeAnalyticsReportRow(row = {}, options = {}) {
     isDemo: false,
     source: firstText(row, ["source", "reportSource", "origin"], options.source ?? "analytics-report"),
     provider: firstText(row, ["provider", "network", "platformProvider"], options.provider ?? "imported-report"),
-    brandId: row.brandId ?? row.brand_id ?? options.brandId ?? null,
-    contentItemId: row.contentItemId ?? row.content_item_id ?? options.contentItemId ?? null,
+    brandId: row.brandId ?? row.brandid ?? row.brand_id ?? options.brandId ?? null,
+    contentItemId: row.contentItemId ?? row.contentitemid ?? row.content_item_id ?? options.contentItemId ?? null,
   };
 }
 
