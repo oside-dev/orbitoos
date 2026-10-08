@@ -3,6 +3,7 @@ import {
   createContentVariant,
   createIdea,
   createSchedule,
+  normalizeBrand,
 } from "../domain/models.mjs";
 import { assertAdapter } from "../contracts/adapters.mjs";
 import { createInitialState, normalizeState } from "../domain/state.mjs";
@@ -13,6 +14,7 @@ import { localResearchAdapter } from "../adapters/local-research.mjs";
 import { localContentGeneratorAdapter } from "../adapters/local-content-generator.mjs";
 import { localMetricsAdapter } from "../adapters/local-metrics.mjs";
 import { nullPublisherAdapter } from "../adapters/null-publisher.mjs";
+import { createContentGenerator } from "./content-generator-factory.mjs";
 import { createAnalyticsAgent, learningAgent } from "../agents/index.mjs";
 
 function materializeContent(state, idea, now = Date.now()) {
@@ -69,7 +71,8 @@ function materializeContent(state, idea, now = Date.now()) {
 export function createOrbitRuntime({
   store = new MemoryStore(createInitialState()),
   research = localResearchAdapter,
-  contentGenerator = localContentGeneratorAdapter,
+  contentGenerator,
+  ai = {},
   metrics = localMetricsAdapter,
   publisher = nullPublisherAdapter,
   analytics = createAnalyticsAgent({ adapter: metrics }),
@@ -77,7 +80,9 @@ export function createOrbitRuntime({
 } = {}) {
   assertAdapter("store", store);
   assertAdapter("research", research);
-  assertAdapter("contentGenerator", contentGenerator);
+  const selectedContentGenerator =
+    contentGenerator ?? createContentGenerator(ai);
+  assertAdapter("contentGenerator", selectedContentGenerator);
   assertAdapter("metrics", metrics);
   assertAdapter("publisher", publisher);
 
@@ -91,9 +96,9 @@ export function createOrbitRuntime({
 
   async function createDraft(rawIdea, brand = {}) {
     const idea = createIdea(rawIdea);
-    const result = runLocalPipeline(idea, brand, {
+    const result = await runLocalPipeline(idea, brand, {
       research,
-      contentGenerator,
+      contentGenerator: selectedContentGenerator,
       publisher,
     });
 
@@ -119,6 +124,14 @@ export function createOrbitRuntime({
       contentItems: nextContentItems,
       contentVariants: nextVariants,
       audit: [...state.audit, ...result.audit],
+    });
+  }
+
+  async function updateBrand(brand = {}) {
+    const state = await snapshot();
+    return save({
+      ...state,
+      brand: normalizeBrand(brand),
     });
   }
 
