@@ -31,9 +31,9 @@ Deno.serve(
       .upsert(
         {
           id: workspaceId,
-          name: "Northstar Studio",
+          name: "OrbitoOS Workspace",
           slug:
-            "northstar-" + userId.replaceAll("-", "").slice(0, 12),
+            "orbitoos-" + userId.replaceAll("-", "").slice(0, 12),
           timezone: "UTC",
           settings: { activeBrandId: brandId },
         },
@@ -62,7 +62,7 @@ Deno.serve(
         {
           id: brandId,
           workspace_id: workspaceId,
-          name: "Northstar Studio",
+          name: "OrbitoOS",
           voice: "Clear, direct, curious. Teach first; sell second.",
           audience: "Early-stage creators and small teams.",
           pillars: ["Education", "Systems", "Workflow"],
