@@ -109,6 +109,23 @@ export function createOrbitBrowserBridge({
     return transact((runtime) => runtime.createDraft(rawIdea, brand));
   }
 
+  async function createBrand(brand) {
+    return transact((runtime) => runtime.createBrandProfile(brand));
+  }
+
+  async function listBrands() {
+    const previous = readStoredState(storage, key);
+    const runtime = createOrbitRuntime({
+      store: new MemoryStore(toCoreState(previous)),
+      ai: readAiConfig(previous),
+    });
+    return runtime.listBrands();
+  }
+
+  async function setActiveBrand(brandId) {
+    return transact((runtime) => runtime.setActiveBrand(brandId));
+  }
+
   async function updateBrand(brand) {
     return transact((runtime) => runtime.updateBrand(brand));
   }
@@ -175,6 +192,9 @@ export function createOrbitBrowserBridge({
   return Object.freeze({
     snapshot,
     createDraft,
+    createBrand,
+    listBrands,
+    setActiveBrand,
     updateBrand,
     updateContentVariant,
     approveIdea,
