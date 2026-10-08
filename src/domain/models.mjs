@@ -21,6 +21,23 @@ export function createId(prefix = "id", now = Date.now()) {
   return prefix + "-" + now;
 }
 
+export function createBrand(input = {}, now = Date.now()) {
+  const name = String(input.name ?? "").trim();
+  if (!name) throw new Error("Brand name is required.");
+
+  return {
+    id: input.id ?? createId("brand", now),
+    name,
+    voice: String(input.voice ?? "").trim(),
+    audience: String(input.audience ?? "").trim(),
+    rules: Array.isArray(input.rules) ? input.rules.map(String) : [],
+    visualDirection: String(
+      input.visualDirection ?? input.visual_direction ?? "",
+    ).trim(),
+    postingGoals: input.postingGoals ?? input.posting_goals ?? {},
+  };
+}
+
 export function createIdea(input, now = Date.now()) {
   const title = String(input?.title ?? "").trim();
   if (!title) throw new Error("Idea title is required.");
@@ -36,7 +53,10 @@ export function createIdea(input, now = Date.now()) {
     stage: PIPELINE_STAGES.includes(input.stage) ? input.stage : "idea",
     score: Number.isFinite(input.score) ? input.score : null,
     variants: input.variants ?? {},
-    metadata: input.metadata ?? {},
+    metadata: {
+      ...(input.metadata ?? {}),
+      brandId: input.brandId ?? input.metadata?.brandId ?? null,
+    },
   };
 }
 
@@ -126,6 +146,7 @@ export function isApproved(idea) {
 
 export function normalizeBrand(brand = {}) {
   return {
+    id: brand.id ?? null,
     name: String(brand.name ?? "").trim(),
     voice: String(brand.voice ?? "").trim(),
     audience: String(brand.audience ?? "").trim(),
