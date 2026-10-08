@@ -154,5 +154,6 @@ export function normalizeBrand(brand = {}) {
     visualDirection: String(
       brand.visualDirection ?? brand.visual_direction ?? "",
     ).trim(),
+    postingGoals: brand.postingGoals ?? brand.posting_goals ?? {},
   };
 }
