@@ -174,6 +174,8 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         engagements: row.engagements,
         followerDelta: row.follower_delta,
         isDemo: Boolean(row.is_demo),
+        source: row.source ?? "unknown",
+        provider: row.provider ?? "unknown",
       })),
       audit: audit.map((row) => ({
         id: row.id,
@@ -339,6 +341,8 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
         engagements: item.engagements ?? 0,
         follower_delta: item.followerDelta ?? 0,
         is_demo: item.isDemo !== false,
+        source: item.source ?? "unknown",
+        provider: item.provider ?? "unknown",
       })),
     );
 
