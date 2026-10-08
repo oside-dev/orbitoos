@@ -19,6 +19,7 @@ export function createAgentRun({
   status = "completed",
   input = {},
   output = {},
+  brandId = null,
   now = Date.now(),
 }) {
   const normalizedAgent = String(agent ?? "").trim();
@@ -28,6 +29,7 @@ export function createAgentRun({
 
   return {
     id: createId("run", now),
+    brandId,
     agent: normalizedAgent,
     task: String(task ?? "").trim(),
     status: String(status),
