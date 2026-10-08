@@ -440,6 +440,77 @@ export function createOrbitRuntime({
     }
   }
 
+  async function runDuePublishing(now = Date.now()) {
+    const state = await snapshot();
+    const due = state.schedules.filter(
+      (schedule) =>
+        schedule.status === "scheduled" &&
+        Date.parse(schedule.scheduledAt) <= Number(now),
+    );
+
+    const results = [];
+
+    for (const schedule of due) {
+      const contentItem = state.contentItems.find(
+        (item) => item.id === schedule.contentItemId,
+      );
+      const idea = state.ideas.find(
+        (item) => item.id === contentItem?.ideaId,
+      );
+
+      if (!idea) {
+        results.push({
+          scheduleId: schedule.id,
+          status: "failed",
+          code: "CONTENT_NOT_FOUND",
+        });
+        continue;
+      }
+
+      try {
+        await publishIdeaVariant({
+          ideaId: idea.id,
+          platform: schedule.platform,
+          schedule: schedule.scheduledAt,
+        });
+
+        const latest = await snapshot();
+        const nextSchedules = latest.schedules.map((item) =>
+          item.id === schedule.id ? { ...item, status: "published" } : item,
+        );
+        await save({
+          ...latest,
+          schedules: nextSchedules,
+        });
+
+        results.push({
+          scheduleId: schedule.id,
+          status: "published",
+        });
+      } catch (error) {
+        const latest = await snapshot();
+        const nextSchedules = latest.schedules.map((item) =>
+          item.id === schedule.id ? { ...item, status: "failed" } : item,
+        );
+        await save({
+          ...latest,
+          schedules: nextSchedules,
+        });
+
+        results.push({
+          scheduleId: schedule.id,
+          status: "failed",
+          code: error?.code ?? "PUBLISH_FAILED",
+        });
+      }
+    }
+
+    return {
+      processed: due.length,
+      results,
+    };
+  }
+
   async function exportState() {
     return store.export();
   }
@@ -460,6 +531,7 @@ export function createOrbitRuntime({
     normalizeMetrics,
     runLearning,
     publishIdeaVariant,
+    runDuePublishing,
     exportState,
     importState,
   });
