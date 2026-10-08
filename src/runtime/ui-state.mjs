@@ -101,8 +101,6 @@ export function toUiState(coreState, previousUiState = {}) {
         : Array.isArray(previous.signals)
           ? previous.signals
           : [],
-    metrics: Array.isArray(previous.metrics)
-      ? previous.metrics
-      : structuredClone(coreState.metrics),
+    metrics: structuredClone(coreState.metrics),
   };
 }
