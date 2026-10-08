@@ -78,7 +78,7 @@ https://orbitoos.vercel.app
 - M3 — Free/local AI adapter — runtime-integrated; deterministic default + opt-in Ollama
 - M4 — Persistent backend adapter — SDK-independent adapter foundation + schema contract
 - M5 — Publishing safety gateway — complete; official platform adapters remain gated
-- M6 — Analytics ingestion gateway — safety/provenance foundation; real platform adapters remain gated
+- M6 — Analytics + learning loop — ingestion safety, provenance, metric-derived learning; real platform adapters remain gated
 - M7 — Multi-brand automation
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
