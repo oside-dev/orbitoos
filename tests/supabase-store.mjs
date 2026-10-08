@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createSupabaseStateStore } from "../src/adapters/supabase-store.mjs";
+import { createPersistentOrbitRuntime } from "../src/runtime/persistent-runtime.mjs";
 
 const tables = new Map();
 
@@ -151,6 +152,13 @@ await store.set({
   learning: { generatedAt: null, insights: [] },
   learningInsights: [],
 });
+
+const persistentRuntime = createPersistentOrbitRuntime({
+  client: fakeClient,
+  workspaceId: "workspace-1",
+});
+const persistentSnapshot = await persistentRuntime.snapshot();
+assert.equal(persistentSnapshot.ideas[0].id, "idea-1");
 
 const restored = await store.get();
 assert.equal(restored.workspace.name, "Northstar Studio");
