@@ -85,7 +85,7 @@ let state=load();
 save();
 let page="overview";
 let selectedId=state.ideas[0]?.id||null;
-function save(){localStorage.setItem(STORE,JSON.stringify(state))}
+function save(){if((state.runtime?.mode||"local")==="local")localStorage.setItem(STORE,JSON.stringify(state))}
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
 function log(agent,msg){state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
@@ -287,16 +287,62 @@ async function createBrandProfile(){
 async function settings(){
  const ai=state.settings?.ai||{provider:"local",model:"",baseUrl:"http://localhost:11434/api"};
  const runtime=state.runtime||{mode:"local",provider:"local-store",persistent:false,authenticated:false};
+ const auth=state.auth||{status:"signed_out",user:null};
+ const authCard=runtime.authenticated
+  ? '<div class="card"><div class="row"><div><h2>Supabase workspace</h2><p class="small">Persistent backend is connected for this signed-in account.</p></div><span class="badge ok">CONNECTED</span></div><table class="table" style="margin-top:10px"><tr><td>Account</td><td>'+esc(auth.user?.email||runtime.userId||"Signed in")+'</td></tr><tr><td>Role</td><td>'+esc(state.auth?.membership?.role||"owner")+'</td></tr></table><div class="actions" style="margin-top:10px">'+btn("Sign out","authSignOut()")+'</div></div>'
+  : '<div class="card"><div class="row"><div><h2>Connect workspace</h2><p class="small">Sign in to switch this same OrbitOS runtime to the persistent Supabase workspace.</p></div><span class="badge">SIGNED OUT</span></div><div class="actions" style="margin-top:10px">'+btn("Sign in","authModal('signin')",true)+btn("Create account","authModal('signup')")+'</div><div class="small" style="margin-top:8px">Authentication uses Supabase Auth. Only the publishable client key ships to the browser.</div></div>';
  shell("Settings","Free-first controls, workspace identity, backup, and safety gates","",
  '<div class="grid two">'+
- '<div class="card"><div class="row"><h2>Workspace & identity</h2><span class="badge '+(runtime.authenticated?"ok":"")+'">'+(runtime.authenticated?"AUTHENTICATED":"LOCAL")+'</span></div><table class="table" style="margin-top:10px"><tr><td>Workspace</td><td>'+esc(state.workspace?.name||"Local Workspace")+'</td></tr><tr><td>Workspace ID</td><td>'+esc(runtime.workspaceId||state.workspace?.id||"local")+'</td></tr><tr><td>User</td><td>'+esc(runtime.userId||"Local session")+'</td></tr><tr><td>Persistence</td><td>'+esc(runtime.persistent?"Backend persistent":"Browser localStorage")+'</td></tr><tr><td>Provider</td><td>'+esc(runtime.provider)+'</td></tr></table><div class="notice" style="margin-top:10px">'+(runtime.authenticated?"Signed-in workspace runtime is active.":"Local mode is active because no authenticated backend project is connected.")+'</div></div>'+
+ authCard+
+ '<div class="card"><div class="row"><h2>Workspace & identity</h2><span class="badge '+(runtime.authenticated?"ok":"")+'">'+(runtime.authenticated?"AUTHENTICATED":"LOCAL")+'</span></div><table class="table" style="margin-top:10px"><tr><td>Workspace</td><td>'+esc(state.workspace?.name||"Local Workspace")+'</td></tr><tr><td>Workspace ID</td><td>'+esc(runtime.workspaceId||state.workspace?.id||"local")+'</td></tr><tr><td>User</td><td>'+esc(runtime.userId||"Local session")+'</td></tr><tr><td>Persistence</td><td>'+esc(runtime.persistent?"Backend persistent":"Browser localStorage")+'</td></tr><tr><td>Provider</td><td>'+esc(runtime.provider)+'</td></tr></table><div class="notice" style="margin-top:10px">'+(runtime.authenticated?"Signed-in workspace runtime is active.":"Local mode is active.")+'</div></div>'+
  '<div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div>'+
  '<div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div>'+
  '<div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+btn("Save AI settings","saveAiSettings()",true)+'</div></div>'+
- '<div class="card"><h2>Local data</h2><p class="small">State lives in browser storage. JSON backups contain no secrets.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div>'+
+ '<div class="card"><h2>Local data</h2><p class="small">Local mode state lives in browser storage. Authenticated workspace state is persisted in Supabase.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div>'+
  '<div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>'+esc(runtime.persistent?"Authenticated persistent store":"Local storage adapter")+'</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div>'+
- '</div><div class="card" style="margin-top:14px"><div class="notice">Backend mode is not simulated. When a real authenticated workspace is connected, the same core runtime can switch to the persistent adapter without changing agent contracts.</div></div>');
+ '</div><div class="card" style="margin-top:14px"><div class="notice">Browser auth and the persistent backend are real connections now. Publishing remains independently locked.</div></div>');
 }
+function authModal(mode="signin"){
+ const isSignup=mode==="signup";
+ document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><div><h2>'+(isSignup?"Create OrbitOS account":"Sign in to OrbitOS")+'</h2><div class="small">'+(isSignup?"Create a Supabase account for the persistent workspace.":"Continue to your persistent OrbitOS workspace.")+'</div></div>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:14px"><label>Email<input class="input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input class="input" id="authPassword" type="password" autocomplete="'+(isSignup?"new-password":"current-password")+'" placeholder="At least 6 characters"></label></div><div class="actions" style="justify-content:flex-end;margin-top:14px">'+btn(isSignup?"Create account":"Sign in","submitAuth('"+mode+"')",true)+'</div></div></div>';
+ document.getElementById("authEmail").focus();
+}
+async function submitAuth(mode){
+ const email=document.getElementById("authEmail")?.value.trim();
+ const password=document.getElementById("authPassword")?.value||"";
+ if(!email||!password)return toast("Email and password are required");
+ try{
+  await window.orbitCoreReady;
+  const result=mode==="signup"
+   ? await window.orbitCore.signUp({email,password})
+   : await window.orbitCore.signInWithPassword({email,password});
+  state.auth=await window.orbitCore.getAuthSnapshot();
+  if(mode==="signup" && result.status==="signed_out"){
+   toast("Account created. Check your email to confirm, then sign in.");
+   closeModal();
+   render();
+   return;
+  }
+  state=await window.orbitCore.refresh();
+  state.auth=await window.orbitCore.getAuthSnapshot();
+  closeModal();
+  selectedId=state.ideas[0]?.id||null;
+  toast("Persistent workspace connected");
+  render();
+ }catch(error){toast(error.message||"Authentication failed")}
+}
+async function authSignOut(){
+ try{
+  await window.orbitCoreReady;
+  await window.orbitCore.signOut();
+  state=await window.orbitCore.refresh();
+  state.auth=await window.orbitCore.getAuthSnapshot();
+  selectedId=state.ideas[0]?.id||null;
+  toast("Signed out");
+  render();
+ }catch(error){toast(error.message||"Sign out failed")}
+}
+
 function newIdea(){
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Create idea</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Idea title<input class="input" id="newTitle" placeholder="e.g. 3 mistakes creators make with hooks"></label><label>Pillar<input class="input" id="newPillar" placeholder="Education"></label><label>Audience<input class="input" id="newAudience" placeholder="Beginner creators"></label><label>Goal<select class="select" id="newGoal"><option>Reach</option><option>Engagement</option><option>Education</option><option>Leads</option></select></label><label>Brief<textarea class="textarea" id="newBrief" placeholder="What should this content teach?"></textarea></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Create & research","createIdea()",true)+'</div></div></div>';
  document.getElementById("newTitle").focus();
@@ -400,9 +446,9 @@ async function resetData(){
  try{await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(seed));selectedId=state.ideas[0]?.id||null;toast("OrbitOS reset");render()}catch(error){toast(error.message||"Reset failed")}
 }
 document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const p=JSON.parse(r.result);if(!p.state||!p.state.ideas)throw new Error();await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(p.state));selectedId=state.ideas[0]?.id||null;toast("Backup restored");render()}catch(error){toast(error.message||"Invalid OrbitOS backup")}};r.readAsText(f)});
-window.orbitCoreReady=import("./src/runtime/browser-bridge.mjs")
- .then(({createOrbitBrowserBridge})=>{
-   window.orbitCore=createOrbitBrowserBridge({storage:window.localStorage,key:STORE});
+window.orbitCoreReady=import("./src/runtime/application-browser-bridge.mjs")
+ .then(async ({createOrbitApplicationBrowserBridge})=>{
+   window.orbitCore=await createOrbitApplicationBrowserBridge({storage:window.localStorage,key:STORE});
    return window.orbitCore;
  })
  .catch(error=>{
@@ -418,7 +464,19 @@ async function boot(){
     ? await window.orbitCore.snapshot()
     : await window.orbitCore.importState(JSON.stringify(seed));
   state.runtime=await window.orbitCore.getEnvironment();
+  state.auth=await window.orbitCore.getAuthSnapshot();
   selectedId=state.ideas[0]?.id||null;
+  if(!window.orbitAuthSubscription){
+   window.orbitAuthSubscription=window.orbitCore.onAuthStateChange(async (_event,authSnapshot)=>{
+    try{
+     state=await window.orbitCore.refresh();
+     state.auth=authSnapshot;
+     render();
+    }catch(error){
+     toast(error.message||"Authentication state refresh failed");
+    }
+   });
+  }
   render();
  }catch(error){
   console.error("OrbitOS boot failed",error);
