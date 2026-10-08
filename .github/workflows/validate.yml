@@ -78,6 +78,8 @@ jobs:
           test -f tests/local-ai.mjs
           test -f tests/publishing-gateway.mjs
           test -f tests/analytics-gateway.mjs
+          test -f tests/multi-brand.mjs
+          test -f tests/schema-contract.mjs
           test -f tests/supabase-store.mjs
           test -f tests/supabase-store.mjs
 
@@ -107,6 +109,12 @@ jobs:
 
       - name: Run analytics gateway tests
         run: node tests/analytics-gateway.mjs
+
+      - name: Run multi-brand tests
+        run: node tests/multi-brand.mjs
+
+      - name: Run schema contract tests
+        run: node tests/schema-contract.mjs
 
       - name: Run persistent backend adapter tests
         run: node tests/supabase-store.mjs
