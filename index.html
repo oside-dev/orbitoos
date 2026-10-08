@@ -125,10 +125,11 @@ async function runLearningNow(){
 function overview(){
  const active=visibleIdeas().filter(x=>x.stage!=="Archived").length;
  const approved=visibleIdeas().filter(x=>x.stage==="Approved").length;
- const avg=Math.round(visibleIdeas().reduce((a,x)=>a+x.score,0)/Math.max(1,state.ideas.length));
+ const activeIdeas=visibleIdeas();
+ const avg=Math.round(activeIdeas.reduce((a,x)=>a+x.score,0)/Math.max(1,activeIdeas.length));
  const draft=visibleIdeas().filter(x=>x.stage==="Draft").length;
  const cards='<div class="grid kpis">'+kpi("Active ideas",active,"local records")+kpi("Ready to publish",approved,"human-approved only")+kpi("Draft queue",draft,"editing work")+kpi("Avg opportunity",avg+"/100","heuristic score")+'</div>';
- const pipe='<div class="card"><div class="row"><h2>Operating pipeline</h2><span class="badge ok">LOCAL</span></div><div class="pipeline" style="margin-top:12px">'+stages.slice(0,6).map((s,i)=>'<div class="step"><span>'+s+'</span><b>'+state.ideas.filter(x=>x.stage===s).length+'</b></div>').join("")+'</div><div class="small" style="margin-top:9px">Idea → Research → Strategy → Draft → Review → Approved. Schedule remains a separate execution step.</div></div>';
+ const pipe='<div class="card"><div class="row"><h2>Operating pipeline</h2><span class="badge ok">LOCAL</span></div><div class="pipeline" style="margin-top:12px">'+stages.slice(0,6).map((s,i)=>'<div class="step"><span>'+s+'</span><b>'+activeIdeas.filter(x=>x.stage===s).length+'</b></div>').join("")+'</div><div class="small" style="margin-top:9px">Idea → Research → Strategy → Draft → Review → Approved. Schedule remains a separate execution step.</div></div>';
  const right='<div class="card"><div class="row"><h2>System guardrails</h2><span class="badge warn">FREE-FIRST</span></div><div class="notice" style="margin-top:10px">No paid provider calls. No social account credentials. No automatic external publishing. Human approval remains mandatory.</div><div class="small" style="margin-top:10px">Runtime v4 • local persistence • portable JSON backup</div></div>';
  const activity='<div class="card"><div class="row"><h2>Activity</h2><span class="badge">EVENT LOG</span></div><div class="timeline" style="margin-top:10px">'+state.events.slice(0,8).map(e=>'<div class="event"><div class="time">'+esc(e[0])+'</div><div class="eventBody">'+esc(e[1])+'</div></div>').join("")+'</div></div>';
  const entries=learningEntries();
@@ -136,7 +137,7 @@ function overview(){
  shell("Command Center","One idea → research → platform variants → review → schedule → analytics → learning",btn("+ New idea","newIdea()",true)+btn("Run local workflow","runWorkflow()"),cards+'<div class="grid two" style="margin-top:14px">'+pipe+right+'</div><div class="grid two" style="margin-top:14px">'+activity+learning+"</div>");
 }
 function ideas(){
- let cols=stages.map(s=>'<div class="col"><h3>'+s+'</h3>'+state.ideas.filter(x=>x.stage===s).map(i=>'<div class="idea"><p><strong>'+esc(i.title)+'</strong></p><div class="small">'+esc(i.audience)+' • '+esc(i.goal)+'</div><div class="row" style="margin-top:8px"><span class="badge">'+i.score+'/100</span>'+btn("Open","openIdea('"+i.id+"')")+'</div></div>').join("")||'<div class="small">No items</div>'+"</div>").join("");
+ let cols=stages.map(s=>'<div class="col"><h3>'+s+'</h3>'+visibleIdeas().filter(x=>x.stage===s).map(i=>'<div class="idea"><p><strong>'+esc(i.title)+'</strong></p><div class="small">'+esc(i.audience)+' • '+esc(i.goal)+'</div><div class="row" style="margin-top:8px"><span class="badge">'+i.score+'/100</span>'+btn("Open","openIdea('"+i.id+"')")+'</div></div>').join("")||'<div class="small">No items</div>'+"</div>").join("");
  shell("Ideas","Source material for the entire operating system",btn("+ New idea","newIdea()",true)+btn("Advance first","advanceSelected()"),'<div class="kanban">'+cols+'</div><div class="card" style="margin-top:14px"><div class="notice">The content pipeline is intentionally reversible. Approval is a human gate; publishing is a separate adapter.</div></div>');
 }
 function research(){
