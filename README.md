@@ -81,5 +81,6 @@ https://orbitoos.vercel.app
 - M6 — Analytics + learning loop — ingestion safety, provenance, metric-derived learning; real platform adapters remain gated
 - M7 — Multi-brand foundation — brand registry, active-brand runtime context, legacy migration, persistence scoping, and UI isolation
 - M8 — Workspace security foundation — membership boundary, authenticated RLS contract, secure helper schema, and backend-controlled provisioning
+- M9 — Application runtime shell — explicit local/remote runtime modes, workspace identity context, and authenticated-runtime handoff boundary
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
