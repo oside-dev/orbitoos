@@ -51,6 +51,8 @@ export function toCoreState(uiState = {}) {
     version: STATE_VERSION,
     workspace: source.workspace ?? {},
     brand: source.brand ?? {},
+    brands: Array.isArray(source.brands) ? source.brands : [],
+    activeBrandId: source.activeBrandId ?? null,
     ideas: Array.isArray(source.ideas) ? source.ideas.map(toCoreIdea) : [],
     research: Array.isArray(source.research) ? source.research : [],
     contentItems: Array.isArray(source.contentItems)
@@ -87,6 +89,8 @@ export function toUiState(coreState, previousUiState = {}) {
     version: UI_STATE_VERSION,
     workspace: structuredClone(coreState.workspace),
     brand: structuredClone(coreState.brand),
+    brands: structuredClone(coreState.brands),
+    activeBrandId: coreState.activeBrandId,
     ideas: coreState.ideas.map(toUiIdea),
     research: structuredClone(coreState.research),
     contentItems: structuredClone(coreState.contentItems),
