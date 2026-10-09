@@ -50,6 +50,7 @@ jobs:
           test -f supabase/migrations/20261009091753_orbitoos_approved_content_role_guard.sql
           test -f tests/workspace-role-approval-contract.mjs
           test -f supabase/functions/instagram-token-refresh-scheduler/index.ts
+          test -f supabase/functions/instagram-integration-readiness/index.ts
           test -f tests/instagram-token-refresh-scheduler-contract.mjs
           test -f supabase/functions/publishing-operations/index.ts
           test -f supabase/functions/publishing-reconciliation/index.ts
@@ -174,6 +175,9 @@ jobs:
         run: node tests/publishing-scheduler-contract.mjs
       - name: Run Instagram token refresh scheduler contract tests
         run: node tests/instagram-token-refresh-scheduler-contract.mjs
+
+      - name: Run Instagram integration readiness contract tests
+        run: node tests/instagram-integration-readiness-contract.mjs
 
       - name: Run analytics gateway tests
         run: node tests/analytics-gateway.mjs
