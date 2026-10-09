@@ -5,7 +5,7 @@
 create table if not exists private.social_oauth_states (
   state_hash text primary key
     check (state_hash ~ '^[0-9a-f]{64}$'),
-  user_id text not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
   workspace_id text not null references public.workspaces(id) on delete cascade,
   brand_id text not null references public.brands(id) on delete cascade,
   created_at timestamptz not null default pg_catalog.now(),
@@ -25,7 +25,7 @@ grant select, insert, update, delete on table private.social_oauth_states to ser
 
 create or replace function public.create_social_oauth_state(
   p_state_hash text,
-  p_user_id text,
+  p_user_id uuid,
   p_workspace_id text,
   p_brand_id text,
   p_expires_at timestamptz
@@ -46,7 +46,7 @@ begin
       using errcode = '22023';
   end if;
 
-  if nullif(pg_catalog.btrim(coalesce(p_user_id, '')), '') is null
+  if p_user_id is null
     or nullif(pg_catalog.btrim(coalesce(p_workspace_id, '')), '') is null
     or nullif(pg_catalog.btrim(coalesce(p_brand_id, '')), '') is null
   then
@@ -102,7 +102,7 @@ create or replace function public.consume_social_oauth_state(
   p_state_hash text
 )
 returns table (
-  user_id text,
+  user_id uuid,
   workspace_id text,
   brand_id text
 )
@@ -130,12 +130,12 @@ begin
 end;
 $function$;
 
-revoke all on function public.create_social_oauth_state(text, text, text, text, timestamptz)
+revoke all on function public.create_social_oauth_state(text, uuid, text, text, timestamptz)
   from public, anon, authenticated;
 revoke all on function public.consume_social_oauth_state(text)
   from public, anon, authenticated;
 
-grant execute on function public.create_social_oauth_state(text, text, text, text, timestamptz)
+grant execute on function public.create_social_oauth_state(text, uuid, text, text, timestamptz)
   to service_role;
 grant execute on function public.consume_social_oauth_state(text)
   to service_role;
