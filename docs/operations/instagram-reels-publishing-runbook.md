@@ -42,6 +42,16 @@ This condition is deliberately different from an ordinary retryable error. The w
 5. Do not delete the checkpoint, reset the job status, or requeue it with ad hoc SQL. After the M23 database contract and Edge Function are deployed, use the signed-in `publishing-reconciliation` endpoint as a workspace owner/admin. Choose `confirmed_published` only when you can provide the actual provider post ID; choose `closed_without_retry` only after reviewing the connected account and confirming no post was created. Both outcomes require an evidence reference and are written to an append-only private audit table. The endpoint never re-queues an ambiguous job.
 6. Re-enable the global switch only after the affected job is safely resolved and an operator has reviewed the remaining queue.
 
+## Schedule-to-job materialization
+
+When an operator deliberately enables the global publishing switch and at least one official adapter is ready, the publishing worker first materializes eligible calendar schedules into durable jobs. The materializer requires the schedule to remain scheduled, the content item to be approved, the latest variant for that platform to remain explicitly approved, and exactly one connected account matching the same workspace/brand/platform. It never fans one schedule out across every matching account.
+
+Materialized future jobs remain queued until their scheduled time; the atomic claim RPC still checks due time, account readiness, approval, retry limits, and leases before a provider call. The materializer is idempotent by schedule ID, so repeated invocations do not create duplicate jobs.
+
+**No worker cron or automatic invocation schedule is configured.** A saved schedule is not a guarantee of an automatic post until a controlled scheduler/invocation mechanism is configured and tested. Do not enable the publishing flags as a probe; first review the connected account, provider configuration, due queue, and operations panel, then plan a controlled test with an operator available to verify the real provider outcome.
+
+If multiple connected accounts match the schedule's workspace, brand, and platform, the materializer skips that schedule rather than guessing which account should receive the post. Account selection for multi-account brands remains a separate product step.
+
 ## Read-only operations panel
 
 Workspace owners/admins can open Settings in OrbitOS and select **Load operations** or **Refresh operations**. The panel shows workspace-scoped status counts, up to 50 recent publishing jobs, attempts and timestamps, bounded error diagnostics, and up to 50 reconciliation audit events. It does not change a job or invoke Instagram.
