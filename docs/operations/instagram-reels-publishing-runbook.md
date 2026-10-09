@@ -39,7 +39,7 @@ This condition is deliberately different from an ordinary retryable error. The w
 2. Find the affected job using its job ID and inspect its sanitized error code and checkpoint metadata using authorized backend tooling. Do not reveal or copy tokens, Vault values, or API keys.
 3. Review the connected Instagram account itself and determine whether the intended Reel was actually published. Use the account, media, caption, and timing to establish the outcome; an HTTP timeout alone is not evidence that publication failed.
 4. Keep the job out of automatic retry while the outcome is uncertain. Record the evidence and the provider post ID if publication is confirmed.
-5. Do not delete the checkpoint, reset the job status, or requeue it with ad hoc SQL. The repository does not yet provide a dedicated, audited manual-reconciliation RPC; until one is implemented and reviewed, resolve the record through an approved operator procedure that preserves an audit trail and prevents a second post.
+5. Do not delete the checkpoint, reset the job status, or requeue it with ad hoc SQL. After the M23 database contract and Edge Function are deployed, use the signed-in `publishing-reconciliation` endpoint as a workspace owner/admin. Choose `confirmed_published` only when you can provide the actual provider post ID; choose `closed_without_retry` only after reviewing the connected account and confirming no post was created. Both outcomes require an evidence reference and are written to an append-only private audit table. The endpoint never re-queues an ambiguous job.
 6. Re-enable the global switch only after the affected job is safely resolved and an operator has reviewed the remaining queue.
 
 ## Observability and escalation
