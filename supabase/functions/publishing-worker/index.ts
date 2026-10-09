@@ -24,6 +24,11 @@ type PublishingJob = {
 };
 
 type PublisherAdapter = {
+  enabled: boolean;
+  official: boolean;
+  credentialsReady: boolean;
+  supportsIdempotency: boolean;
+  rateLimitReady: boolean;
   publish(input: {
     job: PublishingJob;
     account: Record<string, unknown>;
@@ -39,6 +44,8 @@ type PublisherAdapter = {
  * have been implemented together.
  */
 function createPublisherAdapters(): Partial<Record<SupportedPlatform, PublisherAdapter>> {
+  // No adapter is installed yet. Adding a provider here requires a separate
+  // official-provider implementation and a passing readiness/idempotency review.
   return Object.freeze({});
 }
 
@@ -54,6 +61,38 @@ function retryDelaySeconds(attempts: number): number {
   return Math.min(3600, 30 * 2 ** exponent);
 }
 
+async function cancelClaim(
+  ctx: { supabaseAdmin: any },
+  job: PublishingJob,
+  errorCode: string,
+  errorMessage: string,
+): Promise<boolean> {
+  const { data, error } = await ctx.supabaseAdmin
+    .from("publishing_jobs")
+    .update({
+      status: "canceled",
+      finished_at: new Date().toISOString(),
+      lease_expires_at: null,
+      lease_token: null,
+      last_error_code: errorCode,
+      last_error_message: errorMessage,
+    })
+    .eq("id", job.id)
+    .eq("status", "processing")
+    .eq("lease_token", job.lease_token)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("publishing-worker cancellation not accepted", {
+      jobId: job.id,
+      code: error.code ?? "CANCEL_FAILED",
+    });
+    return false;
+  }
+  return Boolean(data);
+}
+
 Deno.serve(
   // The platform gateway's JWT verification is disabled for this function
   // because this wrapper validates a Supabase secret API key itself.
@@ -67,8 +106,19 @@ Deno.serve(
       return json({ error: "PUBLISHING_DISABLED" }, 503);
     }
 
-    const adapters = createPublisherAdapters();
-    const platforms = Object.keys(adapters) as SupportedPlatform[];
+    const registry = createPublisherAdapters();
+    const platforms = (Object.keys(registry) as SupportedPlatform[]).filter((platform) => {
+      const adapter = registry[platform];
+      return Boolean(
+        adapter &&
+        adapter.enabled === true &&
+        adapter.official === true &&
+        adapter.credentialsReady === true &&
+        adapter.supportsIdempotency === true &&
+        adapter.rateLimitReady === true
+      );
+    });
+    const adapters = registry;
 
     // Never claim/lease jobs without a registered official adapter. This is
     // currently the normal outcome until a provider integration is shipped.
@@ -97,11 +147,6 @@ Deno.serve(
     const outcomes: Array<{ jobId: string; status: string }> = [];
 
     for (const job of jobs) {
-      const adapter = adapters[
-        (job as PublishingJob & { platform?: SupportedPlatform }).platform ??
-          ("" as SupportedPlatform)
-      ];
-
       // The claim RPC returns the job row; resolve platform through its account.
       const { data: account, error: accountError } = await ctx.supabaseAdmin
         .from("social_accounts")
@@ -111,14 +156,13 @@ Deno.serve(
         .maybeSingle();
 
       if (accountError || !account || account.status !== "connected") {
-        await ctx.supabaseAdmin.rpc("retry_publishing_job", {
-          p_job_id: job.id,
-          p_lease_token: job.lease_token,
-          p_error_code: "ACCOUNT_NOT_READY",
-          p_error_message: "The linked social account is unavailable or disconnected.",
-          p_retry_seconds: retryDelaySeconds(job.attempts),
-        });
-        outcomes.push({ jobId: job.id, status: "retry_scheduled" });
+        await cancelClaim(
+          ctx,
+          job,
+          "ACCOUNT_NOT_READY",
+          "The linked social account is unavailable or disconnected.",
+        );
+        outcomes.push({ jobId: job.id, status: "canceled" });
         continue;
       }
 
@@ -127,14 +171,13 @@ Deno.serve(
       if (!provider || !platforms.includes(platform)) {
         // Defensive fallback: a job should never be claimed for an unregistered
         // provider, but requeue safely if a registry/account mismatch is found.
-        await ctx.supabaseAdmin.rpc("retry_publishing_job", {
-          p_job_id: job.id,
-          p_lease_token: job.lease_token,
-          p_error_code: "ADAPTER_NOT_AVAILABLE",
-          p_error_message: "No official adapter is available for this account.",
-          p_retry_seconds: retryDelaySeconds(job.attempts),
-        });
-        outcomes.push({ jobId: job.id, status: "retry_scheduled" });
+        await cancelClaim(
+          ctx,
+          job,
+          "ADAPTER_NOT_AVAILABLE",
+          "No official adapter is available for this account.",
+        );
+        outcomes.push({ jobId: job.id, status: "canceled" });
         continue;
       }
 
@@ -164,14 +207,13 @@ Deno.serve(
         variant.status !== "approved" ||
         variant.approved !== true
       ) {
-        await ctx.supabaseAdmin.rpc("retry_publishing_job", {
-          p_job_id: job.id,
-          p_lease_token: job.lease_token,
-          p_error_code: "CONTENT_NOT_APPROVED",
-          p_error_message: "The linked content or platform variant is no longer approved.",
-          p_retry_seconds: retryDelaySeconds(job.attempts),
-        });
-        outcomes.push({ jobId: job.id, status: "retry_scheduled" });
+        await cancelClaim(
+          ctx,
+          job,
+          "CONTENT_NOT_APPROVED",
+          "The linked content or platform variant is no longer approved.",
+        );
+        outcomes.push({ jobId: job.id, status: "canceled" });
         continue;
       }
 
