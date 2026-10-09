@@ -17,6 +17,12 @@ create table if not exists private.social_oauth_states (
 
 create index if not exists social_oauth_states_expiry_idx
   on private.social_oauth_states(expires_at);
+create index if not exists social_oauth_states_user_idx
+  on private.social_oauth_states(user_id);
+create index if not exists social_oauth_states_workspace_idx
+  on private.social_oauth_states(workspace_id);
+create index if not exists social_oauth_states_brand_idx
+  on private.social_oauth_states(brand_id);
 
 alter table private.social_oauth_states enable row level security;
 revoke all on table private.social_oauth_states from public, anon, authenticated;

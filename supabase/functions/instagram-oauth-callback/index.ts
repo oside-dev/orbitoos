@@ -177,12 +177,29 @@ Deno.serve(
         return appResult("profile_lookup_failed");
       }
 
+      // Reuse the existing primary key during reconnect. Rotating account IDs
+      // would break credential references and could cascade-delete publishing jobs.
+      const { data: existingAccount, error: existingAccountError } = await ctx.supabaseAdmin
+        .from("social_accounts")
+        .select("id, status, metadata, connected_at")
+        .eq("workspace_id", storedState.workspace_id)
+        .eq("platform", "instagram")
+        .eq("external_account_id", externalAccountId)
+        .maybeSingle();
+
+      if (existingAccountError) {
+        console.error("instagram-oauth-callback account lookup failed", {
+          code: existingAccountError.code ?? "ACCOUNT_LOOKUP_FAILED",
+        });
+        return appResult("account_save_failed");
+      }
+
       const now = new Date().toISOString();
       const { data: account, error: accountError } = await ctx.supabaseAdmin
         .from("social_accounts")
         .upsert(
           {
-            id: "social-instagram-" + crypto.randomUUID(),
+            id: existingAccount?.id ?? "social-instagram-" + crypto.randomUUID(),
             workspace_id: storedState.workspace_id,
             brand_id: storedState.brand_id,
             platform: "instagram",
@@ -199,7 +216,7 @@ Deno.serve(
               provider: "instagram_login",
               tokenExpiresAt,
             },
-            connected_at: now,
+            connected_at: existingAccount?.connected_at ?? now,
             updated_at: now,
           },
           { onConflict: "workspace_id,platform,external_account_id" },
@@ -224,10 +241,25 @@ Deno.serve(
       );
 
       if (secretError || secretSaved !== true) {
-        await ctx.supabaseAdmin
-          .from("social_accounts")
-          .update({ status: "reauth_required", updated_at: new Date().toISOString() })
-          .eq("id", account.id);
+        // Existing credentials are transactionally unchanged when the Vault RPC
+        // fails. Restore prior metadata/status instead of breaking a valid account.
+        if (existingAccount) {
+          await ctx.supabaseAdmin
+            .from("social_accounts")
+            .update({
+              status: existingAccount.status,
+              metadata: existingAccount.metadata ?? {},
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", account.id)
+            .eq("workspace_id", storedState.workspace_id);
+        } else {
+          await ctx.supabaseAdmin
+            .from("social_accounts")
+            .update({ status: "reauth_required", updated_at: new Date().toISOString() })
+            .eq("id", account.id)
+            .eq("workspace_id", storedState.workspace_id);
+        }
         console.error("instagram-oauth-callback secure token storage failed", {
           code: secretError?.code ?? "TOKEN_STORAGE_FAILED",
         });
@@ -245,13 +277,19 @@ Deno.serve(
         .eq("workspace_id", storedState.workspace_id);
 
       if (connectedError) {
-        await ctx.supabaseAdmin.rpc("delete_social_account_secrets", {
-          p_social_account_id: account.id,
-        });
+        // For an existing account the new token is already stored securely; do
+        // not delete it or erase the account's credentials on a status-write error.
+        // For a new account, remove the newly created secret reference on failure.
+        if (!existingAccount) {
+          await ctx.supabaseAdmin.rpc("delete_social_account_secrets", {
+            p_social_account_id: account.id,
+          });
+        }
         await ctx.supabaseAdmin
           .from("social_accounts")
           .update({ status: "reauth_required", updated_at: new Date().toISOString() })
-          .eq("id", account.id);
+          .eq("id", account.id)
+          .eq("workspace_id", storedState.workspace_id);
         console.error("instagram-oauth-callback could not finalize connection", {
           code: connectedError.code ?? "CONNECTION_FINALIZE_FAILED",
         });
