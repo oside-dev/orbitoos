@@ -92,6 +92,7 @@ https://orbitoos.vercel.app
 - M17 — Vault-backed social credentials — service-role-only token store/read/delete RPCs, encrypted per-account Vault values, and automatic secret cleanup when references are removed
 - M18 — Instagram Login OAuth foundation — signed-in workspace-admin start endpoint, hashed single-use callback state, server-side token exchange, Vault storage, and disabled-by-default configuration
 - M19 — Instagram token refresh foundation — service-role-only refresh endpoint, Vault token rotation, expiry metadata maintenance, and a safe reauthorization state for invalid/expired tokens; no schedule is enabled
+- M20 — Platform media URL contract — validated HTTPS media references on content variants, persistent storage, and the publishing worker's approved-variant read model; publishing stays disabled
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -151,3 +152,9 @@ The OAuth state table also has supporting indexes on its user, workspace, and br
 M19 adds `instagram-token-refresh`, which scans a small batch of connected Instagram Login accounts whose `tokenExpiresAt` is within seven days. It calls Meta's official `graph.instagram.com/refresh_access_token` endpoint, stores the rotated token through the backend-only Vault RPC, and updates expiry metadata only after the token write succeeds. Expired tokens or Meta's invalid-token OAuth error mark the account as needing reauthorization; network/provider errors are counted without exposing raw errors or tokens.
 
 The endpoint requires Supabase secret-key authentication plus `ORBITOS_INSTAGRAM_REFRESH_ENABLED=true`; the flag is not set by this source change. No cron job or auto-publish schedule is created. The documented refresh requirements are that the token is still valid and at least 24 hours old; this endpoint only selects tokens approaching expiry. See [Meta's Instagram Login refresh token reference](https://developers.facebook.com/docs/instagram-platform/reference/refresh_access_token).
+
+## Platform media URL contract
+
+M20 adds an optional `mediaUrl` to each platform-native content variant. It is validated as an HTTPS URL with a public-looking hostname, without embedded username/password credentials or a local/IP host. Empty values remain valid while drafting; Instagram publishing will require a URL that the platform can fetch without authentication. The application does not download or proxy the media and therefore cannot guarantee reachability at save time.
+
+The new `media_url` column is added to fresh schemas and through the idempotent migration `docs/architecture/content-variant-media-url.sql` for existing installations. The worker loads the field but still cannot publish because the official adapter registry remains empty and all publishing flags are off.
