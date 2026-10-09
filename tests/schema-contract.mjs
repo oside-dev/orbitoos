@@ -115,7 +115,10 @@ const publishingWorker = readFileSync(
 const publishingWorkerContract = [
   'withSupabase({ auth: "secret" }',
   'Deno.env.get("ORBITOS_PUBLISHING_ENABLED") !== "true"',
-  "return Object.freeze({});",
+  'Deno.env.get("ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED") === "true"',
+  'Deno.env.get("META_GRAPH_API_VERSION")?.trim() ?? ""',
+  "createInstagramReelsAdapter",
+  "return Object.freeze({",
   'return json({ error: "NO_OFFICIAL_ADAPTER_CONFIGURED" }, 503);',
   "adapter.enabled === true",
   "adapter.official === true",
