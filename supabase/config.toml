@@ -20,3 +20,7 @@ verify_jwt = false
 # Manual publish-outcome reconciliation is a signed-in owner/admin operation.
 [functions.publishing-reconciliation]
 verify_jwt = true
+
+# Publishing operations is a read-only owner/admin endpoint and requires a signed-in JWT.
+[functions.publishing-operations]
+verify_jwt = true

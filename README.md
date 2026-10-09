@@ -96,6 +96,7 @@ https://orbitoos.vercel.app
 - M21 — Atomic Instagram reconnect — database-locked account upserts preserve primary keys during parallel reconnects; private credential/state tables have explicit service-role-only RLS policies
 - M22 — Instagram Reels publisher — official container/status/publish flow, quota checks, Vault-only tokens, durable checkpoints and duplicate-safe manual reconciliation; disabled by default
 - M23 — Audited publishing reconciliation — owner/admin-only resolution of ambiguous outcomes, immutable private audit evidence, and no automatic retry of uncertain posts
+- M24 — Publishing operations overview — owner/admin-only read-only job counts, retry diagnostics, recent publishing jobs, and reconciliation audit evidence in Settings
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -167,6 +168,10 @@ The new `media_url` column is added to fresh schemas and through the idempotent 
 ## Audited publishing reconciliation
 
 M23 adds the private `publishing_job_reconciliation_events` audit table, a service-role-only database RPC, and the signed-in `publishing-reconciliation` Edge Function. Only workspace owners/admins can resolve a failed job marked `PUBLISH_OUTCOME_UNKNOWN`. An operator must record evidence and choose either `confirmed_published` with the real provider post ID or `closed_without_retry` after checking the account. The operation atomically updates the job and records the audit event; it never queues or re-publishes the job. The audit record is private and does not cascade-delete with the job. This endpoint is separate from the publishing worker and does not enable publishing flags or schedules.
+
+## Publishing operations overview
+
+M24 adds a read-only owner/admin operations panel to Settings. It shows workspace-scoped publishing-job counts, attempts and retry timestamps, sanitized error diagnostics, provider post IDs, and the latest reconciliation audit evidence. Data is loaded only on request through the signed-in browser runtime and the JWT-protected `publishing-operations` Edge Function. A service-role-only, `SECURITY INVOKER` database RPC rechecks workspace owner/admin membership and returns at most 50 recent jobs and 50 audit events. The UI does not expose retry, cancel, approve, or publish actions.
 
 ## Instagram Reels publishing adapter
 

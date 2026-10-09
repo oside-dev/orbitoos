@@ -84,6 +84,11 @@ function load(){
 }
 let state=load();
 save();
+let publishingOperationsData=null;
+let publishingOperationsWorkspaceId=null;
+let publishingOperationsLoading=false;
+let publishingOperationsError="";
+
 let page="overview";
 let selectedId=state.ideas[0]?.id||null;
 function save(){if((state.runtime?.mode||"local")==="local")localStorage.setItem(STORE,JSON.stringify(state))}
@@ -91,6 +96,10 @@ function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function toast(msg){const x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
 function log(agent,msg){state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
 function btn(label,fn,primary=false,extra=""){return '<button class="btn '+(primary?"primary ":"")+extra+'" onclick="'+fn+'">'+esc(label)+"</button>"}
+function updateAuthSnapshot(snapshot){
+ state.auth={...(state.auth||{}),...(snapshot||{})};
+ if(snapshot?.status==="signed_out")state.auth.membership=null;
+}
 function runtimeModeLabel(){
  const mode=state.runtime?.mode||"local";
  return mode==="authenticated-persistent"?"AUTHENTICATED":"LOCAL";
@@ -291,6 +300,65 @@ async function createBrandProfile(){
  }catch(error){toast(error.message||"Brand creation failed")}
 }
 
+
+function formatOperationsTimestamp(value){
+ if(!value)return "—";
+ const date=new Date(value);
+ return Number.isNaN(date.getTime())?"—":date.toLocaleString();
+}
+function renderPublishingOperationsPanel(workspaceId){
+ const current=publishingOperationsData&&publishingOperationsWorkspaceId===String(workspaceId||"");
+ const button=btn(publishingOperationsLoading?"Loading…":current?"Refresh operations":"Load operations","loadPublishingOperations()",false,publishingOperationsLoading?"":"");
+ if(publishingOperationsLoading)return button+'<p class="small" style="margin-top:10px">Loading read-only job status and audit history…</p>';
+ if(publishingOperationsError)return button+'<div class="notice warn" style="margin-top:10px">'+esc(publishingOperationsError)+'</div>';
+ if(!current)return button+'<p class="small" style="margin-top:10px">Load the latest publishing jobs, retry state, and reconciliation evidence for this workspace. This view is read-only and never sends a social post.</p>';
+ const data=publishingOperationsData;
+ const summary=data.summary||{};
+ const stats='<div class="grid kpis" style="margin-top:12px">'+
+  kpi("All jobs",Number(summary.total||0),"all-time workspace count")+
+  kpi("Queued",Number(summary.queued||0),"waiting for schedule")+
+  kpi("Processing",Number(summary.processing||0),"leased by worker")+
+  kpi("Published",Number(summary.published||0),"confirmed provider posts")+
+  kpi("Failed",Number(summary.failed||0),"requires review")+
+  kpi("Unknown outcome",Number(summary.unknownOutcome||0),"never blindly retry")+
+ '</div>';
+ const jobRows=(Array.isArray(data.jobs)?data.jobs:[]).map(job=>{
+  const status=String(job.status||"unknown").replaceAll("_"," ").toUpperCase();
+  const statusClass=job.status==="published"?"ok":(["failed","canceled"].includes(job.status)?"warn":"");
+  const detail=job.last_error_code?'<div class="small">'+esc(job.last_error_code)+'</div>':'';
+  const attemptDetail='<div class="small">Last attempt: '+esc(formatOperationsTimestamp(job.last_attempt_at))+'</div>';
+  const postInfo=job.provider_post_id?'<div class="small">Post ID: '+esc(job.provider_post_id)+'</div>':'';
+  const errorInfo=job.last_error_message?'<div class="small">'+esc(job.last_error_message)+'</div>':'';
+  return '<tr><td style="overflow-wrap:anywhere">'+esc(job.id)+'</td><td><span class="badge '+statusClass+'">'+esc(status)+'</span>'+detail+errorInfo+'</td><td>'+esc(String(job.attempts??0))+' / '+esc(String(job.max_attempts??0))+attemptDetail+'</td><td>'+esc(formatOperationsTimestamp(job.scheduled_at))+'</td><td style="overflow-wrap:anywhere">'+postInfo+esc(job.content_item_id||"—")+'</td></tr>';
+ }).join("");
+ const jobsTable='<div style="margin-top:14px"><div class="row"><h3>Recent publishing jobs</h3><span class="badge">LATEST '+esc(String((data.jobs||[]).length))+'</span></div><div style="overflow-x:auto;margin-top:8px"><table class="table" style="min-width:760px;table-layout:fixed"><thead><tr><th>Job</th><th>Status / diagnostic</th><th>Attempts</th><th>Scheduled</th><th>Content / provider</th></tr></thead><tbody>'+(jobRows||'<tr><td colspan="5" class="small">No publishing jobs in this workspace.</td></tr>')+'</tbody></table></div></div>';
+ const auditRows=(Array.isArray(data.reconciliationEvents)?data.reconciliationEvents:[]).map(event=>{
+  const resolution=String(event.resolution||"unknown").replaceAll("_"," ").toUpperCase();
+  const operator=String(event.operator_id||"");
+  return '<tr><td>'+esc(resolution)+'<div class="small">'+esc(formatOperationsTimestamp(event.created_at))+'</div></td><td style="overflow-wrap:anywhere">'+esc(event.job_id||"—")+'</td><td style="overflow-wrap:anywhere">'+esc(event.provider_post_id||"—")+'</td><td style="overflow-wrap:anywhere">'+esc(event.evidence_reference||"—")+'<div class="small">'+esc(event.notes||"")+'</div></td><td>'+esc(operator?operator.slice(0,8):"—")+'</td></tr>';
+ }).join("");
+ const auditTable='<div style="margin-top:14px"><div class="row"><h3>Reconciliation audit</h3><span class="badge">'+esc(String((data.reconciliationEvents||[]).length))+' EVENTS</span></div><div style="overflow-x:auto;margin-top:8px"><table class="table" style="min-width:760px;table-layout:fixed"><thead><tr><th>Resolution / time</th><th>Job</th><th>Provider post ID</th><th>Evidence / notes</th><th>Operator</th></tr></thead><tbody>'+(auditRows||'<tr><td colspan="5" class="small">No reconciliation events recorded for this workspace.</td></tr>')+'</tbody></table></div></div>';
+ return button+stats+jobsTable+auditTable+'<p class="small" style="margin-top:10px">Last loaded: '+esc(formatOperationsTimestamp(data.generatedAt))+'. Up to 50 recent jobs and 50 audit events are shown. This panel cannot approve, retry, cancel, or publish jobs.</p>';
+}
+async function loadPublishingOperations(){
+ if(publishingOperationsLoading)return;
+ publishingOperationsLoading=true;
+ publishingOperationsError="";
+ render();
+ try{
+  await window.orbitCoreReady;
+  const runtime=await window.orbitCore.getEnvironment();
+  if(!runtime?.authenticated)throw new Error("Sign in to view publishing operations.");
+  publishingOperationsData=await window.orbitCore.getPublishingOperations();
+  publishingOperationsWorkspaceId=String(runtime.workspaceId||"");
+ }catch(error){
+  publishingOperationsError=error.message||"Publishing operations could not be loaded.";
+ }finally{
+  publishingOperationsLoading=false;
+  render();
+ }
+}
+
 async function settings(){
  const ai=state.settings?.ai||{provider:"local",model:"",baseUrl:"http://localhost:11434/api"};
  const runtime=state.runtime||{mode:"local",provider:"local-store",persistent:false,authenticated:false};
@@ -309,6 +377,9 @@ async function settings(){
  const instagramCard=runtime.authenticated
   ? '<div class="card"><div class="row"><div><h2>Instagram</h2><p class="small">Official account connection</p></div><span class="badge '+(connectedInstagram.length?"ok":"warn")+'">'+instagramStatus+'</span></div>'+instagramAccountRows+instagramAdminAction+'</div>'
   : '';
+ const publishingOperationsCard=canManageSocialAccounts
+  ? '<div class="card" style="grid-column:1/-1"><div class="row"><div><h2>Publishing operations</h2><p class="small">Job health, retry state, and reconciliation audit evidence</p></div><span class="badge ok">READ ONLY</span></div>'+renderPublishingOperationsPanel(runtime.workspaceId)+'</div>'
+  : '';
  const authCard=runtime.authenticated
   ? '<div class="card"><div class="row"><div><h2>Supabase workspace</h2><p class="small">Persistent backend is connected for this signed-in account.</p></div><span class="badge ok">CONNECTED</span></div><table class="table" style="margin-top:10px"><tr><td>Account</td><td>'+esc(auth.user?.email||runtime.userId||"Signed in")+'</td></tr><tr><td>Role</td><td>'+esc(state.auth?.membership?.role||"owner")+'</td></tr></table><div class="actions" style="margin-top:10px">'+btn("Sign out","authSignOut()")+'</div></div>'
   : '<div class="card"><div class="row"><div><h2>Connect workspace</h2><p class="small">Sign in to switch this same OrbitOS runtime to the persistent Supabase workspace.</p></div><span class="badge">SIGNED OUT</span></div><div class="actions" style="margin-top:10px">'+btn("Sign in","authModal('signin')",true)+btn("Create account","authModal('signup')")+'</div><div class="small" style="margin-top:8px">Authentication uses Supabase Auth. Only the publishable client key ships to the browser.</div></div>';
@@ -316,6 +387,7 @@ async function settings(){
  '<div class="grid two">'+
  authCard+
   instagramCard+
+  publishingOperationsCard+
  '<div class="card"><div class="row"><h2>Workspace & identity</h2><span class="badge '+(runtime.authenticated?"ok":"")+'">'+(runtime.authenticated?"AUTHENTICATED":"LOCAL")+'</span></div><table class="table" style="margin-top:10px"><tr><td>Workspace</td><td>'+esc(state.workspace?.name||"Local Workspace")+'</td></tr><tr><td>Workspace ID</td><td>'+esc(runtime.workspaceId||state.workspace?.id||"local")+'</td></tr><tr><td>User</td><td>'+esc(runtime.userId||"Local session")+'</td></tr><tr><td>Persistence</td><td>'+esc(runtime.persistent?"Backend persistent":"Browser localStorage")+'</td></tr><tr><td>Provider</td><td>'+esc(runtime.provider)+'</td></tr></table><div class="notice" style="margin-top:10px">'+(runtime.authenticated?"Signed-in workspace runtime is active.":"Local mode is active.")+'</div></div>'+
  '<div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div>'+
  '<div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div>'+
@@ -348,7 +420,7 @@ async function submitAuth(mode){
   const result=mode==="signup"
    ? await window.orbitCore.signUp({email,password})
    : await window.orbitCore.signInWithPassword({email,password});
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   if(mode==="signup" && result.status==="signed_out"){
    toast("Account created. Check your email to confirm, then sign in.");
    closeModal();
@@ -356,7 +428,7 @@ async function submitAuth(mode){
    return;
   }
   state=await window.orbitCore.refresh();
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   closeModal();
   selectedId=state.ideas[0]?.id||null;
   toast("Persistent workspace connected");
@@ -368,7 +440,7 @@ async function authSignOut(){
   await window.orbitCoreReady;
   await window.orbitCore.signOut();
   state=await window.orbitCore.refresh();
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   selectedId=state.ideas[0]?.id||null;
   toast("Signed out");
   render();
@@ -527,13 +599,13 @@ async function boot(){
     ? await window.orbitCore.snapshot()
     : await window.orbitCore.importState(JSON.stringify(seed));
   state.runtime=await window.orbitCore.getEnvironment();
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   selectedId=state.ideas[0]?.id||null;
   if(!window.orbitAuthSubscription){
    window.orbitAuthSubscription=window.orbitCore.onAuthStateChange(async (_event,authSnapshot)=>{
     try{
      state=await window.orbitCore.refresh();
-     state.auth=authSnapshot;
+     updateAuthSnapshot(authSnapshot);
      render();
     }catch(error){
      toast(error.message||"Authentication state refresh failed");
