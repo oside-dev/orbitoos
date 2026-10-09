@@ -22,6 +22,11 @@ assert.match(
   /async function resendSignupConfirmation\(input\)\s*\{\s*return auth\.resendSignupConfirmation\(input\);/,
 );
 assert.match(bridge, /    resendSignupConfirmation,/);
+assert.match(
+  bridge,
+  /async function signUp\(input\)\s*\{\s*const result = await auth\.signUp\(input\);\s*\/\/[\s\S]*?if \(result\?\.status === "signed_in" && result\?\.user\?\.id\)\s*\{\s*await initializeRemote\(\);\s*\}/,
+  "email-confirmation signups must not initialize a workspace before a session exists",
+);
 assert.match(html, /function authModal\(mode="signin", email=""\)/);
 assert.match(html, /authModal\("confirm-email",email\)/);
 assert.match(html, /Resend confirmation email/);
