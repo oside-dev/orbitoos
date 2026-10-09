@@ -89,6 +89,7 @@ https://orbitoos.vercel.app
 - M14 — Social publishing foundation — workspace-scoped social account metadata, durable publishing jobs, idempotency records, and secret-reference boundaries; official OAuth/platform adapters remain gated
 - M15 — Publishing job orchestration — atomic leased claims, expired-lease recovery, bounded retries, and service-role-only job transition RPCs; worker execution and official platform adapters remain gated
 - M16 — Publishing worker shell — secret-key-authenticated Edge Function, fail-closed execution, adapter-readiness gates, and sanitized failure handling; no official adapter is registered yet
+- M17 — Vault-backed social credentials — service-role-only token store/read/delete RPCs, encrypted per-account Vault values, and automatic secret cleanup when references are removed
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -117,4 +118,10 @@ This is orchestration infrastructure, not a live publisher. Jobs will not be sen
 
 ## Publishing worker shell
 
-M16 adds `supabase/functions/publishing-worker/index.ts`. The endpoint validates a Supabase secret key through `@supabase/server`; the Edge Function gateway's JWT check is disabled only because the handler applies its own secret-key authentication. It is disabled unless `ORBITOS_PUBLISHING_ENABLED=true`, and even then it returns without claiming jobs until an official adapter is registered with credentials, idempotency, and rate-limit capabilities marked ready. No worker schedule or auto-publishing flag is configured.
+M16 adds `supabase/functions/publishing-worker/index.ts`. The endpoint validates a Supabase secret key through `@supabase/server`; the Edge Function gateway's JWT check is disabled only because the handler applies its own secret-key authentication. It is disabled unless `ORBITOS_PUBLISHING_ENABLED=true`, and even then it returns without claiming jobs until an official adapter is registered with credentials, idempotency, and rate-limit capabilities marked ready. The repository does not set the worker-enable flag or add a schedule.
+
+## Vault-backed social credentials
+
+The M17 contract in `docs/architecture/social-account-vault.sql` adds backend-only RPCs for storing, reading, rotating, and deleting an account's access/refresh tokens. Token values are encrypted with Supabase Vault; the private account table retains only stable secret names. The RPCs check the caller role, revoke execution from `PUBLIC`, `anon`, and `authenticated`, and grant access only to `service_role`. Removing a secret-reference row also removes the referenced Vault entries, including when the account row is deleted.
+
+These helpers are infrastructure only. OAuth start/callback handlers still need Meta app credentials and redirect-URI configuration before an account can be connected. Browser clients never call the token-reading RPCs.

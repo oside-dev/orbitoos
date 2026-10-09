@@ -148,3 +148,37 @@ assert.ok(
 );
 
 console.log("OrbitOS publishing worker safety contract tests passed.");
+
+const socialVaultSql = readFileSync(
+  new URL("../docs/architecture/social-account-vault.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+
+const socialVaultContract = [
+  "create or replace function public.store_social_account_secret(",
+  "create or replace function public.get_social_account_secret(",
+  "create or replace function public.delete_social_account_secrets(",
+  "create or replace function private.delete_social_account_vault_secrets()",
+  "vault.create_secret",
+  "vault.update_secret",
+  "vault.decrypted_secrets",
+  "delete from vault.secrets",
+  "auth.role()",
+  "set search_path = ''",
+  "revoke all on function public.store_social_account_secret(text, text, text)",
+  "revoke all on function public.get_social_account_secret(text, text)",
+  "revoke all on function public.delete_social_account_secrets(text)",
+  "grant execute on function public.store_social_account_secret(text, text, text)",
+  "grant execute on function public.get_social_account_secret(text, text)",
+  "grant execute on function public.delete_social_account_secrets(text)",
+  "grant execute on function private.delete_social_account_vault_secrets()",
+];
+
+for (const fragment of socialVaultContract) {
+  assert.ok(
+    socialVaultSql.includes(fragment),
+    "Missing Vault-backed social credential contract fragment: " + fragment,
+  );
+}
+
+console.log("OrbitOS Vault-backed social credential contract tests passed.");
