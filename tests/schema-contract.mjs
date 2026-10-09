@@ -155,9 +155,9 @@ const socialVaultSql = readFileSync(
 ).toLowerCase();
 
 const socialVaultContract = [
-  "create or replace function public.store_social_account_secret(text, text, text)",
-  "create or replace function public.get_social_account_secret(text, text)",
-  "create or replace function public.delete_social_account_secrets(text)",
+  "create or replace function public.store_social_account_secret(",
+  "create or replace function public.get_social_account_secret(",
+  "create or replace function public.delete_social_account_secrets(",
   "create or replace function private.delete_social_account_vault_secrets()",
   "vault.create_secret",
   "vault.update_secret",
