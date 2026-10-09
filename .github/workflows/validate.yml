@@ -195,6 +195,9 @@ jobs:
       - name: Run analytics report parser tests
         run: node tests/analytics-report-parser.mjs
 
+      - name: Run OrbitOS cross-domain contract tests
+        run: node --test tests/orbitoos-contracts.test.mjs
+
       - name: Run analytics report import tests
         run: node tests/analytics-report-import.mjs
 
