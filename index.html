@@ -177,6 +177,8 @@ function studio(){
     '<label class="small">Hook<textarea class="textarea" rows="3" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'hook\',this.value)">'+esc(variant.hook)+'</textarea></label>'+
     '<label class="small">Body<textarea class="textarea" rows="5" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'body\',this.value)">'+esc(variant.body)+'</textarea></label>'+
     '<label class="small">CTA<input class="input" value="'+esc(variant.cta)+'" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'cta\',this.value)"></label>'+
+    '<label class="small">Public media URL (HTTPS)<input class="input" type="url" placeholder="https://cdn.example.com/media.jpg" value="'+esc(variant.mediaUrl)+'" onchange="editVariant(\''+i.id+'\',\''+p+'\',\'mediaUrl\',this.value)"></label>'+
+    '<p class="small">For Instagram, use a public image/video URL that the platform can fetch without login or cookies.</p>'+
     '</div>';
  }).join("");
  shell("Content Studio","Editable platform-native variants with local persistence",btn("Back to Ideas","go('ideas')")+approveAction,master+'<div class="platforms" style="margin-top:14px">'+variants+'</div><div class="notice" style="margin-top:14px">Editing is saved through the Orbit Runtime. No render-time mutation is used.</div>');

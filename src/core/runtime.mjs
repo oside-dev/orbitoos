@@ -64,6 +64,7 @@ function materializeContent(state, idea, now = Date.now()) {
           hook: variant.hook,
           body: variant.body,
           cta: variant.cta,
+          mediaUrl: variant.mediaUrl,
           hashtags: variant.hashtags,
           creativeBrief: variant.creativeBrief,
           visualDirection: variant.visualDirection,

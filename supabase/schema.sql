@@ -151,6 +151,7 @@ create table if not exists content_variants (
   hashtags text[] not null default '{}',
   creative_brief text not null default '',
   visual_direction text not null default '',
+  media_url text not null default '',
   status text not null default 'draft',
   approved boolean not null default false,
   version integer not null default 1,

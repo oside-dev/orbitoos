@@ -5,6 +5,7 @@ import {
   createBrand,
   createContentVariant,
   createIdea,
+  normalizePublicMediaUrl,
   createSchedule,
   createSocialAccount,
   createPublishingJob,
@@ -21,6 +22,41 @@ import {
 import { createOrbitRuntime } from "../src/core/runtime.mjs";
 import { MemoryStore } from "../src/adapters/local-store.mjs";
 import { createInitialState } from "../src/domain/state.mjs";
+
+test("media URLs require public HTTPS hosts and reject unsafe URLs", () => {
+  assert.equal(normalizePublicMediaUrl(""), "");
+  assert.equal(
+    normalizePublicMediaUrl("https://cdn.orbitoos.com/assets/reel.mp4#preview"),
+    "https://cdn.orbitoos.com/assets/reel.mp4",
+  );
+  assert.throws(
+    () => normalizePublicMediaUrl("http://cdn.orbitoos.com/assets/image.jpg"),
+    /HTTPS/,
+  );
+  assert.throws(
+    () => normalizePublicMediaUrl("https://user:pass@cdn.orbitoos.com/image.jpg"),
+    /credentials/,
+  );
+  assert.throws(
+    () => normalizePublicMediaUrl("https://localhost/private.jpg"),
+    /public hostname/,
+  );
+  assert.throws(
+    () => normalizePublicMediaUrl("https://192.168.1.20/private.jpg"),
+    /public hostname/,
+  );
+  assert.throws(
+    () => normalizePublicMediaUrl("javascript:alert(1)"),
+    /HTTPS/,
+  );
+
+  const variant = createContentVariant({
+    id: "variant-media-url",
+    platform: "Instagram Reels",
+    mediaUrl: "https://cdn.orbitoos.com/assets/reel.mp4",
+  });
+  assert.equal(variant.mediaUrl, "https://cdn.orbitoos.com/assets/reel.mp4");
+});
 
 test("domain models enforce the canonical pipeline contract", () => {
   const brand = createBrand({
@@ -173,6 +209,63 @@ test("social account and publishing job models enforce provider boundaries", () 
   assert.equal(job.idempotencyKey, "schedule-1:1");
 });
 
+
+test("media URL edits round-trip through the content runtime and reject unsafe values", async () => {
+  const state = createInitialState({
+    workspace: { id: "workspace-media-test", name: "Media Test", slug: "media-test" },
+    brand: { id: "brand-media-test", name: "Media Test Brand", voice: "", audience: "" },
+    brands: [
+      { id: "brand-media-test", name: "Media Test Brand", voice: "", audience: "" },
+    ],
+    activeBrandId: "brand-media-test",
+    ideas: [
+      {
+        id: "idea-media-test",
+        title: "Media URL test",
+        stage: "draft",
+        variants: {
+          "Instagram Reels": {
+            hook: "Hook",
+            body: "Body",
+            cta: "CTA",
+            hashtags: [],
+            mediaUrl: "",
+            approved: false,
+          },
+        },
+        metadata: { brandId: "brand-media-test" },
+      },
+    ],
+    contentItems: [],
+    contentVariants: [],
+    schedules: [],
+    socialAccounts: [],
+    publishingJobs: [],
+  });
+
+  const runtime = createOrbitRuntime({ store: new MemoryStore(state) });
+  const mediaUrl = "https://cdn.orbitoos.com/assets/reel.mp4";
+  const updated = await runtime.updateContentVariant({
+    ideaId: "idea-media-test",
+    platform: "Instagram Reels",
+    changes: { mediaUrl },
+  });
+
+  assert.equal(updated.ideas[0].variants["Instagram Reels"].mediaUrl, mediaUrl);
+  assert.equal(updated.contentVariants[0].mediaUrl, mediaUrl);
+
+  await assert.rejects(
+    runtime.updateContentVariant({
+      ideaId: "idea-media-test",
+      platform: "Instagram Reels",
+      changes: { mediaUrl: "http://cdn.orbitoos.com/assets/reel.mp4" },
+    }),
+    /HTTPS/,
+  );
+
+  const afterRejectedEdit = await runtime.snapshot();
+  assert.equal(afterRejectedEdit.ideas[0].variants["Instagram Reels"].mediaUrl, mediaUrl);
+});
 
 test("approved schedules create a durable publishing job when a matching account is connected", async () => {
   const state = createInitialState({
