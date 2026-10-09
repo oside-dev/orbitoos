@@ -22,12 +22,12 @@ mustContain(sql, "from public, anon, authenticated, service_role", "audit table 
 mustContain(sql, "grant select, insert on table private.publishing_job_reconciliation_events to service_role", "backend-only audit inserts");
 mustContain(sql, "create or replace function public.reconcile_unknown_publishing_job(", "reconciliation RPC");
 mustContain(sql, "security invoker", "RPC runs as caller");
-mustContain(sql, "set search_path = ''", "pinned empty search path");;
+mustContain(sql, "set search_path = ''", "pinned empty search path");
 mustContain(sql, "if current_user <> 'service_role'", "service-role-only RPC");
 mustContain(sql, "('confirmed_published', 'closed_without_retry')", "explicit resolution allowlist");
 mustContain(sql, "v_job.last_error_code is distinct from 'PUBLISH_OUTCOME_UNKNOWN'", "only ambiguous failed jobs are eligible");
-mustContain("wm.role not in ('owner', 'admin')", "workspace operator authorization");
-mustContain("'publish_started'", "ambiguous checkpoint eligibility");
+mustContain(sql, "v_operator_role not in ('owner', 'admin')", "workspace operator authorization");
+mustContain(sql, "'publish_started'", "ambiguous checkpoint eligibility");
 mustContain("insert into private.publishing_job_reconciliation_events", "durable audit insertion");
 mustContain("grant execute on function public.reconcile_unknown_publishing_job", "RPC execute grant");
 assert.ok(!/grant\s+(all|update|delete)\s+on\s+table\s+private\.publishing_job_reconciliation_events\s+to\s+service_role/i.test(sql), "Audit events must not be mutable by service_role through table grants.");
