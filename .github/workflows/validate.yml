@@ -43,7 +43,7 @@ jobs:
           test -f supabase/migrations/20261009074000_orbitoos_publishing_scheduler.sql
           test -f supabase/functions/publishing-scheduler/index.ts
           test -f docs/operations/instagram-token-refresh-scheduler.md
-          test -f supabase/migrations/20261009081929_orbitoos_instagram_token_refresh_scheduler.sql
+          test -f supabase/migrations/20261009082359_orbitoos_instagram_token_refresh_scheduler.sql
           test -f supabase/functions/instagram-token-refresh-scheduler/index.ts
           test -f tests/instagram-token-refresh-scheduler-contract.mjs
           test -f supabase/functions/publishing-operations/index.ts

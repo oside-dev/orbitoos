@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const scheduler = read("../supabase/functions/instagram-token-refresh-scheduler/index.ts");
-const sql = read("../supabase/migrations/20261009081929_orbitoos_instagram_token_refresh_scheduler.sql");
+const sql = read("../supabase/migrations/20261009082359_orbitoos_instagram_token_refresh_scheduler.sql");
 const config = read("../supabase/config.toml");
 const refresh = read("../supabase/functions/instagram-token-refresh/index.ts");
 const runbook = read("../docs/operations/instagram-token-refresh-scheduler.md");
