@@ -181,6 +181,30 @@ export async function createOrbitApplicationBrowserBridge({
     return auth.getSession();
   }
 
+  async function getPublishingOperations() {
+    if (!remote?.environment?.authenticated) {
+      throw new Error("Sign in to OrbitOS before viewing publishing operations.");
+    }
+
+    const workspaceId = String(remote.environment.workspaceId ?? "").trim();
+    if (!workspaceId) {
+      throw new Error("The signed-in workspace is not available.");
+    }
+
+    const { data, error } = await client.functions.invoke("publishing-operations", {
+      body: { workspaceId },
+    });
+    const status = Number(error?.context?.status ?? error?.status ?? 0);
+    if (status === 403 || data?.error === "WORKSPACE_ADMIN_REQUIRED") {
+      throw new Error("Only a workspace owner or admin can view publishing operations.");
+    }
+    if (error || data?.ok !== true || !data?.operations) {
+      throw new Error("Publishing operations could not be loaded. Please try again.");
+    }
+
+    return data.operations;
+  }
+
   async function startInstagramOAuth({ brandId } = {}) {
     if (!remote?.environment?.authenticated) {
       throw new Error("Sign in to OrbitOS before connecting Instagram.");
@@ -313,6 +337,7 @@ export async function createOrbitApplicationBrowserBridge({
     getEnvironment,
     getAuthSnapshot,
     startInstagramOAuth,
+    getPublishingOperations,
     signInWithPassword,
     signUp,
     signOut,
