@@ -39,7 +39,7 @@ create index if not exists publishing_jobs_expired_lease_idx
 -- worker has reclaimed its expired lease. RPC execution is backend-only.
 -- Replace the initial unfiltered claim RPC. Only a worker with a known adapter
 -- should provide its explicitly supported platform set.
-drop function if exists public.claim_due_publishing_jobs(integer, integer, text[]);
+drop function if exists public.claim_due_publishing_jobs(integer, integer);
 
 create or replace function public.claim_due_publishing_jobs(
   p_limit integer,
