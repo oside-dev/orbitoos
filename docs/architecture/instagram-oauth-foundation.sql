@@ -225,7 +225,7 @@ begin
     external_account_id, handle, display_name, profile_url,
     status, scopes, metadata, connected_at, updated_at
   ) values (
-    'social-account-instagram-' || p_instagram_user_id,
+    'social-account-instagram-' || pg_catalog.md5(p_workspace_id || ':' || p_instagram_user_id),
     p_workspace_id,
     p_brand_id,
     'instagram',
