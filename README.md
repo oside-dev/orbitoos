@@ -95,6 +95,7 @@ https://orbitoos.vercel.app
 - M20 — Platform media URL contract — validated HTTPS media references on content variants, persistent storage, and the publishing worker's approved-variant read model; publishing stays disabled
 - M21 — Atomic Instagram reconnect — database-locked account upserts preserve primary keys during parallel reconnects; private credential/state tables have explicit service-role-only RLS policies
 - M22 — Instagram Reels publisher — official container/status/publish flow, quota checks, Vault-only tokens, durable checkpoints and duplicate-safe manual reconciliation; disabled by default
+- M23 — Audited publishing reconciliation — owner/admin-only resolution of ambiguous outcomes, immutable private audit evidence, and no automatic retry of uncertain posts
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -162,6 +163,10 @@ The endpoint requires Supabase secret-key authentication plus `ORBITOS_INSTAGRAM
 M20 adds an optional `mediaUrl` to each platform-native content variant. It is validated as an HTTPS URL with a public-looking hostname, without embedded username/password credentials or a local/IP host. Empty values remain valid while drafting; Instagram publishing will require a URL that the platform can fetch without authentication. The application does not download or proxy the media and therefore cannot guarantee reachability at save time.
 
 The new `media_url` column is added to fresh schemas and through the idempotent migration `docs/architecture/content-variant-media-url.sql` for existing installations. The worker loads the field. The M22 Instagram Reels adapter can use it only when an operator explicitly configures both publishing flags and a supported Meta API version; those switches remain off.
+
+## Audited publishing reconciliation
+
+M23 adds the private `publishing_job_reconciliation_events` audit table, a service-role-only database RPC, and the signed-in `publishing-reconciliation` Edge Function. Only workspace owners/admins can resolve a failed job marked `PUBLISH_OUTCOME_UNKNOWN`. An operator must record evidence and choose either `confirmed_published` with the real provider post ID or `closed_without_retry` after checking the account. The operation atomically updates the job and records the audit event; it never queues or re-publishes the job. The audit record is private and does not cascade-delete with the job. This endpoint is separate from the publishing worker and does not enable publishing flags or schedules.
 
 ## Instagram Reels publishing adapter
 
