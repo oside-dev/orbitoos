@@ -8,6 +8,20 @@ The worker should remain disabled until a real, explicitly approved test publish
 
 The API-version check only validates the vX.Y format; it does **not** confirm that Meta still supports that version. Confirm current provider requirements before a controlled rollout.
 
+## Safe setup readiness check
+
+The authenticated Settings → Instagram → **Check integration setup** action calls the owner/admin-only `instagram-integration-readiness` Edge Function. It reports only whether required environment values are present and whether safety switches are enabled; it never returns secret values or calls Meta. It is a preflight diagnostic, not proof that Meta credentials are valid or that a post can be published.
+
+Configure these in Supabase Edge Function secrets:
+
+- `META_INSTAGRAM_APP_ID` — Meta app ID for Instagram Login.
+- `META_INSTAGRAM_APP_SECRET` — corresponding Meta app secret.
+- `META_INSTAGRAM_REDIRECT_URI` — optional; if set, it must exactly match the callback registered in Meta. If omitted, OrbitOS derives the default callback from `SUPABASE_URL`.
+- `ORBITOS_APP_URL` — optional; defaults to `https://orbitoos.vercel.app` and must match the app origin used in the browser.
+- `META_GRAPH_API_VERSION` — required only for publishing, using a currently supported value verified by the operator.
+
+The platform supplies `SUPABASE_URL`. Keep `ORBITOS_PUBLISHING_ENABLED`, `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED`, and `ORBITOS_INSTAGRAM_REFRESH_ENABLED` off until their respective controlled tests are approved. Presence checks cannot validate credentials with Meta; complete OAuth with an owner/admin session to test the actual connection.
+
 ## Preflight before any live publish
 
 1. **Meta app and callback:** configure the Instagram Login app in Meta's developer settings. The default callback URI is https://lkcbtgqdvzmaihcnxxwk.supabase.co/functions/v1/instagram-oauth-callback. If the registered redirect URI differs, keep META_INSTAGRAM_REDIRECT_URI consistent with it.

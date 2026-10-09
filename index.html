@@ -88,6 +88,10 @@ let publishingOperationsData=null;
 let publishingOperationsWorkspaceId=null;
 let publishingOperationsLoading=false;
 let publishingOperationsError="";
+let instagramReadinessData=null;
+let instagramReadinessWorkspaceId=null;
+let instagramReadinessLoading=false;
+let instagramReadinessError="";
 
 let page="overview";
 let selectedId=state.ideas[0]?.id||null;
@@ -350,6 +354,46 @@ function renderPublishingOperationsPanel(workspaceId){
  const auditTable='<div style="margin-top:14px"><div class="row"><h3>Reconciliation audit</h3><span class="badge">'+esc(String((data.reconciliationEvents||[]).length))+' EVENTS</span></div><div style="overflow-x:auto;margin-top:8px"><table class="table" style="min-width:760px;table-layout:fixed"><thead><tr><th>Resolution / time</th><th>Job</th><th>Provider post ID</th><th>Evidence / notes</th><th>Operator</th></tr></thead><tbody>'+(auditRows||'<tr><td colspan="5" class="small">No reconciliation events recorded for this workspace.</td></tr>')+'</tbody></table></div></div>';
  return button+stats+jobsTable+auditTable+'<p class="small" style="margin-top:10px">Last loaded: '+esc(formatOperationsTimestamp(data.generatedAt))+'. Up to 50 recent jobs and 50 audit events are shown. This panel cannot approve, retry, cancel, or publish jobs.</p>';
 }
+function renderInstagramReadinessPanel(workspaceId){
+ const current=instagramReadinessData&&instagramReadinessWorkspaceId===String(workspaceId||"");
+ const button=btn(instagramReadinessLoading?"Checking…":current?"Refresh setup check":"Check integration setup","loadInstagramIntegrationReadiness()",false);
+ if(instagramReadinessLoading)return button+'<p class="small" style="margin-top:10px">Checking configuration presence. Secret values are never returned.</p>';
+ if(instagramReadinessError)return button+'<div class="notice warn" style="margin-top:10px">'+esc(instagramReadinessError)+'</div>';
+ if(!current)return button+'<p class="small" style="margin-top:10px">Checks Meta OAuth configuration and safety switches. It does not call Meta or publish anything.</p>';
+ const r=instagramReadinessData;
+ const rows=[
+  ["Meta App ID",r.oauth.appIdConfigured],
+  ["Meta App Secret",r.oauth.appSecretConfigured],
+  ["Supabase URL",r.oauth.supabaseUrlConfigured],
+  ["OAuth redirect URI",r.oauth.redirectUriValid],
+  ["OrbitOS app URL",r.oauth.appUrlValid],
+  ["Instagram OAuth ready",r.oauth.configured],
+  ["Instagram publishing API version",r.publishing.graphApiVersionConfigured],
+  ["Global publishing switch",r.publishing.globalEnabled],
+  ["Instagram publishing adapter switch",r.publishing.instagramAdapterEnabled],
+  ["Token refresh switch",r.tokenRefresh.enabled]
+ ].map(([label,enabled])=>'<tr><td>'+esc(label)+'</td><td><span class="badge '+(enabled?"ok":"warn")+'">'+(enabled?"CONFIGURED":"NOT CONFIGURED / OFF")+'</span></td></tr>').join("");
+ return button+'<table class="table" style="margin-top:10px"><tbody>'+rows+'</tbody></table><p class="small" style="margin-top:10px">Publishing remains disabled until the operator deliberately enables it. Leaving global publishing and token-refresh switches OFF is the safe default.</p>';
+}
+async function loadInstagramIntegrationReadiness(){
+ if(instagramReadinessLoading)return;
+ instagramReadinessLoading=true;
+ instagramReadinessError="";
+ render();
+ try{
+  await window.orbitCoreReady;
+  const runtime=await window.orbitCore.getEnvironment();
+  if(!runtime?.authenticated)throw new Error("Sign in to check Instagram integration setup.");
+  instagramReadinessData=await window.orbitCore.getInstagramIntegrationReadiness();
+  instagramReadinessWorkspaceId=String(runtime.workspaceId||"");
+ }catch(error){
+  instagramReadinessError=error.message||"Instagram setup readiness could not be checked.";
+ }finally{
+  instagramReadinessLoading=false;
+  render();
+ }
+}
+
 async function loadPublishingOperations(){
  if(publishingOperationsLoading)return;
  publishingOperationsLoading=true;
@@ -385,7 +429,7 @@ async function settings(){
   ? '<div class="actions" style="margin-top:12px">'+btn(connectedInstagram.length?"Reconnect Instagram":"Connect Instagram","connectInstagram()",true)+'</div><p class="small" style="margin-top:8px">Connects an Instagram professional account through Meta OAuth. Connecting an account does not enable automatic publishing.</p>'
   : '<div class="notice" style="margin-top:10px">A signed-in workspace owner or admin is required to connect social accounts.</div>';
  const instagramCard=runtime.authenticated
-  ? '<div class="card"><div class="row"><div><h2>Instagram</h2><p class="small">Official account connection</p></div><span class="badge '+(connectedInstagram.length?"ok":"warn")+'">'+instagramStatus+'</span></div>'+instagramAccountRows+instagramAdminAction+'</div>'
+  ? '<div class="card"><div class="row"><div><h2>Instagram</h2><p class="small">Official account connection</p></div><span class="badge '+(connectedInstagram.length?"ok":"warn")+'">'+instagramStatus+'</span></div>'+instagramAccountRows+instagramAdminAction+(canManageSocialAccounts?'<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><h3>Integration readiness</h3>'+renderInstagramReadinessPanel(runtime.workspaceId)+'</div>':'')+'</div>'
   : '';
  const publishingOperationsCard=canManageSocialAccounts
   ? '<div class="card" style="grid-column:1/-1"><div class="row"><div><h2>Publishing operations</h2><p class="small">Job health, retry state, and reconciliation audit evidence</p></div><span class="badge ok">READ ONLY</span></div>'+renderPublishingOperationsPanel(runtime.workspaceId)+'</div>'

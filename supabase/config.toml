@@ -32,3 +32,7 @@ verify_jwt = false
 # The daily cron caller authenticates with the shared Vault-backed scheduler token.
 [functions.instagram-token-refresh-scheduler]
 verify_jwt = false
+
+# Read-only boolean readiness status for signed-in workspace owners/admins.
+[functions.instagram-integration-readiness]
+verify_jwt = true
