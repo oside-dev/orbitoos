@@ -314,3 +314,32 @@ assert.ok(
 );
 
 console.log("OrbitOS Instagram connect UI contract tests passed.");
+
+const tokenRefresh = readFileSync(
+  new URL("../supabase/functions/instagram-token-refresh/index.ts", import.meta.url),
+  "utf8",
+);
+const tokenRefreshContract = [
+  ['withSupabase({ auth: "secret" }', "Server-only authentication is required."],
+  ['Deno.env.get("ORBITOS_INSTAGRAM_REFRESH_ENABLED") !== "true"', "Token refresh must default to disabled."],
+  ['"https://graph.instagram.com/refresh_access_token"', "Refresh must use Meta's official Instagram Login endpoint."],
+  ['"ig_refresh_token"', "Refresh must use the Instagram Login grant."],
+  ['"get_social_account_secret"', "Refresh must read the current token through the private Vault RPC."],
+  ['"store_social_account_secret"', "Refresh must persist the new token through Vault."],
+  ["tokenExpiresAt", "Refresh must maintain the expiry metadata."],
+  ['status: "reauth_required"', "Expired/invalid credentials must require a fresh connection."],
+  ["AbortSignal.timeout(8000)", "Provider requests must be time bounded."],
+  ['"TOKEN_REFRESH_DISABLED"', "Disabled refresh must fail closed."],
+  ['url.searchParams.set("access_token", currentToken)', "Token must only be passed to the official provider endpoint."],
+];
+for (const [fragment, message] of tokenRefreshContract) {
+  assert.ok(tokenRefresh.includes(fragment), message);
+}
+
+assert.ok(
+  supabaseConfig.includes("[functions.instagram-token-refresh]") &&
+    supabaseConfig.includes("verify_jwt = false"),
+  "Instagram token refresh must declare custom secret-key auth configuration.",
+);
+
+console.log("OrbitOS Instagram token refresh contract tests passed.");

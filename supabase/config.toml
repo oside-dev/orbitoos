@@ -11,3 +11,8 @@ verify_jwt = false
 # Start is called from a signed-in OrbitOS session and retains default JWT checks.
 [functions.instagram-oauth-start]
 verify_jwt = true
+
+# Server-only token maintenance. Custom Supabase secret-key authentication is
+# checked by @supabase/server; this does not accept normal user JWTs.
+[functions.instagram-token-refresh]
+verify_jwt = false
