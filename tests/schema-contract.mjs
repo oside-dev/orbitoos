@@ -403,7 +403,7 @@ const instagramReelsPublisherContract = [
   ['"manual_reconciliation_required"', "Unknown outcomes must be surfaced for manual reconciliation."],
   ['' + 'phase: "published"', "Successful provider IDs must be checkpointed before job completion."],
   ['"Bearer " + accessToken', "Access tokens must be sent in the authorization header."],
-  ['"media_url, version"', "The worker must load the persisted media URL."],
+  ["media_url, version", "The worker must load the persisted media URL."],
   ['"INSTAGRAM_PUBLISH_QUOTA_REACHED"', "Quota exhaustion must be handled safely."],
   ['"INSTAGRAM_REEL_URL_UNSUPPORTED"', "Only validated Reels media URLs should be sent to Meta."],
 ];
