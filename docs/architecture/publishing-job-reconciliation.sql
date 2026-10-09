@@ -34,6 +34,22 @@ revoke all on table private.publishing_job_reconciliation_events
 grant usage on schema private to service_role;
 grant select, insert on table private.publishing_job_reconciliation_events to service_role;
 
+-- Explicit service-role policies make the intended private access model visible
+-- to security advisors. These do not grant table privileges to client roles.
+drop policy if exists publishing_job_reconciliation_service_role_read
+  on private.publishing_job_reconciliation_events;
+create policy publishing_job_reconciliation_service_role_read
+  on private.publishing_job_reconciliation_events
+  for select to service_role
+  using (true);
+
+drop policy if exists publishing_job_reconciliation_service_role_insert
+  on private.publishing_job_reconciliation_events;
+create policy publishing_job_reconciliation_service_role_insert
+  on private.publishing_job_reconciliation_events
+  for insert to service_role
+  with check (true);
+
 create or replace function public.reconcile_unknown_publishing_job(
   p_job_id text,
   p_operator_id uuid,
