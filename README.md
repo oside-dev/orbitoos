@@ -70,6 +70,10 @@ Production runtime:
 
 https://orbitoos.vercel.app
 
+## First real workspace validation
+
+The Supabase Auth and persistent backend components are deployed, but real-account acceptance is not complete. Verify Site URL/redirects and email delivery, then test email confirmation and workspace bootstrap with an email you control. Meta OAuth still requires the operator's own app credentials and professional account. Follow the [first-workspace acceptance runbook](docs/operations/first-workspace-acceptance.md); publishing and token refresh stay disabled during this check.
+
 ## Engineering roadmap
 
 - M0 — Foundation — complete

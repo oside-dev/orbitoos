@@ -43,6 +43,8 @@ jobs:
           test -f supabase/migrations/20261009074000_orbitoos_publishing_scheduler.sql
           test -f supabase/functions/publishing-scheduler/index.ts
           test -f docs/operations/instagram-token-refresh-scheduler.md
+          test -f docs/operations/first-workspace-acceptance.md
+          test -f tests/first-workspace-acceptance-contract.mjs
           test -f supabase/migrations/20261009082359_orbitoos_instagram_token_refresh_scheduler.sql
           test -f supabase/migrations/20261009085818_orbitoos_backend_owned_records.sql
           test -f tests/server-owned-records-contract.mjs
@@ -145,9 +147,6 @@ jobs:
       - name: Run application browser bridge auth integration tests
         run: node tests/application-browser-bridge-auth.mjs
 
-      - name: Run application browser bridge auth integration tests
-        run: node tests/application-browser-bridge-auth.mjs
-
       - name: Run signup confirmation recovery contract tests
         run: node tests/signup-confirmation-recovery-contract.mjs
 
@@ -176,6 +175,9 @@ jobs:
 
       - name: Run local demo recovery safety contract tests
         run: node tests/local-demo-recovery-contract.mjs
+
+      - name: Run first-workspace acceptance contract tests
+        run: node tests/first-workspace-acceptance-contract.mjs
 
       - name: Run persistent content loop tests
         run: node tests/persistent-content-loop.mjs
