@@ -28,3 +28,7 @@ verify_jwt = true
 # The cron caller authenticates with a random Vault-held token checked in the handler.
 [functions.publishing-scheduler]
 verify_jwt = false
+
+# The daily cron caller authenticates with the shared Vault-backed scheduler token.
+[functions.instagram-token-refresh-scheduler]
+verify_jwt = false
