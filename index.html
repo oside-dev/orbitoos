@@ -96,6 +96,10 @@ function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function toast(msg){const x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
 function log(agent,msg){state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
 function btn(label,fn,primary=false,extra=""){return '<button class="btn '+(primary?"primary ":"")+extra+'" onclick="'+fn+'">'+esc(label)+"</button>"}
+function updateAuthSnapshot(snapshot){
+ state.auth={...(state.auth||{}),...(snapshot||{})};
+ if(snapshot?.status==="signed_out")state.auth.membership=null;
+}
 function runtimeModeLabel(){
  const mode=state.runtime?.mode||"local";
  return mode==="authenticated-persistent"?"AUTHENTICATED":"LOCAL";
@@ -416,7 +420,7 @@ async function submitAuth(mode){
   const result=mode==="signup"
    ? await window.orbitCore.signUp({email,password})
    : await window.orbitCore.signInWithPassword({email,password});
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   if(mode==="signup" && result.status==="signed_out"){
    toast("Account created. Check your email to confirm, then sign in.");
    closeModal();
@@ -424,7 +428,7 @@ async function submitAuth(mode){
    return;
   }
   state=await window.orbitCore.refresh();
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   closeModal();
   selectedId=state.ideas[0]?.id||null;
   toast("Persistent workspace connected");
@@ -436,7 +440,7 @@ async function authSignOut(){
   await window.orbitCoreReady;
   await window.orbitCore.signOut();
   state=await window.orbitCore.refresh();
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   selectedId=state.ideas[0]?.id||null;
   toast("Signed out");
   render();
@@ -595,13 +599,13 @@ async function boot(){
     ? await window.orbitCore.snapshot()
     : await window.orbitCore.importState(JSON.stringify(seed));
   state.runtime=await window.orbitCore.getEnvironment();
-  state.auth=await window.orbitCore.getAuthSnapshot();
+  updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   selectedId=state.ideas[0]?.id||null;
   if(!window.orbitAuthSubscription){
    window.orbitAuthSubscription=window.orbitCore.onAuthStateChange(async (_event,authSnapshot)=>{
     try{
      state=await window.orbitCore.refresh();
-     state.auth=authSnapshot;
+     updateAuthSnapshot(authSnapshot);
      render();
     }catch(error){
      toast(error.message||"Authentication state refresh failed");
