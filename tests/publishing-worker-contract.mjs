@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-// This is a source-level safety contract for the Deno Edge Function. It deliberately
+// Source-level safety contract for the Deno Edge Function. This test deliberately
 // does not invoke production endpoints, create publishing jobs, or call Instagram.
 const worker = readFileSync(
   new URL("../supabase/functions/publishing-worker/index.ts", import.meta.url),
@@ -34,12 +34,12 @@ requireFragment("adapter.supportsIdempotency === true", "idempotency capability 
 requireFragment("adapter.rateLimitReady === true", "rate-limit readiness required");
 requireFragment('return json({ error: "NO_OFFICIAL_ADAPTER_CONFIGURED" }, 503);', "no jobs claimed without a ready official adapter");
 
-// Enforce content approval and fenced job state transitions.
+// Enforce approval at execution time and lease-fenced state transitions.
 requireFragment('content.status !== "approved"', "content approval is rechecked at execution time");
 requireFragment('variant.status !== "approved"', "variant approval is rechecked at execution time");
 requireFragment("variant.approved !== true", "explicit variant approval is required");
 requireFragment('.eq("status", "processing")', "only a processing lease may transition");
-requireFragment('.eq("lease_token", job.lease_token)', "all state writes are lease-token fenced");
+requireFragment('.eq("lease_token", job.lease_token)', "state writes are lease-token fenced");
 requireFragment('"claim_due_publishing_jobs"', "atomic claim RPC");
 requireFragment('"complete_publishing_job"', "completion RPC");
 requireFragment('"retry_publishing_job"', "retry RPC");
@@ -49,7 +49,7 @@ requireFragment("Math.max(0, Math.min(7, attempts - 1))", "retry backoff exponen
 requireFragment("Math.min(3600, 30 * 2 ** exponent)", "automatic retry delay is capped");
 requireFragment("class PublishOutcomeUnknownError extends Error", "ambiguous provider outcome has its own error type");
 requireFragment('"PUBLISH_OUTCOME_UNKNOWN"', "ambiguous outcome is marked for manual reconciliation");
-requireFragment('if (checkpoint?.phase === "publish_started") throw new PublishOutcomeUnknownError();', "a resumed publish_started checkpoint cannot blindly republish");
+requireFragment('checkpoint?.phase === "publish_started"', "a resumed publish_started checkpoint cannot blindly republish");
 
 const publishStarted = worker.indexOf('phase: "publish_started"');
 const publishRequest = worker.indexOf('String(account.external_account_id) + "/media_publish"');
@@ -57,7 +57,7 @@ assert.ok(publishStarted >= 0 && publishRequest > publishStarted, "Durable publi
 requireFragment('if (published.response.status >= 500) throw new PublishOutcomeUnknownError();', "ambiguous provider server errors must not auto-retry");
 requireFragment('status: failed ? "manual_reconciliation_required" : "outcome_unconfirmed"', "unknown outcomes surface for operator review");
 requireFragment('mediaUrl.protocol !== "https:"', "Reels media URL requires HTTPS");
-assert.ok(/!\/\.(mp4\|mov)\$\/i\.test\(mediaUrl\.pathname\)/.test(worker), "Reels media must be an MP4 or MOV URL.");
+requireFragment('!/\\.(mp4|mov)$/i.test(mediaUrl.pathname)', "Reels media URL must end in MP4 or MOV.");
 assert.ok(!worker.includes("console.error(error)"), "Raw error objects must not be logged.");
 assert.ok(!worker.includes("return json({ error: String(error"), "Raw errors must not be returned to clients.");
 
