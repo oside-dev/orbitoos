@@ -72,7 +72,7 @@ https://orbitoos.vercel.app
 
 ## First real workspace validation
 
-The production Auth configuration and persistent backend are ready for the operator-controlled first-account check. The real email-confirmation/workspace-bootstrap flow and Meta OAuth still require a real email/account and the operator's own provider credentials. Follow the [first-workspace acceptance runbook](docs/operations/first-workspace-acceptance.md); publishing and token refresh stay disabled during this check.
+The Supabase Auth and persistent backend components are deployed, but real-account acceptance is not complete. Verify Site URL/redirects and email delivery, then test email confirmation and workspace bootstrap with an email you control. Meta OAuth still requires the operator's own app credentials and professional account. Follow the [first-workspace acceptance runbook](docs/operations/first-workspace-acceptance.md); publishing and token refresh stay disabled during this check.
 
 ## Engineering roadmap
 
