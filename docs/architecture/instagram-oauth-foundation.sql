@@ -220,7 +220,7 @@ begin
       using errcode = '42501';
   end if;
 
-  insert into public.social_accounts (
+  insert into public.social_accounts as existing (
     id, workspace_id, brand_id, platform, account_type,
     external_account_id, handle, display_name, profile_url,
     status, scopes, metadata, connected_at, updated_at
@@ -251,7 +251,7 @@ begin
     profile_url = excluded.profile_url,
     status = 'connected',
     scopes = excluded.scopes,
-    metadata = public.social_accounts.metadata || excluded.metadata,
+    metadata = existing.metadata || excluded.metadata,
     connected_at = pg_catalog.now(),
     updated_at = pg_catalog.now()
   returning id into v_account_id;
