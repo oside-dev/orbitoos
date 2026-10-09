@@ -24,3 +24,7 @@ verify_jwt = true
 # Publishing operations is a read-only owner/admin endpoint and requires a signed-in JWT.
 [functions.publishing-operations]
 verify_jwt = true
+
+# The cron caller authenticates with a random Vault-held token checked in the handler.
+[functions.publishing-scheduler]
+verify_jwt = false
