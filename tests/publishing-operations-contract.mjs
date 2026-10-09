@@ -30,7 +30,7 @@ mustContain(sql, "wm.user_id = p_operator_id", "operator identity check");
 mustContain(sql, "v_operator_role not in ('owner', 'admin')", "owner/admin restriction");
 mustContain(sql, "limit 50", "bounded output");
 mustContain(sql, "'unknownOutcome'", "unknown provider outcome metric");
-mustContain("last_error_code = 'PUBLISH_OUTCOME_UNKNOWN'", "unknown outcome query");
+mustContain(sql, "last_error_code = 'PUBLISH_OUTCOME_UNKNOWN'", "unknown outcome query");
 mustContain(sql, "private.publishing_job_reconciliation_events", "private audit data is read only through backend RPC");
 mustContain(sql, "revoke all on function public.get_publishing_operations_overview(text, uuid)", "default function privileges revoked");
 mustContain(sql, "grant execute on function public.get_publishing_operations_overview(text, uuid)", "only service_role is granted RPC execution");
