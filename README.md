@@ -138,3 +138,9 @@ Live connection stays unavailable until these Supabase Edge Function secrets are
 `https://lkcbtgqdvzmaihcnxxwk.supabase.co/functions/v1/instagram-oauth-callback`
 
 `META_INSTAGRAM_REDIRECT_URI` can override that URI if the registered redirect differs; `ORBITOS_APP_URL` can override the frontend return destination. Neither app credentials nor tokens belong in GitHub. Without the required credentials, the endpoints fail closed. No background schedule is configured and the publishing worker still has no registered adapter.
+
+## Instagram reconnect safety
+
+Reconnect operations reuse an existing social account's database ID so private Vault references and publishing-job foreign keys remain stable. If Vault token rotation fails, the callback restores the previous account status and metadata instead of forcing a healthy existing account into a reauthorization state. If final status persistence fails, it preserves the credential for an existing account rather than deleting it; newly created accounts still clean up newly written secrets on finalization failure.
+
+The OAuth state table also has supporting indexes on its user, workspace, and brand foreign keys so cleanup and parent-row cascades do not need unindexed scans.
