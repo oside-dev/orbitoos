@@ -158,3 +158,12 @@ grant execute on function public.create_social_oauth_state(text, uuid, text, tex
   to service_role;
 grant execute on function public.consume_social_oauth_state(text)
   to service_role;
+
+-- Defense-in-depth policy: OAuth state is backend-only.
+drop policy if exists social_oauth_states_service_role_all
+  on private.social_oauth_states;
+create policy social_oauth_states_service_role_all
+  on private.social_oauth_states
+  for all to service_role
+  using (true)
+  with check (true);
