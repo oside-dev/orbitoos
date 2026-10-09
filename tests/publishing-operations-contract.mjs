@@ -53,7 +53,7 @@ mustContain(bridge, "getPublishingOperations,", "public bridge method export");
 mustContain(ui, "function renderPublishingOperationsPanel(workspaceId)", "read-only operations panel");
 mustContain(ui, "window.orbitCore.getPublishingOperations()", "bridge-backed dashboard load");
 mustContain(ui, "READ ONLY", "read-only status badge");
-mustContain(ui, "Never sends a social post", "no publishing side effects described");
+mustContain(ui, "never sends a social post", "no publishing side effects described");
 mustContain(ui, "Reconciliation audit", "reconciliation history section");
 assert.ok(!/btn\(["'](?:Retry|Publish now|Requeue)["']/i.test(ui), "Operations panel must not add retry/requeue/publish controls.");
 mustContain(config, "[functions.publishing-operations]\nverify_jwt = true", "platform JWT verification stays enabled");
