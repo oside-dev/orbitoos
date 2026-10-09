@@ -46,6 +46,8 @@ jobs:
           test -f supabase/migrations/20261009082359_orbitoos_instagram_token_refresh_scheduler.sql
           test -f supabase/migrations/20261009085818_orbitoos_backend_owned_records.sql
           test -f tests/server-owned-records-contract.mjs
+          test -f supabase/migrations/20261009093000_orbitoos_workspace_role_approval_guard.sql
+          test -f tests/workspace-role-approval-contract.mjs
           test -f supabase/functions/instagram-token-refresh-scheduler/index.ts
           test -f tests/instagram-token-refresh-scheduler-contract.mjs
           test -f supabase/functions/publishing-operations/index.ts
@@ -139,6 +141,9 @@ jobs:
         run: node tests/supabase-store.mjs
       - name: Run backend-owned record security contract tests
         run: node tests/server-owned-records-contract.mjs
+
+      - name: Run workspace role approval contract tests
+        run: node tests/workspace-role-approval-contract.mjs
 
       - name: Run persistent content loop tests
         run: node tests/persistent-content-loop.mjs
