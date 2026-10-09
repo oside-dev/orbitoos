@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../supabase/migrations/20261009101500_orbitoos_approved_content_role_guard.sql").toLowerCase();
+const migration = read("../supabase/migrations/20261009091753_orbitoos_approved_content_role_guard.sql").toLowerCase();
 const schema = read("../supabase/schema.sql").toLowerCase();
 const workflow = read("../.github/workflows/validate.yml");
 
@@ -36,7 +36,7 @@ for (const fragment of [
 }
 
 assert.ok(
-  workflow.includes("supabase/migrations/20261009101500_orbitoos_approved_content_role_guard.sql") &&
+  workflow.includes("supabase/migrations/20261009091753_orbitoos_approved_content_role_guard.sql") &&
     workflow.includes("tests/approved-content-role-guard-contract.mjs") &&
     workflow.includes("node tests/approved-content-role-guard-contract.mjs"),
   "Approved-content guard test and migration must be enforced by CI.",
