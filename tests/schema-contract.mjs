@@ -275,7 +275,7 @@ const instagramConnectUiContract = [
   [oauthSettingsUi, "async function connectInstagram()"],
   [oauthSettingsUi, "window.location.assign(result.authorizationUrl)"],
   [oauthSettingsUi, "function consumeInstagramOAuthResult()"],
-  [oauthSettingsUi, 'render();\\n   consumeInstagramOAuthResult();\\n  }catch(error){'],
+  [oauthSettingsUi, 'render();\n    consumeInstagramOAuthResult();\n  }catch(error){'],
   [oauthSettingsUi, 'connected:"Instagram account connected securely."'],
   [oauthBrowserBridge, "Instagram connection is not configured yet."],
   [oauthSettingsUi, "Connecting an account does not enable automatic publishing."],
