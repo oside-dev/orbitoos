@@ -99,6 +99,7 @@ https://orbitoos.vercel.app
 - M24 — Publishing operations overview — owner/admin-only read-only job counts, retry diagnostics, recent publishing jobs, and reconciliation audit evidence in Settings
 - M25 — Scheduled job materialization — eligible approved schedules become idempotent durable jobs only after the worker's global and official-adapter gates pass
 - M26 — Publishing scheduler dispatch — Supabase Cron invokes a Vault-authenticated dispatcher every minute; a database lease prevents overlapping worker calls, and the global publishing switch remains the final gate
+- M27 — Instagram token refresh scheduler — daily Vault-authenticated dispatch with a dedicated lease; token rotation remains disabled until an operator explicitly enables the refresh gate
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -145,7 +146,7 @@ Live connection stays unavailable until these Supabase Edge Function secrets are
 
 `https://lkcbtgqdvzmaihcnxxwk.supabase.co/functions/v1/instagram-oauth-callback`
 
-`META_INSTAGRAM_REDIRECT_URI` can override that URI if the registered redirect differs; `ORBITOS_APP_URL` can override the frontend return destination. Neither app credentials nor tokens belong in GitHub. Without the required credentials, the endpoints fail closed. No token-refresh cron or auto-publish flag is enabled; the publishing dispatcher remains fail-closed behind the global publishing switch.
+`META_INSTAGRAM_REDIRECT_URI` can override that URI if the registered redirect differs; `ORBITOS_APP_URL` can override the frontend return destination. Neither app credentials nor tokens belong in GitHub. Without the required credentials, the endpoints fail closed. M27 adds a daily token-refresh dispatcher, but `ORBITOS_INSTAGRAM_REFRESH_ENABLED` remains off unless an operator explicitly enables it after validation. The publishing dispatcher remains fail-closed behind the separate global publishing switch.
 
 ## Instagram reconnect safety
 
@@ -192,3 +193,9 @@ The adapter checks publishing quota, creates a media container, polls its state 
 If the publish request times out or the response is ambiguous, the job is marked `PUBLISH_OUTCOME_UNKNOWN` for manual reconciliation rather than automatically posting again. This avoids duplicates when Meta accepted a post but the worker lost the response.
 
 Activation later requires `META_GRAPH_API_VERSION`, `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED=true`, and the separate `ORBITOS_PUBLISHING_ENABLED=true` in Supabase Edge Function secrets. None of these switches is enabled here; no publishing schedule is added.
+
+## Instagram token refresh scheduler
+
+M27 registers `orbitoos-instagram-token-refresh` to invoke the Vault-authenticated `instagram-token-refresh-scheduler` once daily at 02:17 UTC. A dedicated service-role-only lease prevents overlapping refresh runs. The dispatcher calls the existing token-refresh endpoint only when `ORBITOS_INSTAGRAM_REFRESH_ENABLED=true`; both the dispatcher and endpoint fail closed otherwise.
+
+The migration reuses the existing Vault-held project URL, publishable key, and random scheduler token. It does not add a secret to source, rotate credentials, or enable live publishing. Verify the scheduled job and the `TOKEN_REFRESH_DISABLED` safe response before considering a controlled refresh test. See [the token-refresh scheduler runbook](docs/operations/instagram-token-refresh-scheduler.md).
