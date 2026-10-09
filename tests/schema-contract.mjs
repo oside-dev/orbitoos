@@ -228,6 +228,8 @@ const oauthCallback = readFileSync(
 
 const instagramOAuthContract = [
   [oauthStart, 'withSupabase({ auth: "user" }'],
+  [oauthStart, "ctx.userClaims?.id ?? ctx.jwtClaims?.sub"],
+  [oauthStart, "ctx.userClaims?.sub", false],
   [oauthStart, '"instagram_business_basic"'],
   [oauthStart, '"instagram_business_content_publish"'],
   [oauthStart, '"create_social_oauth_state"'],
@@ -249,10 +251,11 @@ const instagramOAuthContract = [
   [oauthCallback, 'return appResult("connected");'],
 ];
 
-for (const [source, fragment] of instagramOAuthContract) {
-  assert.ok(
+for (const [source, fragment, shouldExist = true] of instagramOAuthContract) {
+  assert.equal(
     source.includes(fragment),
-    "Missing Instagram OAuth safety fragment: " + fragment,
+    shouldExist,
+    "Unexpected Instagram OAuth safety fragment state: " + fragment,
   );
 }
 
