@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../supabase/migrations/20261009090000_orbitoos_backend_owned_records.sql").toLowerCase();
+const migration = read("../supabase/migrations/20261009085818_orbitoos_backend_owned_records.sql").toLowerCase();
 const store = read("../src/adapters/supabase-store.mjs");
 
 for (const table of ["social_accounts", "publishing_jobs", "subscriptions"]) {
