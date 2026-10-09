@@ -519,17 +519,27 @@ as $function$
 declare
   v_role text;
   v_requires_approval_role boolean := false;
+  v_workspace_id text;
 begin
   -- Service-role Edge Functions and trusted database operators are backend-owned.
-  -- Browser access is authenticated and is checked below against workspace_members.
+  -- Their requests do not carry a user UID; browser requests are checked below.
   if (select auth.uid()) is null then
+    if tg_op = 'DELETE' then
+      return old;
+    end if;
     return new;
+  end if;
+
+  if tg_op = 'DELETE' then
+    v_workspace_id := old.workspace_id;
+  else
+    v_workspace_id := new.workspace_id;
   end if;
 
   select lower(btrim(wm.role))
     into v_role
     from public.workspace_members as wm
-   where wm.workspace_id = new.workspace_id
+   where wm.workspace_id = v_workspace_id
      and wm.user_id = (select auth.uid())
    limit 1;
 
@@ -537,6 +547,9 @@ begin
     if tg_op = 'INSERT' then
       v_requires_approval_role :=
         lower(btrim(coalesce(new.status, ''))) = 'approved';
+    elsif tg_op = 'DELETE' then
+      v_requires_approval_role :=
+        lower(btrim(coalesce(old.status, ''))) = 'approved';
     else
       v_requires_approval_role :=
         (
@@ -548,10 +561,8 @@ begin
         )
         or (
           lower(btrim(coalesce(old.status, ''))) = 'approved'
-          and (
-            old.title is distinct from new.title
-            or old.brief is distinct from new.brief
-          )
+          and (to_jsonb(old) - 'updated_at') is distinct from
+              (to_jsonb(new) - 'updated_at')
         );
     end if;
   elsif tg_table_name = 'content_variants' then
@@ -559,6 +570,10 @@ begin
       v_requires_approval_role :=
         coalesce(new.approved, false)
         or lower(btrim(coalesce(new.status, ''))) = 'approved';
+    elsif tg_op = 'DELETE' then
+      v_requires_approval_role :=
+        coalesce(old.approved, false)
+        or lower(btrim(coalesce(old.status, ''))) = 'approved';
     else
       v_requires_approval_role :=
         (
@@ -573,27 +588,25 @@ begin
           )
         )
         or (
-          (coalesce(old.approved, false)
-            or lower(btrim(coalesce(old.status, ''))) = 'approved')
-          and (
-            old.hook is distinct from new.hook
-            or old.body is distinct from new.body
-            or old.cta is distinct from new.cta
-            or old.hashtags is distinct from new.hashtags
-            or old.media_url is distinct from new.media_url
-            or old.creative_brief is distinct from new.creative_brief
-            or old.visual_direction is distinct from new.visual_direction
+          (
+            coalesce(old.approved, false)
+            or lower(btrim(coalesce(old.status, ''))) = 'approved'
           )
+          and (to_jsonb(old) - 'updated_at') is distinct from
+              (to_jsonb(new) - 'updated_at')
         );
     end if;
   end if;
 
   if v_requires_approval_role
      and coalesce(v_role, '') not in ('owner', 'admin', 'editor') then
-    raise exception 'Workspace role is not allowed to change content approval state.'
+    raise exception 'Workspace role is not allowed to change approved content.'
       using errcode = '42501';
   end if;
 
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
   return new;
 end;
 $function$;
@@ -603,10 +616,10 @@ revoke all on function private.guard_content_approval_role()
 
 drop trigger if exists content_items_approval_role_guard on public.content_items;
 create trigger content_items_approval_role_guard
-before insert or update on public.content_items
+before insert or update or delete on public.content_items
 for each row execute function private.guard_content_approval_role();
 
 drop trigger if exists content_variants_approval_role_guard on public.content_variants;
 create trigger content_variants_approval_role_guard
-before insert or update on public.content_variants
+before insert or update or delete on public.content_variants
 for each row execute function private.guard_content_approval_role();
