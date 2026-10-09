@@ -39,6 +39,9 @@ jobs:
           test -f docs/architecture/publishing-job-reconciliation.sql
           test -f docs/architecture/publishing-operations-overview.sql
           test -f docs/architecture/scheduled-job-materialization.sql
+          test -f docs/operations/publishing-scheduler.md
+          test -f supabase/migrations/20261009074000_orbitoos_publishing_scheduler.sql
+          test -f supabase/functions/publishing-scheduler/index.ts
           test -f supabase/functions/publishing-operations/index.ts
           test -f supabase/functions/publishing-reconciliation/index.ts
           test -f docs/operations/instagram-reels-publishing-runbook.md
@@ -146,6 +149,9 @@ jobs:
 
       - name: Run scheduled job materialization contract tests
         run: node tests/scheduled-job-materialization-contract.mjs
+
+      - name: Run publishing scheduler safety contract tests
+        run: node tests/publishing-scheduler-contract.mjs
 
       - name: Run analytics gateway tests
         run: node tests/analytics-gateway.mjs
