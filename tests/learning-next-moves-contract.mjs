@@ -22,7 +22,7 @@ assert.ok(indexHtml.includes('runLearningNow()'), "Learning action missing from 
 assert.ok(indexHtml.includes('Strategy changes remain human-reviewed'), "Learning contract copy missing");
 
 assert.ok(bridge.includes('getPublishingOperations,'), "Bridge snapshot should already expose operations safely");
-assert.ok(bridge.includes('runLearning,'), "Bridge should expose runLearning to the browser UI");
+assert.ok(bridge.includes('runLearning: () =>'), "Bridge should expose runLearning to the browser UI");
 assert.ok(runtime.includes('async function runLearning()'), "Core runtime missing learning loop");
 assert.ok(runtime.includes('learningInsights: [...state.learningInsights, ...brandedInsights]'), "Learning insights persistence missing");
 
