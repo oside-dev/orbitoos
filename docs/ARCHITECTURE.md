@@ -88,6 +88,12 @@ OrbitOS keeps a backward-compatible active-brand context while storing a brand r
 
 The target persistent backend uses workspace membership as the authorization boundary. Authenticated users are resolved to workspace IDs through a private RLS helper, and application tables require authenticated membership for access. Provisioning a workspace or changing membership is intentionally a backend-controlled operation until the invitation/bootstrap flow is implemented.
 
+## Publishing operations view
+
+The Settings operations panel is an explicitly requested, read-only diagnostics view. The signed-in browser bridge calls the `publishing-operations` Edge Function; that function verifies workspace membership and invokes a service-role-only overview RPC. The RPC rechecks owner/admin authorization, aggregates status counts, and returns a bounded recent job list plus private reconciliation evidence without exposing job payloads or credential data.
+
+The operations view reports state; it is not an execution control plane. Retry, cancellation, reconciliation, and external publication remain separate backend actions with their own authorization and safety contracts. The browser must never receive a Supabase service-role/secret key.
+
 ## Runtime environment boundary
 
 OrbitOS models runtime environment explicitly:
