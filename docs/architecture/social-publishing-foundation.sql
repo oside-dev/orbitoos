@@ -123,6 +123,11 @@ using (workspace_id in (select private.user_workspace_ids()));
 grant select, insert, update, delete on public.social_accounts to authenticated;
 grant select, insert, update, delete on public.publishing_jobs to authenticated;
 
-revoke all on private.social_account_secrets from anon, authenticated;
+-- Credential references remain backend-only. RLS is defense in depth:
+-- intentionally create no client policies for this table.
+-- service_role has BYPASSRLS and is the only role granted table privileges here.
+alter table private.social_account_secrets enable row level security;
+
+revoke all on table private.social_account_secrets from public, anon, authenticated;
 grant usage on schema private to service_role;
-grant select, insert, update, delete on private.social_account_secrets to service_role;
+grant select, insert, update, delete on table private.social_account_secrets to service_role;
