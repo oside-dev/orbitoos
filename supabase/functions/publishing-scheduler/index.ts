@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const BASE_URL = PROJECT_URL.endsWith("/") ? PROJECT_URL.slice(0, -1) : PROJECT_URL;
 const SERVICE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
   Deno.env.get("SUPABASE_SECRET_KEY") ??
@@ -15,7 +16,7 @@ async function callRpc(name: string, args: Record<string, unknown>): Promise<Rpc
 
   try {
     const response = await fetch(
-      PROJECT_URL.replace(/\\/$/, "") + "/rest/v1/rpc/" + encodeURIComponent(name),
+      BASE_URL + "/rest/v1/rpc/" + encodeURIComponent(name),
       {
         method: "POST",
         headers: {
@@ -137,7 +138,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   let releaseLease = true;
   try {
     const workerResponse = await fetch(
-      PROJECT_URL.replace(/\/$/, "") + "/functions/v1/publishing-worker",
+      BASE_URL + "/functions/v1/publishing-worker",
       {
         method: "POST",
         headers: {
