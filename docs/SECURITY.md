@@ -30,6 +30,8 @@ Workspace-scoped CRUD access remains governed by RLS. Approval is a separate aut
 
 Schedules remain visible to workspace members, but inserting, updating, and deleting them requires the owner, admin, or editor role. Analysts and viewers can still read content and schedules and work with drafts, but cannot directly set approval state, change protected fields on approved records, delete approved content, or alter schedule records. The UI also hides approval/scheduling actions for these roles; database enforcement remains authoritative. The scheduler independently rechecks approval before job materialization, so a schedule alone does not authorize publishing.
 
+Workspace-level updates—including workspace identity and shared AI settings stored in `workspaces.settings`—require the current member to have the `owner` or `admin` role. The `workspaces_member_update` RLS policy enforces that role check in both `USING` and `WITH CHECK`; editor, analyst, and viewer roles cannot bypass it with direct PostgREST updates. The Settings UI also hides its save action from non-admin workspace roles.
+
 ## Current deployment posture
 
 The production UI remains local-first by default. The Supabase project hosts the live schema, authentication boundary, OAuth/publishing Edge Functions, Vault-backed credentials, and gated schedulers. The current database has no authenticated users, connected social accounts, scheduled records, or publishing jobs, so real-account integration still requires an operator-controlled setup and test.
