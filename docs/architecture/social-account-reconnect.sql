@@ -1,4 +1,4 @@
--- OrbitOS Instagram account upsert and private-table RLS policies (M19).
+-- OrbitOS Instagram account upsert and private-table RLS policies (M21).
 -- The upsert preserves the account primary key atomically, even if two OAuth
 -- callbacks for the same account arrive at nearly the same time.
 
