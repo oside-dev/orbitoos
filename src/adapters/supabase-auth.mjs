@@ -71,6 +71,29 @@ export function createSupabaseAuthAdapter({ auth } = {}) {
     });
   }
 
+  async function resendSignupConfirmation({ email } = {}) {
+    const normalizedEmail = String(email ?? "").trim();
+    if (!normalizedEmail) {
+      throw new Error("OrbitOS signup confirmation requires an email address.");
+    }
+    if (typeof auth.resend !== "function") {
+      throw new Error("OrbitOS Supabase Auth confirmation resend is unavailable.");
+    }
+
+    const result = await auth.resend({
+      type: "signup",
+      email: normalizedEmail,
+    });
+    if (result?.error) {
+      throw new Error(
+        "OrbitOS Supabase Auth confirmation resend failed: " +
+          result.error.message,
+      );
+    }
+
+    return Object.freeze({ status: "requested" });
+  }
+
   async function signOut() {
     const result = await auth.signOut();
     if (result?.error) {
@@ -110,6 +133,7 @@ export function createSupabaseAuthAdapter({ auth } = {}) {
       getUser,
       signInWithPassword,
       signUp,
+      resendSignupConfirmation,
       signOut,
       onAuthStateChange,
     }),
