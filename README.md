@@ -97,6 +97,7 @@ https://orbitoos.vercel.app
 - M22 — Instagram Reels publisher — official container/status/publish flow, quota checks, Vault-only tokens, durable checkpoints and duplicate-safe manual reconciliation; disabled by default
 - M23 — Audited publishing reconciliation — owner/admin-only resolution of ambiguous outcomes, immutable private audit evidence, and no automatic retry of uncertain posts
 - M24 — Publishing operations overview — owner/admin-only read-only job counts, retry diagnostics, recent publishing jobs, and reconciliation audit evidence in Settings
+- M25 — Scheduled job materialization — eligible approved schedules become idempotent durable jobs only after the worker's global and official-adapter gates pass; no scheduler or live publishing flag is enabled
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -168,6 +169,14 @@ The new `media_url` column is added to fresh schemas and through the idempotent 
 ## Audited publishing reconciliation
 
 M23 adds the private `publishing_job_reconciliation_events` audit table, a service-role-only database RPC, and the signed-in `publishing-reconciliation` Edge Function. Only workspace owners/admins can resolve a failed job marked `PUBLISH_OUTCOME_UNKNOWN`. An operator must record evidence and choose either `confirmed_published` with the real provider post ID or `closed_without_retry` after checking the account. The operation atomically updates the job and records the audit event; it never queues or re-publishes the job. The audit record is private and does not cascade-delete with the job. This endpoint is separate from the publishing worker and does not enable publishing flags or schedules.
+
+## Scheduled publishing job materialization
+
+M25 adds the backend-only `materialize_scheduled_publishing_jobs` RPC and calls it from the publishing worker after the global publishing switch and official-adapter readiness checks pass, but before due jobs are claimed. It creates durable queued jobs only when the schedule remains `scheduled`, the content and latest matching platform variant are explicitly approved, the matching social account is connected, and exactly one account matches the schedule's workspace/brand/platform. This avoids silently publishing the same scheduled content to every connected account.
+
+The job ID and idempotency key are derived from the schedule ID, and duplicate inserts are ignored atomically. Instagram Reels and YouTube Shorts schedule labels are normalized to their account platform identifiers. The worker reports materialization counts alongside claimed-job outcomes.
+
+This does **not** enable a cron/automatic invocation schedule. The worker remains disabled unless the global publishing switch, an official adapter, and its required configuration are explicitly enabled; live posting has not been activated as part of M25.
 
 ## Publishing operations overview
 

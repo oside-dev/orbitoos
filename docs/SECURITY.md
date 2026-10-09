@@ -45,6 +45,12 @@ The Settings operations panel is shown only when the signed-in runtime carries a
 
 The returned summary contains workspace-scoped counts and up to 50 recent jobs plus 50 reconciliation events. The response intentionally omits job payloads, idempotency keys, Vault references, access tokens, and raw provider exceptions. Error-message text is bounded, and the UI escapes all values before rendering them. The view is read-only: it cannot retry, cancel, approve, reconcile, or publish jobs.
 
+## Scheduled job materialization
+
+The `materialize_scheduled_publishing_jobs` database RPC is `SECURITY INVOKER`, uses an empty search path, and is executable only by `service_role`. The worker calls it only after the global publishing switch is explicitly enabled and at least one official adapter passes readiness checks. The RPC does not contact a provider; it creates durable queued records only after re-checking workspace/brand scope, approved content, the latest approved platform variant, and a unique connected account match.
+
+Schedule-derived IDs and idempotency keys plus conflict-safe inserts make repeated invocations safe. The RPC does not change schedules, auto-approve content, fan out one schedule to multiple matching accounts, or create a worker cron. Browser/client roles cannot execute the RPC.
+
 ## Runtime honesty
 
 The UI must never label the local browser runtime as authenticated or backend-persistent. Runtime mode is explicit and comes from the runtime environment boundary. A future Supabase connection must provide a verified Auth user and workspace membership before switching to authenticated-persistent mode.

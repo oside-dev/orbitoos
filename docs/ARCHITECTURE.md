@@ -88,6 +88,12 @@ OrbitOS keeps a backward-compatible active-brand context while storing a brand r
 
 The target persistent backend uses workspace membership as the authorization boundary. Authenticated users are resolved to workspace IDs through a private RLS helper, and application tables require authenticated membership for access. Provisioning a workspace or changing membership is intentionally a backend-controlled operation until the invitation/bootstrap flow is implemented.
 
+## Schedule-to-job execution boundary
+
+The `materialize_scheduled_publishing_jobs` RPC converts eligible calendar schedules into durable publishing jobs. It is called only by the secret-key-authenticated worker, and only after the global publishing gate and at least one official adapter passes all readiness checks. Eligible records require an approved content item, an explicitly approved latest variant for the scheduled platform, a connected account in the same workspace/brand, and exactly one matching account. Schedules are not silently fanned out across multiple accounts.
+
+A stable schedule-derived idempotency key plus `ON CONFLICT DO NOTHING` prevents repeated worker invocations from creating duplicate jobs. Jobs scheduled for the future remain queued until their scheduled time; the claim RPC continues to enforce due-time, lease, retry, account, and approval checks. M25 adds no cron/worker schedule and does not enable any publishing flags.
+
 ## Publishing operations view
 
 The Settings operations panel is an explicitly requested, read-only diagnostics view. The signed-in browser bridge calls the `publishing-operations` Edge Function; that function verifies workspace membership and invokes a service-role-only overview RPC. The RPC rechecks owner/admin authorization, aggregates status counts, and returns a bounded recent job list plus private reconciliation evidence without exposing job payloads or credential data.

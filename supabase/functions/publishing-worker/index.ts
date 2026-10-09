@@ -600,6 +600,24 @@ Deno.serve(
       return json({ error: "NO_OFFICIAL_ADAPTER_CONFIGURED" }, 503);
     }
 
+    // Approved scheduled records are converted to durable jobs only after
+    // both the global publishing gate and official-adapter readiness pass.
+    // The RPC is idempotent and scoped to the providers enabled for this worker.
+    const { data: materialization, error: materializationError } = await ctx.supabaseAdmin.rpc(
+      "materialize_scheduled_publishing_jobs",
+      {
+        p_limit: 25,
+        p_platforms: platforms,
+      },
+    );
+
+    if (materializationError || !materialization) {
+      console.error("publishing-worker schedule materialization failed", {
+        code: materializationError?.code ?? "MATERIALIZATION_FAILED",
+      });
+      return json({ error: "SCHEDULE_MATERIALIZATION_FAILED" }, 500);
+    }
+
     const { data: claimedJobs, error: claimError } = await ctx.supabaseAdmin.rpc(
       "claim_due_publishing_jobs",
       {
@@ -761,6 +779,7 @@ Deno.serve(
 
     return json({
       ok: true,
+      materialization,
       claimed: jobs.length,
       outcomes,
     });
