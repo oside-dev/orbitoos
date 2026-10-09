@@ -115,6 +115,11 @@ begin
     ) as account on account.account_count = 1
     where s.status = 'scheduled'
       and schedule_platform.normalized_platform = any(p_platforms)
+      and not exists (
+        select 1
+        from public.publishing_jobs as existing
+        where existing.idempotency_key = 'schedule:' || s.id
+      )
     order by s.scheduled_at, s.created_at, s.id
     limit p_limit
   ),
