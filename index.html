@@ -172,7 +172,7 @@ function studio(){
  const generationAction=hasVariants
    ? btn("Regenerate","regenerateVariants('"+i.id+"')")
    : btn("Generate variants","regenerateVariants('"+i.id+"')",true);
- const approveAction=hasVariants&&["Draft","Review"].includes(i.stage)
+ const approveAction=hasVariants&&canManageEditorialActions()&&["Draft","Review"].includes(i.stage)
    ? btn("Approve","approve('"+i.id+"')",true)
    : "";
  const master='<div class="card"><div class="row"><h2>'+esc(i.title)+'</h2><div><span class="badge">'+esc(i.stage)+'</span> '+(i.stage==="Approved"?'<span class="badge ok">APPROVED</span>':"")+'</div></div><p class="small">'+esc(i.brief)+'</p><div class="row" style="margin-top:10px"><div>'+selector+'</div><div class="actions">'+generationAction+approveAction+'</div></div></div>';
@@ -192,7 +192,14 @@ function studio(){
  }).join("");
  shell("Content Studio","Editable platform-native variants with local persistence",btn("Back to Ideas","go('ideas')")+approveAction,master+'<div class="platforms" style="margin-top:14px">'+variants+'</div><div class="notice" style="margin-top:14px">Editing is saved through the Orbit Runtime. No render-time mutation is used.</div>');
 }
+function canManageEditorialActions(){
+ const runtime=state.runtime||{};
+ if(!runtime.authenticated)return true;
+ return ["owner","admin","editor"].includes(String(state.auth?.membership?.role||"").toLowerCase());
+}
+
 async function scheduleVariant(id,platform){
+ if(!canManageEditorialActions()){toast("Only workspace owners, admins, or editors can schedule content.");return}
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Schedule '+esc(platform)+'</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Publish time<input class="input" id="scheduleAt" type="datetime-local"></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Save schedule","confirmSchedule('"+id+"','"+platform+"')",true)+'</div></div></div>';
  const field=document.getElementById("scheduleAt");
  const d=new Date(Date.now()+24*60*60*1000);
@@ -200,6 +207,7 @@ async function scheduleVariant(id,platform){
  field.value=d.toISOString().slice(0,16);
 }
 async function confirmSchedule(id,platform){
+ if(!canManageEditorialActions()){toast("Only workspace owners, admins, or editors can schedule content.");return}
  const field=document.getElementById("scheduleAt");
  if(!field.value)return toast("Schedule time required");
  try{
@@ -217,10 +225,12 @@ function calendar(){
   const scheduled=schedules.find(s=>s.contentItemId===(state.contentItems||[]).find(c=>c.ideaId===i.id)?.id&&s.platform===p&&s.status==="scheduled");
   const status=scheduled
     ? '<span class="badge ok">SCHEDULED '+esc(new Date(scheduled.scheduledAt).toLocaleString())+'</span>'
-    : btn("Schedule","scheduleVariant('"+i.id+"','"+p+"')");
+    : canManageEditorialActions()
+      ? btn("Schedule","scheduleVariant('"+i.id+"','"+p+"')")
+      : '<span class="badge warn">EDITOR ROLE REQUIRED</span>';
   return '<tr><td>Day '+(idx+j+1)+'</td><td>'+p+'</td><td>'+esc(i.title)+'</td><td>'+status+'</td></tr>';
  })).join("");
- shell("Calendar","Planning is live locally; external publishing remains disabled",btn("Approve first draft","approveFirst()",true),'<div class="card"><div class="notice warn">Publishing is OFF. OrbitOS can prepare and schedule records, but it cannot post to any social network from this build.</div><table class="table" style="margin-top:12px"><tr><th>Slot</th><th>Platform</th><th>Content</th><th>Status</th></tr>'+rows+' </table></div>');
+ shell("Calendar","Planning is live locally; external publishing remains disabled",(canManageEditorialActions()?btn("Approve first draft","approveFirst()",true):""),'<div class="card"><div class="notice warn">Publishing is OFF. OrbitOS can prepare and schedule records, but it cannot post to any social network from this build.</div><table class="table" style="margin-top:12px"><tr><th>Slot</th><th>Platform</th><th>Content</th><th>Status</th></tr>'+rows+' </table></div>');
 }
 function analytics(){
  const metrics=visibleMetrics();
@@ -521,6 +531,7 @@ async function editVariant(id,p,k,v){
 }
 async function approve(id){
  const i=state.ideas.find(x=>x.id===id);if(!i)return;
+ if(!canManageEditorialActions()){toast("Only workspace owners, admins, or editors can approve content.");return}
  try{
   await window.orbitCoreReady;
   state=await window.orbitCore.approveIdea(id);
