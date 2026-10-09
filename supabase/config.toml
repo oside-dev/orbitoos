@@ -1,0 +1,8 @@
+# OAuth start requires a verified Supabase user JWT.
+[functions.instagram-oauth-start]
+verify_jwt = true
+
+# Meta's OAuth redirect does not send a Supabase JWT. The callback validates
+# a short-lived, hashed, one-use state before exchanging or storing anything.
+[functions.instagram-oauth-callback]
+verify_jwt = false
