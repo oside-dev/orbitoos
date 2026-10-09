@@ -222,7 +222,8 @@ assert.equal(restored.research[0].generatedBy, "test");
 
 const exported = await store.export();
 const imported = await store.import(exported);
-assert.equal(imported.ideas.length, 1);
+assert.equal(imported.ideas.some((idea) => idea.id === "idea-1"), true);
+assert.equal(imported.ideas.some((idea) => idea.id === "stale-idea"), true);
 assert.equal(imported.contentVariants.length, 1);
 
 console.log("OrbitOS Supabase adapter tests passed.");
