@@ -97,7 +97,8 @@ https://orbitoos.vercel.app
 - M22 — Instagram Reels publisher — official container/status/publish flow, quota checks, Vault-only tokens, durable checkpoints and duplicate-safe manual reconciliation; disabled by default
 - M23 — Audited publishing reconciliation — owner/admin-only resolution of ambiguous outcomes, immutable private audit evidence, and no automatic retry of uncertain posts
 - M24 — Publishing operations overview — owner/admin-only read-only job counts, retry diagnostics, recent publishing jobs, and reconciliation audit evidence in Settings
-- M25 — Scheduled job materialization — eligible approved schedules become idempotent durable jobs only after the worker's global and official-adapter gates pass; no scheduler or live publishing flag is enabled
+- M25 — Scheduled job materialization — eligible approved schedules become idempotent durable jobs only after the worker's global and official-adapter gates pass
+- M26 — Publishing scheduler dispatch — Supabase Cron invokes a Vault-authenticated dispatcher every minute; a database lease prevents overlapping worker calls, and the global publishing switch remains the final gate
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -144,7 +145,7 @@ Live connection stays unavailable until these Supabase Edge Function secrets are
 
 `https://lkcbtgqdvzmaihcnxxwk.supabase.co/functions/v1/instagram-oauth-callback`
 
-`META_INSTAGRAM_REDIRECT_URI` can override that URI if the registered redirect differs; `ORBITOS_APP_URL` can override the frontend return destination. Neither app credentials nor tokens belong in GitHub. Without the required credentials, the endpoints fail closed. No background schedule is configured and the publishing worker still has no registered adapter.
+`META_INSTAGRAM_REDIRECT_URI` can override that URI if the registered redirect differs; `ORBITOS_APP_URL` can override the frontend return destination. Neither app credentials nor tokens belong in GitHub. Without the required credentials, the endpoints fail closed. No token-refresh cron or auto-publish flag is enabled; the publishing dispatcher remains fail-closed behind the global publishing switch.
 
 ## Instagram reconnect safety
 
@@ -176,7 +177,7 @@ M25 adds the backend-only `materialize_scheduled_publishing_jobs` RPC and calls 
 
 The job ID and idempotency key are derived from the schedule ID, and duplicate inserts are ignored atomically. Instagram Reels and YouTube Shorts schedule labels are normalized to their account platform identifiers. The worker reports materialization counts alongside claimed-job outcomes.
 
-This does **not** enable a cron/automatic invocation schedule. The worker remains disabled unless the global publishing switch, an official adapter, and its required configuration are explicitly enabled; live posting has not been activated as part of M25.
+The M26 dispatcher uses Supabase Cron to invoke the existing worker every minute with a random token stored in Vault and a database lease to prevent overlapping dispatches. This adds the automatic invocation mechanism but does **not** enable live publishing: the global publishing switch remains off unless an operator explicitly enables it after the runbook preflight.
 
 ## Publishing operations overview
 
