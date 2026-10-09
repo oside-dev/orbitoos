@@ -26,9 +26,10 @@ assert.ok(bridge.includes('runLearning,'), "Bridge should expose runLearning to 
 assert.ok(runtime.includes('async function runLearning()'), "Core runtime missing learning loop");
 assert.ok(runtime.includes('learningInsights: [...state.learningInsights, ...brandedInsights]'), "Learning insights persistence missing");
 
-assert.ok(readme.includes('## Publishing operations overview'), "README missing publishing operations overview");
+assert.ok(readme.includes('M24 — Publishing operations overview'), "README missing publishing operations overview roadmap entry");
+assert.ok(readme.includes('M25 — Scheduled job materialization'), "README missing scheduled-job roadmap entry");
+assert.ok(readme.includes('## Publishing operations overview'), "README missing publishing operations overview section");
 assert.ok(readme.includes('## Audited publishing reconciliation'), "README missing reconciliation docs");
 assert.ok(readme.includes('## Instagram Reels publishing adapter'), "README missing Instagram adapter docs");
-assert.ok(readme.includes('## M24'), true);
 
 console.log('OrbitOS learning next-moves contract tests passed.');
