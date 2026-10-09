@@ -1,5 +1,4 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY =
@@ -7,16 +6,52 @@ const SERVICE_KEY =
   Deno.env.get("SUPABASE_SECRET_KEY") ??
   "";
 
-const admin =
-  PROJECT_URL && SERVICE_KEY
-    ? createClient(PROJECT_URL, SERVICE_KEY, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false,
+type RpcResult = { data: unknown; errorCode: string | null };
+
+async function callRpc(name: string, args: Record<string, unknown>): Promise<RpcResult> {
+  if (!PROJECT_URL || !SERVICE_KEY) {
+    return { data: null, errorCode: "SCHEDULER_CONFIGURATION_UNAVAILABLE" };
+  }
+
+  try {
+    const response = await fetch(
+      PROJECT_URL.replace(/\\/$/, "") + "/rest/v1/rpc/" + encodeURIComponent(name),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + SERVICE_KEY,
+          "apikey": SERVICE_KEY,
         },
-      })
-    : null;
+        body: JSON.stringify(args),
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+
+    if (!response.ok) {
+      let errorCode = "RPC_REQUEST_FAILED";
+      try {
+        const value: unknown = await response.json();
+        if (
+          value !== null &&
+          typeof value === "object" &&
+          "code" in value &&
+          typeof value.code === "string" &&
+          /^[A-Z0-9_]{1,64}$/.test(value.code)
+        ) {
+          errorCode = value.code;
+        }
+      } catch {
+        // Keep the RPC failure sanitized if the response isn't JSON.
+      }
+      return { data: null, errorCode };
+    }
+
+    return { data: await response.json(), errorCode: null };
+  } catch {
+    return { data: null, errorCode: "RPC_REQUEST_FAILED" };
+  }
+}
 
 function json(body: Record<string, unknown>, status = 200): Response {
   return Response.json(body, {
@@ -55,20 +90,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: "AUTH_REQUIRED" }, 401);
   }
 
-  if (!admin || !PROJECT_URL || !SERVICE_KEY) {
+  if (!PROJECT_URL || !SERVICE_KEY) {
     return json({ error: "SCHEDULER_CONFIGURATION_UNAVAILABLE" }, 503);
   }
 
   // This endpoint is invoked by pg_cron. A random, Vault-held token is
   // verified server-side; the token is never logged or returned.
-  const { data: authorized, error: authError } = await admin.rpc(
+  const { data: authorized, errorCode: authError } = await callRpc(
     "verify_orbitoos_publishing_scheduler_token",
     { p_candidate: token },
   );
 
   if (authError) {
     console.error("publishing-scheduler authorization check failed", {
-      code: authError.code ?? "AUTH_CHECK_FAILED",
+      code: authError ?? "AUTH_CHECK_FAILED",
     });
     return json({ error: "SCHEDULER_AUTHORIZATION_UNAVAILABLE" }, 503);
   }
@@ -82,14 +117,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ ok: true, skipped: "PUBLISHING_DISABLED" });
   }
 
-  const { data: leaseToken, error: leaseError } = await admin.rpc(
+  const { data: leaseToken, errorCode: leaseError } = await callRpc(
     "claim_orbitoos_publishing_scheduler_lease",
     { p_lease_seconds: 240 },
   );
 
   if (leaseError) {
     console.error("publishing-scheduler lease claim failed", {
-      code: leaseError.code ?? "LEASE_CLAIM_FAILED",
+      code: leaseError ?? "LEASE_CLAIM_FAILED",
     });
     return json({ error: "SCHEDULER_LEASE_UNAVAILABLE" }, 503);
   }
@@ -151,13 +186,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: "PUBLISHING_WORKER_UNAVAILABLE" }, 502);
   } finally {
     if (releaseLease) {
-      const { error } = await admin.rpc(
+      const { errorCode } = await callRpc(
         "release_orbitoos_publishing_scheduler_lease",
         { p_lease_token: leaseToken },
       );
-      if (error) {
+      if (errorCode) {
         console.error("publishing-scheduler lease release failed", {
-          code: error.code ?? "LEASE_RELEASE_FAILED",
+          code: errorCode ?? "LEASE_RELEASE_FAILED",
         });
       }
     }
