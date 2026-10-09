@@ -293,12 +293,27 @@ async function settings(){
  const ai=state.settings?.ai||{provider:"local",model:"",baseUrl:"http://localhost:11434/api"};
  const runtime=state.runtime||{mode:"local",provider:"local-store",persistent:false,authenticated:false};
  const auth=state.auth||{status:"signed_out",user:null};
+ const workspaceRole=String(state.auth?.membership?.role||"").toLowerCase();
+ const canManageSocialAccounts=runtime.authenticated&&["owner","admin"].includes(workspaceRole);
+ const instagramAccounts=Array.isArray(state.socialAccounts)?state.socialAccounts.filter(a=>a.platform==="instagram"):[];
+ const connectedInstagram=instagramAccounts.filter(a=>a.status==="connected");
+ const instagramStatus=connectedInstagram.length?"CONNECTED":instagramAccounts.some(a=>a.status==="reauth_required")?"REAUTH REQUIRED":"NOT CONNECTED";
+ const instagramAccountRows=instagramAccounts.length
+  ? '<div style="display:grid;gap:8px;margin-top:10px">'+instagramAccounts.map(a=>'<div class="row"><span>'+esc(a.handle?"@"+a.handle:(a.displayName||"Instagram account"))+'</span><span class="badge '+(a.status==="connected"?"ok":"warn")+'">'+esc(String(a.status||"pending").replaceAll("_"," ").toUpperCase())+'</span></div>').join("")+'</div>'
+  : '<p class="small" style="margin-top:10px">No Instagram accounts connected to this workspace yet.</p>';
+ const instagramAdminAction=canManageSocialAccounts
+  ? '<div class="actions" style="margin-top:12px">'+btn(connectedInstagram.length?"Reconnect Instagram":"Connect Instagram","connectInstagram()",true)+'</div><p class="small" style="margin-top:8px">Connects an Instagram professional account through Meta OAuth. Connecting an account does not enable automatic publishing.</p>'
+  : '<div class="notice" style="margin-top:10px">A signed-in workspace owner or admin is required to connect social accounts.</div>';
+ const instagramCard=runtime.authenticated
+  ? '<div class="card"><div class="row"><div><h2>Instagram</h2><p class="small">Official account connection</p></div><span class="badge '+(connectedInstagram.length?"ok":"warn")+'">'+instagramStatus+'</span></div>'+instagramAccountRows+instagramAdminAction+'</div>'
+  : '';
  const authCard=runtime.authenticated
   ? '<div class="card"><div class="row"><div><h2>Supabase workspace</h2><p class="small">Persistent backend is connected for this signed-in account.</p></div><span class="badge ok">CONNECTED</span></div><table class="table" style="margin-top:10px"><tr><td>Account</td><td>'+esc(auth.user?.email||runtime.userId||"Signed in")+'</td></tr><tr><td>Role</td><td>'+esc(state.auth?.membership?.role||"owner")+'</td></tr></table><div class="actions" style="margin-top:10px">'+btn("Sign out","authSignOut()")+'</div></div>'
   : '<div class="card"><div class="row"><div><h2>Connect workspace</h2><p class="small">Sign in to switch this same OrbitOS runtime to the persistent Supabase workspace.</p></div><span class="badge">SIGNED OUT</span></div><div class="actions" style="margin-top:10px">'+btn("Sign in","authModal('signin')",true)+btn("Create account","authModal('signup')")+'</div><div class="small" style="margin-top:8px">Authentication uses Supabase Auth. Only the publishable client key ships to the browser.</div></div>';
  shell("Settings","Free-first controls, workspace identity, backup, and safety gates","",
  '<div class="grid two">'+
  authCard+
+  instagramCard+
  '<div class="card"><div class="row"><h2>Workspace & identity</h2><span class="badge '+(runtime.authenticated?"ok":"")+'">'+(runtime.authenticated?"AUTHENTICATED":"LOCAL")+'</span></div><table class="table" style="margin-top:10px"><tr><td>Workspace</td><td>'+esc(state.workspace?.name||"Local Workspace")+'</td></tr><tr><td>Workspace ID</td><td>'+esc(runtime.workspaceId||state.workspace?.id||"local")+'</td></tr><tr><td>User</td><td>'+esc(runtime.userId||"Local session")+'</td></tr><tr><td>Persistence</td><td>'+esc(runtime.persistent?"Backend persistent":"Browser localStorage")+'</td></tr><tr><td>Provider</td><td>'+esc(runtime.provider)+'</td></tr></table><div class="notice" style="margin-top:10px">'+(runtime.authenticated?"Signed-in workspace runtime is active.":"Local mode is active.")+'</div></div>'+
  '<div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div>'+
  '<div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div>'+
@@ -307,6 +322,16 @@ async function settings(){
  '<div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>'+esc(runtime.persistent?"Authenticated persistent store":"Local storage adapter")+'</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div>'+
  '</div><div class="card" style="margin-top:14px"><div class="notice">Browser auth and the persistent backend are real connections now. Publishing remains independently locked.</div></div>');
 }
+async function connectInstagram(){
+ try{
+  await window.orbitCoreReady;
+  const result=await window.orbitCore.startInstagramOAuth({brandId:activeBrandKey()});
+  window.location.assign(result.authorizationUrl);
+ }catch(error){
+  toast(error.message||"Instagram connection could not start. Please try again.");
+ }
+}
+
 function authModal(mode="signin"){
  const isSignup=mode==="signup";
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><div><h2>'+(isSignup?"Create OrbitOS account":"Sign in to OrbitOS")+'</h2><div class="small">'+(isSignup?"Create a Supabase account for the persistent workspace.":"Continue to your persistent OrbitOS workspace.")+'</div></div>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:14px"><label>Email<input class="input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input class="input" id="authPassword" type="password" autocomplete="'+(isSignup?"new-password":"current-password")+'" placeholder="At least 6 characters"></label></div><div class="actions" style="justify-content:flex-end;margin-top:14px">'+btn(isSignup?"Create account":"Sign in","submitAuth('"+mode+"')",true)+'</div></div></div>';
@@ -446,6 +471,30 @@ async function saveAiSettings(){
  const config={provider:document.getElementById("aiProvider").value,model:document.getElementById("aiModel").value.trim(),baseUrl:document.getElementById("aiBaseUrl").value.trim()};
  try{await window.orbitCoreReady;state=await window.orbitCore.setAiConfig(config);toast("AI settings saved");render()}catch(error){toast(error.message||"AI settings failed")}
 }
+function consumeInstagramOAuthResult(){
+ let url;
+ try{url=new URL(window.location.href)}catch{return}
+ if(url.searchParams.get("social_connection")!=="instagram")return;
+ const result=url.searchParams.get("result")||"";
+ url.searchParams.delete("social_connection");
+ url.searchParams.delete("result");
+ window.history.replaceState({},document.title,url.pathname+(url.search?url.search:"")+url.hash);
+ const messages={
+  connected:"Instagram account connected securely.",
+  denied:"Instagram connection was cancelled.",
+  invalid_state:"The Instagram connection request expired or was invalid. Try again.",
+  missing_code:"Instagram did not return an authorization code.",
+  token_exchange_failed:"Instagram could not exchange the authorization code. Please try again.",
+  long_lived_token_failed:"Instagram did not provide a long-lived access token.",
+  profile_lookup_failed:"OrbitOS could not verify the Instagram account.",
+  account_save_failed:"OrbitOS could not save the Instagram account.",
+  token_storage_failed:"Secure token storage failed. The account was not marked connected.",
+  connection_finalize_failed:"OrbitOS could not finalize the connection. Please reconnect after checking setup.",
+  provider_request_failed:"Instagram could not complete the connection. Please try again."
+ };
+ toast(messages[result]||"Instagram connection did not finish. Please try again.");
+}
+
 async function importAnalyticsReportPrompt(){
  const input=document.getElementById("analyticsFileInput");
  if(!input)return;
@@ -484,6 +533,7 @@ async function boot(){
      state=await window.orbitCore.refresh();
      state.auth=authSnapshot;
      render();
+   consumeInstagramOAuthResult();
     }catch(error){
      toast(error.message||"Authentication state refresh failed");
     }
