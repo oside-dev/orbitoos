@@ -190,11 +190,42 @@ await store.set({
     },
   ],
   schedules: [],
+  socialAccounts: [{
+    id: "social-server-owned",
+    workspaceId: "workspace-1",
+    brandId: "brand-2",
+    platform: "instagram",
+    accountType: "business",
+    externalAccountId: "ig-123",
+    status: "connected",
+    scopes: ["instagram_business_content_publish"],
+    metadata: {},
+    connectedAt: "2026-10-08T00:00:00.000Z",
+    updatedAt: "2026-10-08T00:00:00.000Z",
+  }],
+  publishingJobs: [{
+    id: "job-server-owned",
+    workspaceId: "workspace-1",
+    brandId: "brand-2",
+    socialAccountId: "social-server-owned",
+    contentItemId: "content-1",
+    contentVariantId: "variant-1",
+    idempotencyKey: "schedule-server-owned:1",
+    scheduledAt: "2030-01-01T12:00:00.000Z",
+    status: "queued",
+    attempts: 0,
+    payload: {},
+    createdAt: "2026-10-08T00:00:00.000Z",
+  }],
   metrics: [],
   audit: [],
   learning: { generatedAt: null, insights: [] },
   learningInsights: [],
 });
+
+// Backend-owned account/job records are readable but must not be written by browser snapshots.
+assert.equal((tables.get("social_accounts") ?? []).length, 0);
+assert.equal((tables.get("publishing_jobs") ?? []).length, 0);
 
 // Snapshot writes do not infer deletions; this protects rows created by concurrent sessions.
 assert.equal((tables.get("ideas") ?? []).some((row) => row.id === "stale-idea"), true);
