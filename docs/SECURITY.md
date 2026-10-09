@@ -33,6 +33,12 @@ When a real backend is introduced, Auth supplies the user identity and RLS enfor
 ## Publishing boundary
 
 Database authentication does not enable social publishing. Publishing still requires the existing official-adapter, credentials, idempotency, rate-limit, schedule, human-approval, and audit gates.
+## Publishing outcome reconciliation
+
+Ambiguous provider outcomes are not automatically retried. The `publishing-reconciliation` Edge Function requires a verified signed-in user and permits only workspace owners/admins to resolve a failed job marked `PUBLISH_OUTCOME_UNKNOWN`. The operator identity is derived from the verified session, never from request input, and the database rechecks the operator's workspace role.
+
+The database RPC is executable only by `service_role`, uses `SECURITY INVOKER` with an empty search path, and writes to a private RLS-enabled audit table. The table grants the service role select/insert only; it grants no update/delete, and audit rows have no cascading job foreign key. Resolutions are limited to confirming an actual provider post ID or closing the job without retry. The RPC and endpoint never enqueue or publish content.
+
 ## Runtime honesty
 
 The UI must never label the local browser runtime as authenticated or backend-persistent. Runtime mode is explicit and comes from the runtime environment boundary. A future Supabase connection must provide a verified Auth user and workspace membership before switching to authenticated-persistent mode.
