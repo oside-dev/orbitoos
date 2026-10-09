@@ -1,6 +1,7 @@
 -- OrbitOS social publishing foundation
 -- Applied to Supabase project lkcbtgqdvzmaihcnxxwk on 2026-10-08.
 -- This document is the source-of-truth SQL for the live schema additions.
+-- M28 makes social-account metadata and publishing-job state backend-owned.
 
 create table if not exists public.social_accounts (
   id text primary key,
@@ -120,8 +121,13 @@ on public.publishing_jobs
 for delete to authenticated
 using (workspace_id in (select private.user_workspace_ids()));
 
-grant select, insert, update, delete on public.social_accounts to authenticated;
-grant select, insert, update, delete on public.publishing_jobs to authenticated;
+-- Client access is read-only; OAuth and the publishing worker are the writers.
+revoke all on table public.social_accounts from public, anon, authenticated;
+revoke all on table public.publishing_jobs from public, anon, authenticated;
+grant select on public.social_accounts to authenticated;
+grant select on public.publishing_jobs to authenticated;
+grant select, insert, update, delete on public.social_accounts to service_role;
+grant select, insert, update, delete on public.publishing_jobs to service_role;
 
 -- Credential references remain backend-only. RLS is defense in depth:
 -- intentionally create no client policies for this table.

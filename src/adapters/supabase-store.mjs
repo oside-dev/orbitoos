@@ -423,50 +423,10 @@ export function createSupabaseStateStore({ client, workspaceId } = {}) {
       })),
     );
 
-    await upsert(
-      "social_accounts",
-      state.socialAccounts.map((item) => ({
-        id: item.id,
-        workspace_id: id,
-        brand_id: item.brandId ?? state.activeBrandId ?? null,
-        platform: item.platform,
-        account_type: item.accountType,
-        external_account_id: item.externalAccountId,
-        handle: item.handle ?? "",
-        display_name: item.displayName ?? "",
-        profile_url: item.profileUrl ?? "",
-        avatar_url: item.avatarUrl ?? "",
-        status: item.status,
-        scopes: item.scopes ?? [],
-        metadata: item.metadata ?? {},
-        connected_at: item.connectedAt,
-        last_synced_at: item.lastSyncedAt ?? null,
-        updated_at: item.updatedAt,
-      })),
-    );
-
-    await upsert(
-      "publishing_jobs",
-      state.publishingJobs.map((item) => ({
-        id: item.id,
-        workspace_id: id,
-        brand_id: item.brandId ?? state.activeBrandId ?? null,
-        social_account_id: item.socialAccountId,
-        content_item_id: item.contentItemId,
-        content_variant_id: item.contentVariantId ?? null,
-        idempotency_key: item.idempotencyKey,
-        scheduled_at: item.scheduledAt,
-        status: item.status,
-        attempts: item.attempts ?? 0,
-        provider_post_id: item.providerPostId ?? null,
-        last_error_code: item.lastErrorCode ?? null,
-        last_error_message: item.lastErrorMessage ?? null,
-        payload: item.payload ?? {},
-        created_at: item.createdAt,
-        started_at: item.startedAt ?? null,
-        finished_at: item.finishedAt ?? null,
-      })),
-    );
+    // These are backend-owned records. OAuth handlers manage social_accounts,
+    // and the scheduler/worker manage publishing_jobs. The browser may read them
+    // through this adapter, but snapshot writes must never forge account status,
+    // provider credentials metadata, publishing outcomes, idempotency keys, or leases.
 
     await upsert(
       "analytics_snapshots",

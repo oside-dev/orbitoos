@@ -44,6 +44,8 @@ jobs:
           test -f supabase/functions/publishing-scheduler/index.ts
           test -f docs/operations/instagram-token-refresh-scheduler.md
           test -f supabase/migrations/20261009082359_orbitoos_instagram_token_refresh_scheduler.sql
+          test -f supabase/migrations/20261009090000_orbitoos_backend_owned_records.sql
+          test -f tests/server-owned-records-contract.mjs
           test -f supabase/functions/instagram-token-refresh-scheduler/index.ts
           test -f tests/instagram-token-refresh-scheduler-contract.mjs
           test -f supabase/functions/publishing-operations/index.ts
@@ -135,6 +137,8 @@ jobs:
 
       - name: Run persistent adapter tests
         run: node tests/supabase-store.mjs
+      - name: Run backend-owned record security contract tests
+        run: node tests/server-owned-records-contract.mjs
 
       - name: Run persistent content loop tests
         run: node tests/persistent-content-loop.mjs

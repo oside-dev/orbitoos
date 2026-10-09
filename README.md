@@ -100,6 +100,7 @@ https://orbitoos.vercel.app
 - M25 — Scheduled job materialization — eligible approved schedules become idempotent durable jobs only after the worker's global and official-adapter gates pass
 - M26 — Publishing scheduler dispatch — Supabase Cron invokes a Vault-authenticated dispatcher every minute; a database lease prevents overlapping worker calls, and the global publishing switch remains the final gate
 - M27 — Instagram token refresh scheduler — daily Vault-authenticated dispatch with a dedicated lease; token rotation remains disabled until an operator explicitly enables the refresh gate
+- M28 — Backend-owned publishing records — social-account metadata, publishing-job state, and subscription state are read-only to browsers; server-side OAuth, worker RPCs, and billing services own writes
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -199,3 +200,9 @@ Activation later requires `META_GRAPH_API_VERSION`, `ORBITOS_INSTAGRAM_PUBLISHIN
 M27 registers `orbitoos-instagram-token-refresh` to invoke the Vault-authenticated `instagram-token-refresh-scheduler` once daily at 02:17 UTC. A dedicated service-role-only lease prevents overlapping refresh runs. The dispatcher calls the existing token-refresh endpoint only when `ORBITOS_INSTAGRAM_REFRESH_ENABLED=true`; both the dispatcher and endpoint fail closed otherwise.
 
 The migration reuses the existing Vault-held project URL, publishable key, and random scheduler token. It does not add a secret to source, rotate credentials, or enable live publishing. Verify the scheduled job and the `TOKEN_REFRESH_DISABLED` safe response before considering a controlled refresh test. See [the token-refresh scheduler runbook](docs/operations/instagram-token-refresh-scheduler.md).
+
+## Backend-owned social and publishing records
+
+M28 removes browser insert/update/delete/truncate privileges from `social_accounts`, `publishing_jobs`, and `subscriptions`. Authenticated workspace members retain row-scoped read access through RLS. OAuth callbacks manage social-account records; the scheduled materializer and worker transition RPCs manage publishing jobs; trusted billing/backend services manage subscriptions.
+
+The persistent browser adapter continues to load the records for display but does not write them as part of a full-state snapshot. This prevents direct client writes from fabricating a connected account, editing job status/provider IDs/lease fields, or changing subscription state outside server-side control. Live publishing remains independently disabled by its existing feature gate.
