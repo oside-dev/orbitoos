@@ -181,6 +181,58 @@ export async function createOrbitApplicationBrowserBridge({
     return auth.getSession();
   }
 
+  async function startInstagramOAuth({ brandId } = {}) {
+    if (!remote?.environment?.authenticated) {
+      throw new Error("Sign in to OrbitOS before connecting Instagram.");
+    }
+
+    const workspaceId = String(remote.environment.workspaceId ?? "").trim();
+    const coreSnapshot = await remote.runtime.snapshot();
+    const selectedBrandId = String(
+      brandId ?? coreSnapshot?.activeBrandId ?? coreSnapshot?.brand?.id ?? "",
+    ).trim();
+
+    if (!workspaceId || !selectedBrandId) {
+      throw new Error("Select a workspace and brand before connecting Instagram.");
+    }
+
+    const { data, error } = await client.functions.invoke("instagram-oauth-start", {
+      body: { workspaceId, brandId: selectedBrandId },
+    });
+
+    const status = Number(error?.context?.status ?? error?.status ?? 0);
+    if (status === 503 || data?.error === "OAUTH_NOT_CONFIGURED") {
+      throw new Error(        "Instagram connection is not configured yet. A workspace administrator must finish Meta app setup.",
+      );
+    }
+    if (status === 403) {
+      throw new Error("Only a workspace owner or admin can connect Instagram.");
+    }
+    if (error) {
+      throw new Error("Instagram connection could not start. Please try again.");
+    }
+
+    let authorizationUrl;
+    try {
+      authorizationUrl = new URL(String(data?.authorizationUrl ?? ""));
+    } catch {
+      throw new Error("Instagram returned an invalid authorization URL.");
+    }
+
+    if (
+      authorizationUrl.protocol !== "https:" ||
+      authorizationUrl.origin !== "https://www.instagram.com" ||
+      authorizationUrl.pathname !== "/oauth/authorize"
+    ) {
+      throw new Error("Instagram returned an unexpected authorization URL.");
+    }
+
+    return {
+      authorizationUrl: authorizationUrl.toString(),
+      expiresAt: typeof data.expiresAt === "string" ? data.expiresAt : null,
+    };
+  }
+
   async function signInWithPassword(input) {
     const result = await auth.signInWithPassword(input);
     await initializeRemote();
@@ -259,6 +311,7 @@ export async function createOrbitApplicationBrowserBridge({
     refresh,
     getEnvironment,
     getAuthSnapshot,
+    startInstagramOAuth,
     signInWithPassword,
     signUp,
     signOut,

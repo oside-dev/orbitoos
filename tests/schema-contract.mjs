@@ -256,3 +256,35 @@ assert.ok(
 );
 
 console.log("OrbitOS Instagram OAuth contract tests passed.");
+
+const oauthBrowserBridge = readFileSync(
+  new URL("../src/runtime/application-browser-bridge.mjs", import.meta.url),
+  "utf8",
+);
+const oauthSettingsUi = readFileSync(
+  new URL("../index.html", import.meta.url),
+  "utf8",
+);
+
+const instagramConnectUiContract = [
+  [oauthBrowserBridge, 'client.functions.invoke("instagram-oauth-start"'],
+  [oauthBrowserBridge, 'authorizationUrl.origin !== "https://www.instagram.com"'],
+  [oauthBrowserBridge, 'authorizationUrl.pathname !== "/oauth/authorize"'],
+  [oauthBrowserBridge, "startInstagramOAuth"],
+  [oauthSettingsUi, 'btn(connectedInstagram.length?"Reconnect Instagram":"Connect Instagram","connectInstagram()",true)'],
+  [oauthSettingsUi, "async function connectInstagram()"],
+  [oauthSettingsUi, "window.location.assign(result.authorizationUrl)"],
+  [oauthSettingsUi, "function consumeInstagramOAuthResult()"],
+  [oauthSettingsUi, 'connected:"Instagram account connected securely."'],
+  [oauthBrowserBridge, "Instagram connection is not configured yet."],
+  [oauthSettingsUi, "Connecting an account does not enable automatic publishing."],
+];
+
+for (const [source, fragment] of instagramConnectUiContract) {
+  assert.ok(
+    source.includes(fragment),
+    "Missing Instagram connect UI safety fragment: " + fragment,
+  );
+}
+
+console.log("OrbitOS Instagram connect UI contract tests passed.");
