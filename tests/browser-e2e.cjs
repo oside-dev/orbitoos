@@ -186,6 +186,19 @@ async function run() {
       idea.title === "CI browser e2e persistence check"
     ), "new idea should persist across a browser reload");
 
+    await page.locator(".nav button").filter({ hasText: "Settings" }).click();
+    await page.getByRole("button", { name: "Restore demo workspace", exact: true }).waitFor({ timeout: 5000 });
+    await page.once("dialog", dialog => dialog.accept());
+    await page.getByRole("button", { name: "Restore demo workspace", exact: true }).click();
+    await page.getByText("Demo workspace restored", { exact: true }).waitFor({ timeout: 5000 });
+    snapshot = await page.evaluate(() => window.orbitCore.snapshot());
+    assert.ok(snapshot.ideas.some((idea) =>
+      idea.title === "Why most content hooks fail in the first 2 seconds"
+    ), "restoring demo should reintroduce the seeded idea");
+    assert.ok(!snapshot.ideas.some((idea) =>
+      idea.title === "CI browser e2e persistence check"
+    ), "restoring demo should replace only the local browser data");
+
     await page.locator(".nav button").filter({ hasText: "Analytics" }).click();
     await page.locator("#analyticsFileInput").setInputFiles({
       name: "browser-e2e-report.csv",
@@ -211,7 +224,7 @@ async function run() {
     assert.deepEqual(consoleErrors, []);
 
     console.log(
-      "OrbitOS browser E2E passed: clean startup, 9 navigation items, signup confirmation/resend, local persistence and CSV import.",
+      "OrbitOS browser E2E passed: clean startup, navigation, signup confirmation/resend, local persistence, demo recovery and CSV import.",
     );
   } finally {
     await browser.close();
