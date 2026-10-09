@@ -267,7 +267,7 @@ assert.ok(
 console.log("OrbitOS Instagram OAuth contract tests passed.");
 
 const contentVariantTable = sql.match(
-  /create table if not exists content_variants \\(([\\s\\S]*?)\\n\\);/m,
+  /create table if not exists content_variants \(([\s\S]*?)\n\);/m,
 );
 assert.ok(contentVariantTable, "Missing content_variants table.");
 assert.match(
