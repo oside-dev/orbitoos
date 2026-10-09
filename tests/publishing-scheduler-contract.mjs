@@ -20,6 +20,8 @@ mustContain(scheduler, "verify_orbitoos_publishing_scheduler_token", "server-sid
 mustContain(scheduler, "AUTH_REQUIRED", "unauthorized callers are rejected");
 mustContain(scheduler, "SUPABASE_SERVICE_ROLE_KEY", "server-side administrative key is required");
 mustContain(scheduler, "/rest/v1/rpc/", "RPC calls use native authenticated fetch");
+mustContain(scheduler, "const BASE_URL = PROJECT_URL.endsWith(\"/\")", "URL base normalization is syntax-safe");
+assert.ok(!scheduler.includes("PROJECT_URL.replace("), "Avoid fragile escaped URL regex literals.");
 assert.ok(!scheduler.includes("npm:@supabase/supabase-js"), "Scheduler keeps dependencies pinned by using the native fetch API.");
 mustContain(scheduler, "ORBITOS_PUBLISHING_ENABLED", "global publishing switch checked by dispatcher");
 mustContain(scheduler, "claim_orbitoos_publishing_scheduler_lease", "single-flight lease claimed");
