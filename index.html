@@ -453,7 +453,9 @@ async function settings(){
  '<div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div>'+
  '<div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div>'+
  '<div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+(canManageWorkspaceConfig?btn("Save AI settings","saveAiSettings()",true):'<p class="notice">Only workspace owners or admins can change workspace AI settings.</p>')+'</div></div>'+
- '<div class="card"><h2>Local data</h2><p class="small">Local mode state lives in browser storage. Authenticated workspace state is persisted in Supabase.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div>'+
+ (runtime.authenticated
+  ? '<div class="card"><h2>Workspace data</h2><p class="small">Signed-in data is saved in Supabase. Export a backup here; demo restore and JSON import are disabled to protect the persistent workspace.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+'</div><div class="notice" style="margin-top:10px">To restore a demo or import a backup, sign out and use local mode. Your remote workspace will remain unchanged.</div></div>'
+  : '<div class="card"><h2>Local data</h2><p class="small">Local mode state lives in this browser. Restore the built-in demo workspace or import a backup.</p><div class="actions" style="margin-top:10px">'+btn("Restore demo workspace","restoreDemoWorkspace()",true)+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById(\'fileInput\').click()")+'</div></div>')+
  '<div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>'+esc(runtime.persistent?"Authenticated persistent store":"Local storage adapter")+'</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div>'+
  '</div><div class="card" style="margin-top:14px"><div class="notice">Browser auth and the persistent backend are real connections now. Publishing remains independently locked.</div></div>');
 }
@@ -655,11 +657,19 @@ async function importAnalyticsReportPrompt(){
  input.value="";
  input.click();
 }
-async function resetData(){
- if(!confirm("Reset local OrbitOS data?"))return;
- try{await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(seed));selectedId=state.ideas[0]?.id||null;toast("OrbitOS reset");render()}catch(error){toast(error.message||"Reset failed")}
+async function restoreDemoWorkspace(){
+ try{
+  await window.orbitCoreReady;
+  const runtime=await window.orbitCore.getEnvironment();
+  if(runtime?.authenticated){toast("Demo restore is disabled for signed-in workspaces.");return}
+  if(!confirm("Replace this browser's local OrbitOS data with the built-in demo workspace? Export a backup first to keep your changes."))return;
+  state=await window.orbitCore.importState(JSON.stringify(seed));
+  selectedId=state.ideas[0]?.id||null;
+  toast("Demo workspace restored");
+  render();
+ }catch(error){toast(error.message||"Demo restore failed")}
 }
-document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const p=JSON.parse(r.result);if(!p.state||!p.state.ideas)throw new Error();await window.orbitCoreReady;state=await window.orbitCore.importState(JSON.stringify(p.state));selectedId=state.ideas[0]?.id||null;toast("Backup restored");render()}catch(error){toast(error.message||"Invalid OrbitOS backup")}};r.readAsText(f)});
+document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{await window.orbitCoreReady;const runtime=await window.orbitCore.getEnvironment();if(runtime?.authenticated)throw new Error("JSON import is disabled for signed-in workspaces. Your persistent data has not been changed.");const p=JSON.parse(r.result);if(!p.state||!p.state.ideas)throw new Error();state=await window.orbitCore.importState(JSON.stringify(p.state));selectedId=state.ideas[0]?.id||null;toast("Backup restored");render()}catch(error){toast(error.message||"Invalid OrbitOS backup")}};r.readAsText(f)});
 document.getElementById("analyticsFileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{await window.orbitCoreReady;state=await window.orbitCore.importAnalyticsReport(String(r.result),{source:f.name,provider:f.type||"imported-report"});selectedId=state.ideas[0]?.id||null;toast("Analytics report imported");render()}catch(error){toast(error.message||"Invalid analytics report")}};r.readAsText(f)});
 window.orbitCoreReady=import("./src/runtime/application-browser-bridge.mjs")
  .then(async ({createOrbitApplicationBrowserBridge})=>{
