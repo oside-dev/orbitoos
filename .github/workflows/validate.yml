@@ -51,6 +51,8 @@ jobs:
           test -f supabase/migrations/20261009090948_orbitoos_workspace_role_approval_guard.sql
           test -f supabase/migrations/20261009091753_orbitoos_approved_content_role_guard.sql
           test -f supabase/migrations/20261009114305_orbitoos_workspace_settings_role_guard.sql
+          test -f supabase/migrations/20261009232954_orbitoos_profiles_workspace_visibility.sql
+          test -f tests/profile-workspace-visibility-contract.mjs
           test -f tests/workspace-settings-role-guard-contract.mjs
           test -f tests/local-demo-recovery-contract.mjs
           test -f tests/workspace-role-approval-contract.mjs
@@ -172,6 +174,9 @@ jobs:
 
       - name: Run workspace settings role guard contract tests
         run: node tests/workspace-settings-role-guard-contract.mjs
+
+      - name: Run profile workspace visibility contract tests
+        run: node tests/profile-workspace-visibility-contract.mjs
 
       - name: Run local demo recovery safety contract tests
         run: node tests/local-demo-recovery-contract.mjs
