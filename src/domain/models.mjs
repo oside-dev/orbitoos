@@ -70,9 +70,58 @@ export function createIdea(input, now = Date.now()) {
   };
 }
 
+export function normalizePublicMediaUrl(value = "") {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error("Media URL must be a valid public HTTPS URL.");
+  }
+
+  const hostname = url.hostname.toLowerCase();
+  const localSuffixes = [
+    ".localhost",
+    ".local",
+    ".internal",
+    ".test",
+    ".invalid",
+    ".example",
+  ];
+  const isIpLiteral =
+    /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname) ||
+    hostname.startsWith("[") ||
+    hostname.includes(":");
+  const isLocalHostname =
+    hostname === "localhost" ||
+    hostname === "localhost.localdomain" ||
+    !hostname.includes(".") ||
+    localSuffixes.some((suffix) => hostname.endsWith(suffix));
+
+  if (
+    url.protocol !== "https:" ||
+    !hostname ||
+    url.username ||
+    url.password ||
+    isIpLiteral ||
+    isLocalHostname
+  ) {
+    throw new Error(
+      "Media URL must use HTTPS, contain no credentials, and use a public hostname.",
+    );
+  }
+
+  // Fragments never reach the remote media server; remove them from the stored URL.
+  url.hash = "";
+  return url.toString();
+}
+
 export function createVariant(input = {}) {
   return {
     platform: String(input.platform ?? ""),
+    mediaUrl: normalizePublicMediaUrl(input.mediaUrl ?? input.media_url ?? ""),
     hook: String(input.hook ?? ""),
     body: String(input.body ?? ""),
     cta: String(input.cta ?? ""),
@@ -114,6 +163,7 @@ export function createContentVariant(input = {}, now = Date.now()) {
     contentItemId: input.contentItemId ?? null,
     brandId: input.brandId ?? null,
     platform,
+    mediaUrl: normalizePublicMediaUrl(input.mediaUrl ?? input.media_url ?? ""),
     hook: String(input.hook ?? ""),
     body: String(input.body ?? ""),
     cta: String(input.cta ?? ""),
