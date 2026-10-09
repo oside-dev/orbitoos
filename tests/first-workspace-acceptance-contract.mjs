@@ -16,7 +16,7 @@ for (const required of [
   "Confirm your email",
   "Backend persistent",
   "bootstrap-workspace",
-  "Restore demo workspace",
+  "demo can be restored there",
   "Check integration setup",
   "ORBITOS_PUBLISHING_ENABLED",
   "ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED",
