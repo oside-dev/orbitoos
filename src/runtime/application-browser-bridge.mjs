@@ -285,7 +285,11 @@ export async function createOrbitApplicationBrowserBridge({
 
   async function signUp(input) {
     const result = await auth.signUp(input);
-    if (result?.user?.id) await initializeRemote();
+    // Email-confirmation signups return a user without an authenticated session.
+    // Do not initialize the persistent workspace until a session actually exists.
+    if (result?.status === "signed_in" && result?.user?.id) {
+      await initializeRemote();
+    }
     return result;
   }
 
