@@ -243,3 +243,14 @@ grant execute on function public.delete_social_account_secrets(text)
   to service_role;
 grant execute on function private.delete_social_account_vault_secrets()
   to service_role;
+
+-- Defense-in-depth policy: only the backend service role is explicitly allowed.
+-- PUBLIC, anon and authenticated still have no table grants or policies.
+alter table private.social_account_secrets enable row level security;
+drop policy if exists social_account_secrets_service_role_all
+  on private.social_account_secrets;
+create policy social_account_secrets_service_role_all
+  on private.social_account_secrets
+  for all to service_role
+  using (true)
+  with check (true);

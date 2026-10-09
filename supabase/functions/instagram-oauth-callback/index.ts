@@ -177,54 +177,38 @@ Deno.serve(
         return appResult("profile_lookup_failed");
       }
 
-      // Reuse the existing primary key during reconnect. Rotating account IDs
-      // would break credential references and could cascade-delete publishing jobs.
-      const { data: existingAccount, error: existingAccountError } = await ctx.supabaseAdmin
-        .from("social_accounts")
-        .select("id, status, metadata, connected_at")
-        .eq("workspace_id", storedState.workspace_id)
-        .eq("platform", "instagram")
-        .eq("external_account_id", externalAccountId)
-        .maybeSingle();
-
-      if (existingAccountError) {
-        console.error("instagram-oauth-callback account lookup failed", {
-          code: existingAccountError.code ?? "ACCOUNT_LOOKUP_FAILED",
-        });
-        return appResult("account_save_failed");
-      }
-
-      const now = new Date().toISOString();
-      const { data: account, error: accountError } = await ctx.supabaseAdmin
-        .from("social_accounts")
-        .upsert(
-          {
-            id: existingAccount?.id ?? "social-instagram-" + crypto.randomUUID(),
-            workspace_id: storedState.workspace_id,
-            brand_id: storedState.brand_id,
-            platform: "instagram",
-            account_type: "profile",
-            external_account_id: externalAccountId,
-            handle: typeof profileBody.username === "string" ? profileBody.username : "",
-            display_name: typeof profileBody.username === "string" ? profileBody.username : "Instagram account",
-            profile_url: typeof profileBody.username === "string" && profileBody.username
-              ? "https://www.instagram.com/" + encodeURIComponent(profileBody.username) + "/"
-              : "",
-            status: "pending",
-            scopes: [...REQUESTED_SCOPES],
-            metadata: {
-              provider: "instagram_login",
-              tokenExpiresAt,
-            },
-            connected_at: existingAccount?.connected_at ?? now,
-            updated_at: now,
+      // A database RPC locks existing accounts and resolves insert races without
+      // ever changing the primary key referenced by Vault rows or publishing jobs.
+      const { data: account, error: accountError } = await ctx.supabaseAdmin.rpc(
+        "upsert_instagram_social_account",
+        {
+          p_workspace_id: storedState.workspace_id,
+          p_brand_id: storedState.brand_id,
+          p_external_account_id: externalAccountId,
+          p_handle: typeof profileBody.username === "string" ? profileBody.username : "",
+          p_display_name: typeof profileBody.username === "string" ? profileBody.username : "Instagram account",
+          p_profile_url: typeof profileBody.username === "string" && profileBody.username
+            ? "https://www.instagram.com/" + encodeURIComponent(profileBody.username) + "/"
+            : "",
+          p_scopes: [...REQUESTED_SCOPES],
+          p_metadata: {
+            provider: "instagram_login",
+            tokenExpiresAt,
           },
-          { onConflict: "workspace_id,platform,external_account_id" },
-        )
-        .select("id")
-        .single();
+        },
+      );
 
-      if (accountError || !account?.id) {
+      const accountId = typeof account?.accountId === "string" ? account.accountId : "";
+      const accountCreated = account?.created === true;
+      const previousStatus = typeof account?.previousStatus === "string"
+        ? account.previousStatus
+        : "reauth_required";
+      const previousMetadata = account?.previousMetadata &&
+        typeof account.previousMetadata === "object"
+        ? account.previousMetadata
+        : {};
+
+      if (accountError || !accountId) {
         console.error("instagram-oauth-callback account upsert failed", {
           code: accountError?.code ?? "ACCOUNT_UPSERT_FAILED",
         });
@@ -234,7 +218,7 @@ Deno.serve(
       const { data: secretSaved, error: secretError } = await ctx.supabaseAdmin.rpc(
         "store_social_account_secret",
         {
-          p_social_account_id: account.id,
+          p_social_account_id: accountId,
           p_secret_kind: "access",
           p_secret_value: accessToken,
         },
@@ -243,21 +227,21 @@ Deno.serve(
       if (secretError || secretSaved !== true) {
         // Existing credentials are transactionally unchanged when the Vault RPC
         // fails. Restore prior metadata/status instead of breaking a valid account.
-        if (existingAccount) {
+        if (!accountCreated) {
           await ctx.supabaseAdmin
             .from("social_accounts")
             .update({
-              status: existingAccount.status,
-              metadata: existingAccount.metadata ?? {},
+              status: previousStatus,
+              metadata: previousMetadata,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", account.id)
+            .eq("id", accountId)
             .eq("workspace_id", storedState.workspace_id);
         } else {
           await ctx.supabaseAdmin
             .from("social_accounts")
             .update({ status: "reauth_required", updated_at: new Date().toISOString() })
-            .eq("id", account.id)
+            .eq("id", accountId)
             .eq("workspace_id", storedState.workspace_id);
         }
         console.error("instagram-oauth-callback secure token storage failed", {
@@ -273,22 +257,26 @@ Deno.serve(
           last_synced_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", account.id)
+        .eq("id", accountId)
         .eq("workspace_id", storedState.workspace_id);
 
       if (connectedError) {
         // For an existing account the new token is already stored securely; do
         // not delete it or erase the account's credentials on a status-write error.
         // For a new account, remove the newly created secret reference on failure.
-        if (!existingAccount) {
+        if (accountCreated) {
           await ctx.supabaseAdmin.rpc("delete_social_account_secrets", {
-            p_social_account_id: account.id,
+            p_social_account_id: accountId,
           });
         }
         await ctx.supabaseAdmin
           .from("social_accounts")
-          .update({ status: "reauth_required", updated_at: new Date().toISOString() })
-          .eq("id", account.id)
+          .update({
+            status: accountCreated ? "reauth_required" : previousStatus,
+            metadata: accountCreated ? (account?.previousMetadata ?? {}) : { ...previousMetadata, provider: "instagram_login", tokenExpiresAt },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", accountId)
           .eq("workspace_id", storedState.workspace_id);
         console.error("instagram-oauth-callback could not finalize connection", {
           code: connectedError.code ?? "CONNECTION_FINALIZE_FAILED",

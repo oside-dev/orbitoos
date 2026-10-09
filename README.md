@@ -93,6 +93,7 @@ https://orbitoos.vercel.app
 - M18 — Instagram Login OAuth foundation — signed-in workspace-admin start endpoint, hashed single-use callback state, server-side token exchange, Vault storage, and disabled-by-default configuration
 - M19 — Instagram token refresh foundation — service-role-only refresh endpoint, Vault token rotation, expiry metadata maintenance, and a safe reauthorization state for invalid/expired tokens; no schedule is enabled
 - M20 — Platform media URL contract — validated HTTPS media references on content variants, persistent storage, and the publishing worker's approved-variant read model; publishing stays disabled
+- M21 — Atomic Instagram reconnect — database-locked account upserts preserve primary keys during parallel reconnects; private credential/state tables have explicit service-role-only RLS policies
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -143,7 +144,9 @@ Live connection stays unavailable until these Supabase Edge Function secrets are
 
 ## Instagram reconnect safety
 
-Reconnect operations reuse an existing social account's database ID so private Vault references and publishing-job foreign keys remain stable. If Vault token rotation fails, the callback restores the previous account status and metadata instead of forcing a healthy existing account into a reauthorization state. If final status persistence fails, it preserves the credential for an existing account rather than deleting it; newly created accounts still clean up newly written secrets on finalization failure.
+M21 moves reconnect identity into the backend-only RPC `public.upsert_instagram_social_account`. The function locks existing rows and performs an insert-on-conflict recovery path, so simultaneous OAuth callbacks cannot rotate the account primary key used by Vault references and publishing-job foreign keys. The RPC returns the prior status and metadata, allowing the callback to restore them if secure token storage or final status persistence fails. Existing credentials are not erased just because a metadata update fails.
+
+Private secret-reference and OAuth-state tables have explicit `service_role`-only RLS policies and continue to deny table privileges to `anon` and `authenticated`. No client policy or browser credential access was added.
 
 The OAuth state table also has supporting indexes on its user, workspace, and brand foreign keys so cleanup and parent-row cascades do not need unindexed scans.
 
