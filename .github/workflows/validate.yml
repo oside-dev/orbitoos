@@ -223,3 +223,34 @@ jobs:
 
       - name: Run application runtime tests
         run: node tests/application-runtime.mjs
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Playwright Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/orbitoos-browser-test"
+          npm install --prefix "$RUNNER_TEMP/orbitoos-browser-test" playwright@1.56.1
+          "$RUNNER_TEMP/orbitoos-browser-test/node_modules/.bin/playwright" install --with-deps chromium
+
+      - name: Run browser end-to-end checks
+        env:
+          ORBITOS_PLAYWRIGHT_MODULE: ${{ runner.temp }}/orbitoos-browser-test/node_modules/playwright
+        run: |
+          set -e
+          python3 -m http.server 4173 --directory . >"$RUNNER_TEMP/orbitoos-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ >/dev/null
+          node tests/browser-e2e.cjs
