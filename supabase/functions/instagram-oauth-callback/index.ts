@@ -88,6 +88,8 @@ function grantedScopes(payload: Record<string, unknown>): string[] {
       const status = typeof item.status === "string" ? item.status.toLowerCase() : "granted";
       return name && status !== "declined" && status !== "expired" ? [name] : [];
     });
+  } else if (typeof payload.permissions === "string") {
+    values = payload.permissions.split(/[\s,]+/);
   } else if (typeof payload.scope === "string") {
     values = payload.scope.split(/[\s,]+/);
   }
