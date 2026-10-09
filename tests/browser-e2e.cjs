@@ -191,8 +191,8 @@ async function run() {
       name: "browser-e2e-report.csv",
       mimeType: "text/csv",
       buffer: Buffer.from(
-        "platform,date,views,reach,engagements,follower_delta\\n" +
-        "TikTok,2026-10-01,1000,900,90,12\\n" +
+        "platform,date,views,reach,engagements,follower_delta\n" +
+        "TikTok,2026-10-01,1000,900,90,12\n" +
         "LinkedIn,2026-10-01,500,450,25,4",
       ),
     });
