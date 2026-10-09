@@ -182,3 +182,75 @@ for (const fragment of socialVaultContract) {
 }
 
 console.log("OrbitOS Vault-backed social credential contract tests passed.");
+
+
+const oauthStateSql = readFileSync(
+  new URL("../docs/architecture/social-oauth-state.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+
+const oauthStateContract = [
+  "create table if not exists private.social_oauth_states",
+  "state_hash text primary key",
+  "references auth.users(id) on delete cascade",
+  "alter table private.social_oauth_states enable row level security",
+  "create or replace function public.create_social_oauth_state(",
+  "create or replace function public.consume_social_oauth_state(",
+  "consumed_at is null",
+  "expires_at > pg_catalog.now()",
+  "revoke all on function public.create_social_oauth_state(text, uuid, text, text, timestamptz)",
+  "revoke all on function public.consume_social_oauth_state(text)",
+  "grant execute on function public.create_social_oauth_state(text, uuid, text, text, timestamptz)",
+  "grant execute on function public.consume_social_oauth_state(text)",
+];
+
+for (const fragment of oauthStateContract) {
+  assert.ok(
+    oauthStateSql.includes(fragment),
+    "Missing single-use social OAuth state fragment: " + fragment,
+  );
+}
+
+const oauthStart = readFileSync(
+  new URL("../supabase/functions/instagram-oauth-start/index.ts", import.meta.url),
+  "utf8",
+);
+const oauthCallback = readFileSync(
+  new URL("../supabase/functions/instagram-oauth-callback/index.ts", import.meta.url),
+  "utf8",
+);
+
+const instagramOAuthContract = [
+  [oauthStart, 'withSupabase({ auth: "user" }'],
+  [oauthStart, '"instagram_business_basic"'],
+  [oauthStart, '"instagram_business_content_publish"'],
+  [oauthStart, '"create_social_oauth_state"'],
+  [oauthStart, '["owner", "admin"]'],
+  [oauthStart, 'return json(req, { error: "OAUTH_NOT_CONFIGURED" }, 503);'],
+  [oauthCallback, 'withSupabase({ auth: "none" }'],
+  [oauthCallback, '"consume_social_oauth_state"'],
+  [oauthCallback, '"https://api.instagram.com/oauth/access_token"'],
+  [oauthCallback, '"https://graph.instagram.com/access_token"'],
+  [oauthCallback, '"https://graph.instagram.com/me"'],
+  [oauthCallback, '"store_social_account_secret"'],
+  [oauthCallback, '"delete_social_account_secrets"'],
+  [oauthCallback, 'return appResult("token_storage_failed");'],
+  [oauthCallback, 'return appResult("connected");'],
+];
+
+for (const [source, fragment] of instagramOAuthContract) {
+  assert.ok(
+    source.includes(fragment),
+    "Missing Instagram OAuth safety fragment: " + fragment,
+  );
+}
+
+assert.ok(
+  config.includes("[functions.instagram-oauth-callback]") &&
+    config.includes("verify_jwt = false") &&
+    config.includes("[functions.instagram-oauth-start]") &&
+    config.includes("verify_jwt = true"),
+  "Instagram OAuth Edge Function auth configuration is incomplete.",
+);
+
+console.log("OrbitOS Instagram OAuth contract tests passed.");
