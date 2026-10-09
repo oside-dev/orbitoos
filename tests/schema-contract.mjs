@@ -266,6 +266,44 @@ assert.ok(
 
 console.log("OrbitOS Instagram OAuth contract tests passed.");
 
+const contentVariantTable = sql.match(
+  /create table if not exists content_variants \\(([\\s\\S]*?)\\n\\);/m,
+);
+assert.ok(contentVariantTable, "Missing content_variants table.");
+assert.match(
+  contentVariantTable[1],
+  /^[ ]*media_url text not null default ''[,]?$/m,
+  "content_variants must persist media_url with a safe empty default.",
+);
+
+const domainModels = readFileSync(
+  new URL("../src/domain/models.mjs", import.meta.url),
+  "utf8",
+);
+const persistentStore = readFileSync(
+  new URL("../src/adapters/supabase-store.mjs", import.meta.url),
+  "utf8",
+);
+const contentStudio = readFileSync(
+  new URL("../index.html", import.meta.url),
+  "utf8",
+);
+const publishingWorkerSource = readFileSync(
+  new URL("../supabase/functions/publishing-worker/index.ts", import.meta.url),
+  "utf8",
+);
+for (const [source, fragment, message] of [
+  [domainModels, "normalizePublicMediaUrl", "Domain media URL validation is missing."],
+  [domainModels, "input.media_url", "Domain model must accept database-style media_url."],
+  [persistentStore, 'media_url: item.mediaUrl ?? ""', "Media URL is not persisted to Supabase."],
+  [persistentStore, 'mediaUrl: row.media_url ?? ""', "Media URL is not loaded from Supabase."],
+  [contentStudio, "Public media URL (HTTPS)", "Content Studio needs a public media URL input."],
+  [contentStudio, "editVariant", "Media URL must use the Orbit Runtime update path."],
+  [publishingWorkerSource, "media_url", "Publishing worker must load media_url for the official adapter."],
+]) {
+  assert.ok(source.includes(fragment), message);
+}
+
 const oauthBrowserBridge = readFileSync(
   new URL("../src/runtime/application-browser-bridge.mjs", import.meta.url),
   "utf8",
