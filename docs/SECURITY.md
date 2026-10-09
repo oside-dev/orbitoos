@@ -24,6 +24,12 @@ The contract grants:
 - Authenticated workspace members: CRUD access to brand/content/analytics/learning records in their own workspaces.
 - Workspace provisioning and membership writes: backend-controlled until a dedicated invitation/bootstrap flow exists.
 
+## Workspace roles for approval and scheduling
+
+Workspace-scoped CRUD access remains governed by RLS. Approval is a separate authorization boundary: browser writes that create or transition content into/out of an approved state, or modify the copy of already-approved content, are accepted only for workspace owners, admins, and editors. This includes both `content_items.status` and `content_variants.approved/status`; the database guard is not a UI-only check.
+
+Schedules remain visible to workspace members, but inserting, updating, and deleting them requires the owner, admin, or editor role. Analysts and viewers can still read content and schedules, but cannot directly set approval state or alter schedule records. The scheduler independently rechecks approval before job materialization, so a schedule alone does not authorize publishing.
+
 ## Current deployment posture
 
 The production UI remains local-first by default. The Supabase project hosts the live schema, authentication boundary, OAuth/publishing Edge Functions, Vault-backed credentials, and gated schedulers. The current database has no authenticated users, connected social accounts, scheduled records, or publishing jobs, so real-account integration still requires an operator-controlled setup and test.
