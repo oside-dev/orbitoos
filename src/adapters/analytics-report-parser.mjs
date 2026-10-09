@@ -136,7 +136,7 @@ export function normalizeAnalyticsReportRow(row = {}, options = {}) {
   );
 
   const followerDelta = integer(
-    row.followerDelta ?? row.followerdelta ?? row.followers ?? row.growth ?? row.netFollowers,
+    row.followerDelta ?? row.followerdelta ?? row.follower_delta ?? row.followers ?? row.growth ?? row.netFollowers,
   );
 
   return {
