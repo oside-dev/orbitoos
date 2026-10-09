@@ -25,8 +25,9 @@ mustContain(sql, "revoke all on function public.materialize_scheduled_publishing
 mustContain(sql, "grant execute on function public.materialize_scheduled_publishing_jobs(integer, text[])", "service role execution granted");
 mustContain(sql, "s.status = 'scheduled'", "only still-scheduled records");
 mustContain(sql, "ci.status = 'approved'", "content must be approved");
-mustContain(sql, "cv.status = 'approved'", "variant status must be approved");
-mustContain(sql, "cv.approved is true", "variant must have explicit approval");
+mustContain(sql, "select cv.id, cv.status, cv.approved", "latest variant carries approval state");
+mustContain(sql, ") as variant on variant.status = 'approved' and variant.approved is true", "latest variant must still be approved");
+assert.ok(!sql.includes("and cv.status = 'approved'"), "Do not filter out newer unapproved variants before choosing the latest version.");
 mustContain(sql, "sa.status = 'connected'", "account must be connected");
 mustContain(sql, "account.account_count = 1", "ambiguous multiple accounts are not silently fanned out");
 mustContain(sql, "s.workspace_id", "workspace-scoped account and content joins");
