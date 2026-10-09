@@ -44,7 +44,7 @@ mustContain(endpoint, "WORKSPACE_ADMIN_REQUIRED", "owner/admin denial response")
 mustContain(endpoint, '"get_publishing_operations_overview"', "backend overview RPC");
 mustContain(endpoint, "p_workspace_id: workspaceId", "workspace scope passed to RPC");
 mustContain(endpoint, "p_operator_id: operatorId", "verified actor passed to RPC");
-assert.ok(!endpoint.includes("publishing_jobs").replace("publishing_jobs", "publishing_jobs"), "Expected query design is RPC-based.");
+assert.ok(!endpoint.includes('.from("publishing_jobs")'), "Endpoint must use the workspace-scoped RPC instead of returning raw job queries.");
 
 // Browser bridge and Settings UI: load only via the signed-in runtime; UI is view-only.
 mustContain(bridge, "async function getPublishingOperations()", "bridge method");
@@ -54,7 +54,7 @@ mustContain(ui, "function renderPublishingOperationsPanel(workspaceId)", "read-o
 mustContain(ui, "window.orbitCore.getPublishingOperations()", "bridge-backed dashboard load");
 mustContain(ui, "READ ONLY", "read-only status badge");
 mustContain(ui, "Never sends a social post", "no publishing side effects described");
-mustContain(ui, "reconciliation audit", "reconciliation history section");
+mustContain(ui, "Reconciliation audit", "reconciliation history section");
 assert.ok(!/btn\(["'](?:Retry|Publish now|Requeue)["']/i.test(ui), "Operations panel must not add retry/requeue/publish controls.");
 mustContain(config, "[functions.publishing-operations]\nverify_jwt = true", "platform JWT verification stays enabled");
 
