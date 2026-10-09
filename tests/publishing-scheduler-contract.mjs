@@ -46,6 +46,6 @@ mustContain(sql, "orbitoos_publishing_scheduler_token", "cron token is stored in
 assert.ok(!sql.includes("ORBITOS_PUBLISHING_ENABLED=true"), "Migration must never enable live publishing.");
 mustContain(worker, 'if (Deno.env.get("ORBITOS_PUBLISHING_ENABLED") !== "true")', "worker retains final fail-closed publishing gate");
 mustContain(runbook, "PUBLISHING_DISABLED", "operator docs explain the disabled state");
-mustContain(runbook, "does not turn on any publishing feature flag", "scheduler does not enable publishing");
+mustContain(runbook, "does not set or mutate publishing feature flags", "scheduler does not enable publishing");
 
 console.log("OrbitOS publishing scheduler safety contract tests passed.");
