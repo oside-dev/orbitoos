@@ -294,7 +294,7 @@ const oauthResultCallIndex = oauthSettingsUi.indexOf(
   oauthBootIndex,
 );
 const oauthBootCatchIndex = oauthSettingsUi.indexOf(
-  "  }catch(error){",
+  " }catch(error){",
   oauthResultCallIndex,
 );
 assert.ok(
