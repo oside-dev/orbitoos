@@ -128,7 +128,7 @@ const publishingWorkerContract = [
   '"claim_due_publishing_jobs"',
   "p_platforms: platforms",
   '"PROVIDER_REQUEST_FAILED"',
-  "The official publishing adapter reported a failure.",
+  "The official publishing adapter could not complete this attempt safely.",
   ".eq(\"lease_token\", job.lease_token)",
 ];
 
