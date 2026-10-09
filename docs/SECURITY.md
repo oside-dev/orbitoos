@@ -39,6 +39,12 @@ Ambiguous provider outcomes are not automatically retried. The `publishing-recon
 
 The database RPC is executable only by `service_role`, uses `SECURITY INVOKER` with an empty search path, and writes to a private RLS-enabled audit table. The table grants the service role select/insert only; it grants no update/delete, and audit rows have no cascading job foreign key. Resolutions are limited to confirming an actual provider post ID or closing the job without retry. The RPC and endpoint never enqueue or publish content.
 
+## Publishing operations read boundary
+
+The Settings operations panel is shown only when the signed-in runtime carries a workspace owner/admin role. Its Edge Function also verifies the signed-in user and checks membership server-side; the database RPC repeats that role check rather than trusting the browser. The RPC is `SECURITY INVOKER`, uses an empty search path, and can be executed only by `service_role`.
+
+The returned summary contains workspace-scoped counts and up to 50 recent jobs plus 50 reconciliation events. The response intentionally omits job payloads, idempotency keys, Vault references, access tokens, and raw provider exceptions. Error-message text is bounded, and the UI escapes all values before rendering them. The view is read-only: it cannot retry, cancel, approve, reconcile, or publish jobs.
+
 ## Runtime honesty
 
 The UI must never label the local browser runtime as authenticated or backend-persistent. Runtime mode is explicit and comes from the runtime environment boundary. A future Supabase connection must provide a verified Auth user and workspace membership before switching to authenticated-persistent mode.
