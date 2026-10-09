@@ -246,10 +246,10 @@ for (const [source, fragment] of instagramOAuthContract) {
 }
 
 assert.ok(
-  config.includes("[functions.instagram-oauth-callback]") &&
-    config.includes("verify_jwt = false") &&
-    config.includes("[functions.instagram-oauth-start]") &&
-    config.includes("verify_jwt = true"),
+  supabaseConfig.includes("[functions.instagram-oauth-callback]") &&
+    supabaseConfig.includes("verify_jwt = false") &&
+    supabaseConfig.includes("[functions.instagram-oauth-start]") &&
+    supabaseConfig.includes("verify_jwt = true"),
   "Instagram OAuth Edge Function auth configuration is incomplete.",
 );
 
