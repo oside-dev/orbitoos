@@ -20,6 +20,10 @@ mustContain(sql, "create table if not exists private.publishing_job_reconciliati
 mustContain(sql, "alter table private.publishing_job_reconciliation_events enable row level security", "audit table RLS");
 mustContain(sql, "from public, anon, authenticated, service_role", "audit table direct writes revoked");
 mustContain(sql, "grant select, insert on table private.publishing_job_reconciliation_events to service_role", "backend-only audit inserts");
+mustContain(sql, "create policy publishing_job_reconciliation_service_role_read", "explicit service-role read policy");
+mustContain(sql, "create policy publishing_job_reconciliation_service_role_insert", "explicit service-role insert policy");
+mustContain(sql, "for select to service_role", "audit read policy is service-role only");
+mustContain(sql, "for insert to service_role", "audit insert policy is service-role only");
 mustContain(sql, "create or replace function public.reconcile_unknown_publishing_job(", "reconciliation RPC");
 mustContain(sql, "security invoker", "RPC runs as caller");
 mustContain(sql, "set search_path = ''", "pinned empty search path");
