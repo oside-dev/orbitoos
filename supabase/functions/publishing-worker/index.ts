@@ -191,7 +191,7 @@ Deno.serve(
             .maybeSingle(),
           ctx.supabaseAdmin
             .from("content_variants")
-            .select("id, workspace_id, content_item_id, status, approved, platform, hook, body, cta, hashtags, creative_brief, visual_direction, version")
+            .select("id, workspace_id, content_item_id, status, approved, platform, hook, body, cta, hashtags, creative_brief, visual_direction, media_url, version")
             .eq("id", job.content_variant_id ?? "")
             .eq("workspace_id", job.workspace_id)
             .eq("content_item_id", job.content_item_id)
