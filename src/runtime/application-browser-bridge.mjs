@@ -289,6 +289,10 @@ export async function createOrbitApplicationBrowserBridge({
     return result;
   }
 
+  async function resendSignupConfirmation(input) {
+    return auth.resendSignupConfirmation(input);
+  }
+
   async function signOut() {
     const result = await auth.signOut();
     remote = null;
@@ -360,6 +364,7 @@ export async function createOrbitApplicationBrowserBridge({
     getInstagramIntegrationReadiness,
     signInWithPassword,
     signUp,
+    resendSignupConfirmation,
     signOut,
     onAuthStateChange,
     bootstrapWorkspace,

@@ -460,9 +460,17 @@ async function connectInstagram(){
  }
 }
 
-function authModal(mode="signin"){
+function authModal(mode="signin", email=""){
  const isSignup=mode==="signup";
- document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><div><h2>'+(isSignup?"Create OrbitOS account":"Sign in to OrbitOS")+'</h2><div class="small">'+(isSignup?"Create a Supabase account for the persistent workspace.":"Continue to your persistent OrbitOS workspace.")+'</div></div>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:14px"><label>Email<input class="input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input class="input" id="authPassword" type="password" autocomplete="'+(isSignup?"new-password":"current-password")+'" placeholder="At least 6 characters"></label></div><div class="actions" style="justify-content:flex-end;margin-top:14px">'+btn(isSignup?"Create account":"Sign in","submitAuth('"+mode+"')",true)+'</div></div></div>';
+ const isConfirmation=mode==="confirm-email";
+ if(isConfirmation){
+  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><div><h2>Confirm your email</h2><div class="small">Check your inbox for a confirmation link. After confirming, return here and sign in. If it does not arrive, request another confirmation email below.</div></div>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:14px"><label>Email<input class="input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label></div><div class="actions" style="justify-content:flex-end;margin-top:14px">'+btn("Back to sign in","authModal(\'signin\')")+btn("Resend confirmation email","resendSignupConfirmation()",true)+'</div></div></div>';
+  const emailInput=document.getElementById("authEmail");
+  emailInput.value=String(email??"");
+  emailInput.focus();
+  return;
+ }
+ document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><div><h2>'+(isSignup?"Create OrbitOS account":"Sign in to OrbitOS")+'</h2><div class="small">'+(isSignup?"Create a Supabase account for the persistent workspace.":"Continue to your persistent OrbitOS workspace.")+'</div></div>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:14px"><label>Email<input class="input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Password<input class="input" id="authPassword" type="password" autocomplete="'+(isSignup?"new-password":"current-password")+'" placeholder="At least 6 characters"></label></div><div class="actions" style="justify-content:flex-end;margin-top:14px">'+btn(isSignup?"Create account":"Sign in","submitAuth(\'"+mode+"\')",true)+'</div></div></div>';
  document.getElementById("authEmail").focus();
 }
 async function submitAuth(mode){
@@ -476,9 +484,8 @@ async function submitAuth(mode){
    : await window.orbitCore.signInWithPassword({email,password});
   updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   if(mode==="signup" && result.status==="signed_out"){
-   toast("Account created. Check your email to confirm, then sign in.");
-   closeModal();
-   render();
+   toast("Check your email for a confirmation link.");
+   authModal("confirm-email",email);
    return;
   }
   state=await window.orbitCore.refresh();
@@ -489,6 +496,16 @@ async function submitAuth(mode){
   render();
  }catch(error){toast(error.message||"Authentication failed")}
 }
+async function resendSignupConfirmation(){
+ const email=document.getElementById("authEmail")?.value.trim();
+ if(!email)return toast("Email is required");
+ try{
+  await window.orbitCoreReady;
+  await window.orbitCore.resendSignupConfirmation({email});
+  toast("If an eligible account exists, a confirmation email has been sent. Check your inbox and spam folder.");
+ }catch(error){toast(error.message||"Confirmation email could not be requested. Please try again.")}
+}
+
 async function authSignOut(){
  try{
   await window.orbitCoreReady;

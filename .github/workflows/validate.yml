@@ -116,6 +116,7 @@ jobs:
           test -f tests/multi-brand.mjs
           test -f tests/schema-contract.mjs
           test -f tests/auth.mjs
+          test -f tests/signup-confirmation-recovery-contract.mjs
           test -f tests/environment.mjs
           test -f tests/application-runtime.mjs
           test -f tests/supabase-store.mjs
@@ -132,6 +133,12 @@ jobs:
 
       - name: Run browser bridge tests
         run: node tests/browser-bridge.mjs
+
+      - name: Run authentication boundary tests
+        run: node tests/auth.mjs
+
+      - name: Run signup confirmation recovery contract tests
+        run: node tests/signup-confirmation-recovery-contract.mjs
 
       - name: Run agent tests
         run: node tests/agents.mjs

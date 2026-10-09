@@ -8,6 +8,7 @@ import {
 } from "../src/runtime/authenticated-runtime.mjs";
 
 let callbackState = null;
+let resentConfirmation = null;
 
 const rawUser = {
   id: "user-1",
@@ -36,6 +37,10 @@ const fakeAuth = {
   },
   async signUp() {
     return { data: { user: rawUser, session: null }, error: null };
+  },
+  async resend(input) {
+    resentConfirmation = input;
+    return { data: {}, error: null };
   },
   async signOut() {
     return { data: {}, error: null };
@@ -75,6 +80,18 @@ await auth.signUp({
   email: "boss@example.com",
   password: "not-persisted",
 });
+assert.deepEqual(
+  await auth.resendSignupConfirmation({ email: " boss@example.com " }),
+  { status: "requested" },
+);
+assert.deepEqual(resentConfirmation, {
+  type: "signup",
+  email: "boss@example.com",
+});
+await assert.rejects(
+  () => auth.resendSignupConfirmation({ email: "   " }),
+  /requires an email address/,
+);
 await auth.signOut();
 
 const subscription = auth.onAuthStateChange((_event, snapshot) => {

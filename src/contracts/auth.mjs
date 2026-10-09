@@ -3,6 +3,7 @@ export const AUTH_CONTRACTS = Object.freeze([
   "getUser",
   "signInWithPassword",
   "signUp",
+  "resendSignupConfirmation",
   "signOut",
   "onAuthStateChange",
 ]);
