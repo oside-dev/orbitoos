@@ -116,6 +116,7 @@ jobs:
           test -f tests/multi-brand.mjs
           test -f tests/schema-contract.mjs
           test -f tests/auth.mjs
+          test -f tests/application-browser-bridge-auth.mjs
           test -f tests/signup-confirmation-recovery-contract.mjs
           test -f tests/environment.mjs
           test -f tests/application-runtime.mjs
@@ -136,6 +137,9 @@ jobs:
 
       - name: Run authentication boundary tests
         run: node tests/auth.mjs
+
+      - name: Run application browser bridge auth integration tests
+        run: node tests/application-browser-bridge-auth.mjs
 
       - name: Run signup confirmation recovery contract tests
         run: node tests/signup-confirmation-recovery-contract.mjs
