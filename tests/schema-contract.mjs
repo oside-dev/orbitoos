@@ -381,3 +381,31 @@ assert.ok(
 );
 
 console.log("OrbitOS Instagram token refresh contract tests passed.");
+
+const instagramReelsPublisher = readFileSync(
+  new URL("../supabase/functions/publishing-worker/index.ts", import.meta.url),
+  "utf8",
+);
+const instagramReelsPublisherContract = [
+  ['Deno.env.get("ORBITOS_PUBLISHING_ENABLED") !== "true"', "The global publishing safety switch must remain required."],
+  ['Deno.env.get("ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED") === "true"', "Instagram publishing must require its own server-side flag."],
+  ['Deno.env.get("META_GRAPH_API_VERSION")', "The adapter must require a configured Meta Graph API version."],
+  ['"https://graph.instagram.com/"', "Instagram Login requests must use the Instagram Graph host."],
+  ['"instagram_business_content_publish"', "The adapter must require the modern content-publish permission."],
+  ['"content_publishing_limit"', "The adapter must verify provider publishing quota."],
+  ['"media_type: "REELS""', "The first official adapter must explicitly create Reel containers."],
+  ['"media_publish"', "The adapter must publish the completed media container."],
+  ['' + 'phase: "publish_started"', "The publish request must have a durable pre-call checkpoint."],
+  ['"PUBLISH_OUTCOME_UNKNOWN"', "Ambiguous publish outcomes must not be retried automatically."],
+  ['"manual_reconciliation_required"', "Unknown outcomes must be surfaced for manual reconciliation."],
+  ['' + 'phase: "published"', "Successful provider IDs must be checkpointed before job completion."],
+  ['"Bearer " + accessToken', "Access tokens must be sent in the authorization header."],
+  ['"media_url, version"', "The worker must load the persisted media URL."],
+  ['"INSTAGRAM_PUBLISH_QUOTA_REACHED"', "Quota exhaustion must be handled safely."],
+  ['"INSTAGRAM_REEL_URL_UNSUPPORTED"', "Only validated Reels media URLs should be sent to Meta."],
+];
+for (const [fragment, message] of instagramReelsPublisherContract) {
+  assert.ok(instagramReelsPublisher.includes(fragment), message);
+}
+
+console.log("OrbitOS Instagram Reels publishing adapter safety contract tests passed.");
