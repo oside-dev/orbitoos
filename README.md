@@ -88,6 +88,7 @@ https://orbitoos.vercel.app
 - M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
 - M14 — Social publishing foundation — workspace-scoped social account metadata, durable publishing jobs, idempotency records, and secret-reference boundaries; official OAuth/platform adapters remain gated
 - M15 — Publishing job orchestration — atomic leased claims, expired-lease recovery, bounded retries, and service-role-only job transition RPCs; worker execution and official platform adapters remain gated
+- M16 — Instagram OAuth foundation — user-authenticated connect start, one-time state validation, professional-account permission checks, and Vault-backed token storage; configuration and real publishing remain gated
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -112,3 +113,11 @@ The M15 database contract in `docs/architecture/publishing-job-orchestration.sql
 - backend-only claim/complete/retry RPCs granted only to `service_role`.
 
 This is orchestration infrastructure, not a live publisher. Jobs will not be sent to social networks until an official provider adapter, OAuth credential lifecycle, provider idempotency strategy, rate limits, and human approval checks are implemented and configured. Error diagnostics must be sanitized before they are persisted.
+
+## Instagram OAuth foundation
+
+M16 adds a server-side Instagram Login flow for professional accounts. The start endpoint requires a Supabase user JWT and validates workspace/brand access. The callback consumes a short-lived, one-use state hash before exchanging the authorization code. Long-lived access tokens are stored in Supabase Vault; the browser receives only the connection outcome and non-secret account metadata.
+
+The Edge Functions fail closed until these **Supabase Edge Function secrets** are configured: `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_REDIRECT_URI`, and `ORBITOOS_APP_URL`. The Meta App Dashboard redirect URI must exactly match `INSTAGRAM_REDIRECT_URI`. Do not put any secret value in GitHub, browser state, or this README.
+
+The flow requests `instagram_business_basic` and `instagram_business_content_publish`. It is for Instagram professional accounts (Business/Creator), not consumer accounts. OAuth connection alone does not enable publishing: the platform adapter, safe media handling, provider-side idempotency and rate limits, token refresh lifecycle, and human approval enforcement remain gated. See [Meta's Instagram API documentation](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api) for current login and publishing requirements.
