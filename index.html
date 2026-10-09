@@ -202,6 +202,12 @@ function canManageEditorialActions(){
  return ["owner","admin","editor"].includes(String(state.auth?.membership?.role||"").toLowerCase());
 }
 
+function canManageWorkspaceSettings(){
+ const runtime=state.runtime||{};
+ if(!runtime.authenticated)return true;
+ return ["owner","admin"].includes(String(state.auth?.membership?.role||"").toLowerCase());
+}
+
 async function scheduleVariant(id,platform){
  if(!canManageEditorialActions()){toast("Only workspace owners, admins, or editors can schedule content.");return}
  document.getElementById("modalRoot").innerHTML='<div class="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="row"><h2>Schedule '+esc(platform)+'</h2>'+btn("Close","closeModal()")+'</div><div class="form" style="margin-top:12px"><label>Publish time<input class="input" id="scheduleAt" type="datetime-local"></label></div><div class="actions" style="justify-content:flex-end;margin-top:12px">'+btn("Save schedule","confirmSchedule('"+id+"','"+platform+"')",true)+'</div></div></div>';
@@ -418,6 +424,7 @@ async function settings(){
  const runtime=state.runtime||{mode:"local",provider:"local-store",persistent:false,authenticated:false};
  const auth=state.auth||{status:"signed_out",user:null};
  const workspaceRole=String(state.auth?.membership?.role||"").toLowerCase();
+ const canManageWorkspaceConfig=canManageWorkspaceSettings();
  const canManageSocialAccounts=runtime.authenticated&&["owner","admin"].includes(workspaceRole);
  const instagramAccounts=Array.isArray(state.socialAccounts)?state.socialAccounts.filter(a=>a.platform==="instagram"):[];
  const connectedInstagram=instagramAccounts.filter(a=>a.status==="connected");
@@ -445,7 +452,7 @@ async function settings(){
  '<div class="card"><div class="row"><h2>Workspace & identity</h2><span class="badge '+(runtime.authenticated?"ok":"")+'">'+(runtime.authenticated?"AUTHENTICATED":"LOCAL")+'</span></div><table class="table" style="margin-top:10px"><tr><td>Workspace</td><td>'+esc(state.workspace?.name||"Local Workspace")+'</td></tr><tr><td>Workspace ID</td><td>'+esc(runtime.workspaceId||state.workspace?.id||"local")+'</td></tr><tr><td>User</td><td>'+esc(runtime.userId||"Local session")+'</td></tr><tr><td>Persistence</td><td>'+esc(runtime.persistent?"Backend persistent":"Browser localStorage")+'</td></tr><tr><td>Provider</td><td>'+esc(runtime.provider)+'</td></tr></table><div class="notice" style="margin-top:10px">'+(runtime.authenticated?"Signed-in workspace runtime is active.":"Local mode is active.")+'</div></div>'+
  '<div class="card"><div class="row"><h2>Cost guard</h2><span class="badge ok">LOCKED $0</span></div><p class="small">Core product does not require paid AI/API calls.</p></div>'+
  '<div class="card"><div class="row"><h2>External publishing</h2><span class="badge warn">OFF</span></div><p class="small">No credentials connected and no social post is sent.</p></div>'+
- '<div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+btn("Save AI settings","saveAiSettings()",true)+'</div></div>'+
+ '<div class="card"><h2>Local AI</h2><p class="small">Choose deterministic generation or an optional Ollama model running on this machine.</p><div class="form" style="margin-top:10px"><label>Provider<select class="select" id="aiProvider"><option value="local" '+(ai.provider==="local"?"selected":"")+'>Deterministic local</option><option value="ollama" '+(ai.provider==="ollama"?"selected":"")+'>Ollama (local)</option></select></label><label>Model name<input class="input" id="aiModel" value="'+esc(ai.model)+'" placeholder="e.g. your installed Ollama model"></label><label>Ollama API base<input class="input" id="aiBaseUrl" value="'+esc(ai.baseUrl)+'"></label></div><div class="actions" style="margin-top:10px">'+(canManageWorkspaceConfig?btn("Save AI settings","saveAiSettings()",true):'<p class="notice">Only workspace owners or admins can change workspace AI settings.</p>')+'</div></div>'+
  '<div class="card"><h2>Local data</h2><p class="small">Local mode state lives in browser storage. Authenticated workspace state is persisted in Supabase.</p><div class="actions" style="margin-top:10px">'+btn("Export JSON","exportData()")+btn("Import JSON","document.getElementById('fileInput').click()")+btn("Reset","resetData()",false,"danger")+'</div></div>'+
  '<div class="card"><h2>Runtime</h2><table class="table"><tr><td>Version</td><td>4.0</td></tr><tr><td>AI</td><td>'+esc(ai.provider==="ollama"?"Ollama local model":"Deterministic local generator")+'</td></tr><tr><td>Research</td><td>Local synthesis</td></tr><tr><td>Database</td><td>'+esc(runtime.persistent?"Authenticated persistent store":"Local storage adapter")+'</td></tr><tr><td>Publishing</td><td>Disabled</td></tr></table></div>'+
  '</div><div class="card" style="margin-top:14px"><div class="notice">Browser auth and the persistent backend are real connections now. Publishing remains independently locked.</div></div>');
@@ -614,6 +621,7 @@ async function toggleRule(i,on){
 }
 function exportData(){const data={version:4,exportedAt:new Date().toISOString(),state};const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="orbitoos-backup.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("Backup exported")}
 async function saveAiSettings(){
+ if(!canManageWorkspaceSettings()){toast("Only workspace owners or admins can change workspace AI settings.");return}
  const config={provider:document.getElementById("aiProvider").value,model:document.getElementById("aiModel").value.trim(),baseUrl:document.getElementById("aiBaseUrl").value.trim()};
  try{await window.orbitCoreReady;state=await window.orbitCore.setAiConfig(config);toast("AI settings saved");render()}catch(error){toast(error.message||"AI settings failed")}
 }

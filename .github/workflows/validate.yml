@@ -48,6 +48,8 @@ jobs:
           test -f tests/server-owned-records-contract.mjs
           test -f supabase/migrations/20261009090948_orbitoos_workspace_role_approval_guard.sql
           test -f supabase/migrations/20261009091753_orbitoos_approved_content_role_guard.sql
+          test -f supabase/migrations/20261009113800_orbitoos_workspace_settings_role_guard.sql
+          test -f tests/workspace-settings-role-guard-contract.mjs
           test -f tests/workspace-role-approval-contract.mjs
           test -f supabase/functions/instagram-token-refresh-scheduler/index.ts
           test -f supabase/functions/instagram-integration-readiness/index.ts
@@ -167,6 +169,9 @@ jobs:
 
       - name: Run workspace role UI contract tests
         run: node tests/workspace-role-ui-contract.mjs
+
+      - name: Run workspace settings role guard contract tests
+        run: node tests/workspace-settings-role-guard-contract.mjs
 
       - name: Run persistent content loop tests
         run: node tests/persistent-content-loop.mjs
