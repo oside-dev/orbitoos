@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../supabase/migrations/20261009093000_orbitoos_workspace_role_approval_guard.sql").toLowerCase();
+const migration = read("../supabase/migrations/20261009090948_orbitoos_workspace_role_approval_guard.sql").toLowerCase();
 const schema = read("../supabase/schema.sql").toLowerCase();
 const workflow = read("../.github/workflows/validate.yml");
 
