@@ -533,13 +533,13 @@ async function boot(){
      state=await window.orbitCore.refresh();
      state.auth=authSnapshot;
      render();
-   consumeInstagramOAuthResult();
     }catch(error){
      toast(error.message||"Authentication state refresh failed");
     }
    });
   }
   render();
+   consumeInstagramOAuthResult();
  }catch(error){
   console.error("OrbitOS boot failed",error);
   document.getElementById("root").innerHTML='<div class="app"><main class="main"><div class="wrap"><div class="card"><h1>OrbitOS runtime unavailable</h1><p class="small">The canonical browser runtime could not be initialized.</p></div></div></main></div>';
