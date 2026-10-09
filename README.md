@@ -90,6 +90,7 @@ https://orbitoos.vercel.app
 - M15 — Publishing job orchestration — atomic leased claims, expired-lease recovery, bounded retries, and service-role-only job transition RPCs; worker execution and official platform adapters remain gated
 - M16 — Publishing worker shell — secret-key-authenticated Edge Function, fail-closed execution, adapter-readiness gates, and sanitized failure handling; no official adapter is registered yet
 - M17 — Vault-backed social credentials — service-role-only token store/read/delete RPCs, encrypted per-account Vault values, and automatic secret cleanup when references are removed
+- M18 — Instagram Login OAuth foundation — signed-in workspace-admin start endpoint, hashed single-use callback state, server-side token exchange, Vault storage, and disabled-by-default configuration
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -125,3 +126,15 @@ M16 adds `supabase/functions/publishing-worker/index.ts`. The endpoint validates
 The M17 contract in `docs/architecture/social-account-vault.sql` adds backend-only RPCs for storing, reading, rotating, and deleting an account's access/refresh tokens. Token values are encrypted with Supabase Vault; the private account table retains only stable secret names. The RPCs check the caller role, revoke execution from `PUBLIC`, `anon`, and `authenticated`, and grant access only to `service_role`. Removing a secret-reference row also removes the referenced Vault entries, including when the account row is deleted.
 
 These helpers are infrastructure only. OAuth start/callback handlers still need Meta app credentials and redirect-URI configuration before an account can be connected. Browser clients never call the token-reading RPCs.
+
+## Instagram Login OAuth foundation
+
+M18 adds `instagram-oauth-start` and `instagram-oauth-callback` Edge Functions plus `docs/architecture/social-oauth-state.sql`. Start requires a signed-in workspace owner/admin and a brand in that workspace. State is random and short-lived; only its SHA-256 hash is stored. The public callback consumes that state once before it processes a provider response. Access tokens are written directly to Supabase Vault and never returned to the browser, stored in public metadata, or logged.
+
+Instagram Login uses the current professional-account scopes `instagram_business_basic` and `instagram_business_content_publish`; the older `business_content_publish` scope is deprecated. This login flow supports Instagram Business/Creator accounts without a linked Facebook Page. See the [official Meta Instagram Login collection](https://www.postman.com/meta/instagram/folder/6raa77c/instagram-api-with-instagram-login).
+
+Live connection stays unavailable until these Supabase Edge Function secrets are configured in the Dashboard: `META_INSTAGRAM_APP_ID` and `META_INSTAGRAM_APP_SECRET`. The callback URI to register in the Meta app is:
+
+`https://lkcbtgqdvzmaihcnxxwk.supabase.co/functions/v1/instagram-oauth-callback`
+
+`META_INSTAGRAM_REDIRECT_URI` can override that URI if the registered redirect differs; `ORBITOS_APP_URL` can override the frontend return destination. Neither app credentials nor tokens belong in GitHub. Without the required credentials, the endpoints fail closed. No background schedule is configured and the publishing worker still has no registered adapter.

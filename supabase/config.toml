@@ -2,3 +2,12 @@
 # validates a Supabase secret key via @supabase/server (auth: "secret").
 [functions.publishing-worker]
 verify_jwt = false
+
+# The OAuth callback receives a Meta browser redirect rather than a Supabase JWT.
+# Its handler validates a single-use state token before accessing sensitive state.
+[functions.instagram-oauth-callback]
+verify_jwt = false
+
+# Start is called from a signed-in OrbitOS session and retains default JWT checks.
+[functions.instagram-oauth-start]
+verify_jwt = true
