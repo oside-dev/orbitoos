@@ -28,7 +28,6 @@ type InstagramProfile = {
   id?: unknown;
   user_id?: unknown;
   username?: unknown;
-  account_type?: unknown;
 };
 
 function json(body: Record<string, unknown>, status = 400): Response {
@@ -145,6 +144,7 @@ Deno.serve(
           typeof shortBody.user_id !== "string" && typeof shortBody?.user_id !== "number") {
         return appResult("token_exchange_failed");
       }
+      const exchangedUserId = String(shortBody.user_id);
       shortToken = shortBody.access_token;
 
       const longUrl = new URL("https://graph.instagram.com/access_token");
@@ -163,7 +163,7 @@ Deno.serve(
       // Query the official Instagram Login user endpoint. Tokens are passed to
       // Meta only; they are never added to logs, URLs on OrbitOS, or response bodies.
       const profileUrl = new URL("https://graph.instagram.com/me");
-      profileUrl.searchParams.set("fields", "user_id,username,account_type");
+      profileUrl.searchParams.set("fields", "user_id,username");
       profileUrl.searchParams.set("access_token", accessToken);
       const profileResponse = await fetch(profileUrl, { signal: AbortSignal.timeout(10000) });
       const profileBody = await readJson<InstagramProfile>(profileResponse);
@@ -172,7 +172,8 @@ Deno.serve(
       }
 
       const externalAccountId = String(profileBody.user_id ?? profileBody.id ?? "").trim();
-      if (!externalAccountId || externalAccountId.length > 256) {
+      if (!externalAccountId || externalAccountId.length > 256 ||
+          (profileBody.user_id != null && String(profileBody.user_id) !== exchangedUserId)) {
         return appResult("profile_lookup_failed");
       }
 
@@ -196,7 +197,6 @@ Deno.serve(
             scopes: [...REQUESTED_SCOPES],
             metadata: {
               provider: "instagram_login",
-              accountType: typeof profileBody.account_type === "string" ? profileBody.account_type : null,
               tokenExpiresAt,
             },
             connected_at: now,
