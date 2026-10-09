@@ -17,12 +17,15 @@ export async function createAuthenticatedPersistentRuntime({
   workspaceContext,
   client,
   workspaceId,
+  authenticatedUser = null,
   ...runtimeOptions
 } = {}) {
   assertAuthAdapter(auth);
   assertWorkspaceContextAdapter(workspaceContext);
 
-  const user = await auth.getUser();
+  // The browser bridge may pass a user it has just verified with auth.getUser().
+  // Reusing that verified identity avoids a redundant network call during startup.
+  const user = authenticatedUser ?? await auth.getUser();
   if (!user?.id) {
     throw new OrbitAuthBoundaryError(
       "AUTH_REQUIRED",

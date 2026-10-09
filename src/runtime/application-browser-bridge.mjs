@@ -114,6 +114,7 @@ export async function createOrbitApplicationBrowserBridge({
       workspaceContext,
       client,
       workspaceId: bootstrap?.workspaceId ?? null,
+      authenticatedUser: user,
     });
 
     const persisted = await secured.runtime.snapshot();
@@ -125,6 +126,7 @@ export async function createOrbitApplicationBrowserBridge({
         workspaceContext,
         client,
         workspaceId: bootstrap?.workspaceId ?? null,
+        authenticatedUser: user,
         ai: normalizeAiConfig(persisted),
       });
     }
