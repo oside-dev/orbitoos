@@ -36,6 +36,7 @@ jobs:
           test -f docs/AGENTS.md
           test -f docs/ENGINEERING.md
           test -f docs/SECURITY.md
+          test -f docs/operations/instagram-reels-publishing-runbook.md
           test -f supabase/schema.sql
           echo "Architecture checks passed"
 
