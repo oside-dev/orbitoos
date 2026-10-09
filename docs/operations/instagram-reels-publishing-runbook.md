@@ -42,6 +42,12 @@ This condition is deliberately different from an ordinary retryable error. The w
 5. Do not delete the checkpoint, reset the job status, or requeue it with ad hoc SQL. After the M23 database contract and Edge Function are deployed, use the signed-in `publishing-reconciliation` endpoint as a workspace owner/admin. Choose `confirmed_published` only when you can provide the actual provider post ID; choose `closed_without_retry` only after reviewing the connected account and confirming no post was created. Both outcomes require an evidence reference and are written to an append-only private audit table. The endpoint never re-queues an ambiguous job.
 6. Re-enable the global switch only after the affected job is safely resolved and an operator has reviewed the remaining queue.
 
+## Read-only operations panel
+
+Workspace owners/admins can open Settings in OrbitOS and select **Load operations** or **Refresh operations**. The panel shows workspace-scoped status counts, up to 50 recent publishing jobs, attempts and timestamps, bounded error diagnostics, and up to 50 reconciliation audit events. It does not change a job or invoke Instagram.
+
+Use this view to identify jobs requiring investigation. If a job shows `PUBLISH_OUTCOME_UNKNOWN`, follow the manual reconciliation section above; the read-only panel is not a retry or reconciliation control. If the view cannot be loaded, check the user's workspace role and the Supabase Edge Function logs without exposing secret values.
+
 ## Observability and escalation
 
 Use Supabase's Edge Function invocation and function-log views to review request status, sanitized result codes, timestamps, and job IDs. Logs and CI are diagnostic aids; do not add credential values to logs to make troubleshooting easier. If an error code is unexpected, preserve the relevant non-secret evidence and add a regression test before changing retry behavior.
