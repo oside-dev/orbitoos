@@ -326,7 +326,7 @@ const tokenRefreshContract = [
   ['"ig_refresh_token"', "Refresh must use the Instagram Login grant."],
   ['"get_social_account_secret"', "Refresh must read the current token through the private Vault RPC."],
   ['"store_social_account_secret"', "Refresh must persist the new token through Vault."],
-  ['"tokenExpiresAt"', "Refresh must maintain the expiry metadata."],
+  ["tokenExpiresAt", "Refresh must maintain the expiry metadata."],
   ['status: "reauth_required"', "Expired/invalid credentials must require a fresh connection."],
   ["AbortSignal.timeout(8000)", "Provider requests must be time bounded."],
   ['"TOKEN_REFRESH_DISABLED"', "Disabled refresh must fail closed."],
