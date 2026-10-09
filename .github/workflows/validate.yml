@@ -88,6 +88,7 @@ jobs:
           test -f tests/agents.mjs
           test -f tests/local-ai.mjs
           test -f tests/publishing-gateway.mjs
+          test -f tests/publishing-worker-contract.mjs
           test -f tests/analytics-gateway.mjs
           test -f tests/imported-analytics-provider.mjs
           test -f tests/multi-brand.mjs
@@ -124,6 +125,9 @@ jobs:
 
       - name: Run publishing gateway tests
         run: node tests/publishing-gateway.mjs
+
+      - name: Run publishing worker safety contract tests
+        run: node tests/publishing-worker-contract.mjs
 
       - name: Run analytics gateway tests
         run: node tests/analytics-gateway.mjs
