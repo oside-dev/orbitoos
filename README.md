@@ -88,12 +88,13 @@ https://orbitoos.vercel.app
 - M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
 - M14 — Social publishing foundation — workspace-scoped social account metadata, durable publishing jobs, idempotency records, and secret-reference boundaries; official OAuth/platform adapters remain gated
 - M15 — Publishing job orchestration — atomic leased claims, expired-lease recovery, bounded retries, and service-role-only job transition RPCs; worker execution and official platform adapters remain gated
-- M16 — Publishing worker shell — secret-key-authenticated Edge Function, fail-closed execution, adapter-readiness gates, and sanitized failure handling; no official adapter is registered yet
+- M16 — Publishing worker shell — secret-key-authenticated Edge Function, fail-closed execution, adapter-readiness gates, and sanitized failure handling
 - M17 — Vault-backed social credentials — service-role-only token store/read/delete RPCs, encrypted per-account Vault values, and automatic secret cleanup when references are removed
 - M18 — Instagram Login OAuth foundation — signed-in workspace-admin start endpoint, hashed single-use callback state, server-side token exchange, Vault storage, and disabled-by-default configuration
 - M19 — Instagram token refresh foundation — service-role-only refresh endpoint, Vault token rotation, expiry metadata maintenance, and a safe reauthorization state for invalid/expired tokens; no schedule is enabled
 - M20 — Platform media URL contract — validated HTTPS media references on content variants, persistent storage, and the publishing worker's approved-variant read model; publishing stays disabled
 - M21 — Atomic Instagram reconnect — database-locked account upserts preserve primary keys during parallel reconnects; private credential/state tables have explicit service-role-only RLS policies
+- M22 — Instagram Reels publisher — official container/status/publish flow, quota checks, Vault-only tokens, durable checkpoints and duplicate-safe manual reconciliation; disabled by default
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -117,12 +118,12 @@ The M15 database contract in `docs/architecture/publishing-job-orchestration.sql
 - bounded attempt counts and delayed retry scheduling,
 - backend-only claim/complete/retry RPCs granted only to `service_role`.
 
-This is orchestration infrastructure, not a live publisher. Jobs will not be sent to social networks until an official provider adapter, OAuth credential lifecycle, provider idempotency strategy, rate limits, and human approval checks are implemented and configured. Error diagnostics must be sanitized before they are persisted.
+This is orchestration infrastructure; M22 adds the first official adapter for Instagram Reels only. The worker stays disabled until the global server-side publishing switch, the adapter-specific switch, and a supported Meta API version are configured. Jobs still require an approved variant and a connected account, and error diagnostics remain sanitized.
 
 
 ## Publishing worker shell
 
-M16 adds `supabase/functions/publishing-worker/index.ts`. The endpoint validates a Supabase secret key through `@supabase/server`; the Edge Function gateway's JWT check is disabled only because the handler applies its own secret-key authentication. It is disabled unless `ORBITOS_PUBLISHING_ENABLED=true`, and even then it returns without claiming jobs until an official adapter is registered with credentials, idempotency, and rate-limit capabilities marked ready. The repository does not set the worker-enable flag or add a schedule.
+M16 adds `supabase/functions/publishing-worker/index.ts`. The endpoint validates a Supabase secret key through `@supabase/server`; the Edge Function gateway's JWT check is disabled only because the handler applies its own secret-key authentication. It is disabled unless `ORBITOS_PUBLISHING_ENABLED=true`. The Instagram adapter added later also requires `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED=true` and `META_GRAPH_API_VERSION`. No publishing flag or schedule is set by the repository.
 
 ## Vault-backed social credentials
 
@@ -160,4 +161,14 @@ The endpoint requires Supabase secret-key authentication plus `ORBITOS_INSTAGRAM
 
 M20 adds an optional `mediaUrl` to each platform-native content variant. It is validated as an HTTPS URL with a public-looking hostname, without embedded username/password credentials or a local/IP host. Empty values remain valid while drafting; Instagram publishing will require a URL that the platform can fetch without authentication. The application does not download or proxy the media and therefore cannot guarantee reachability at save time.
 
-The new `media_url` column is added to fresh schemas and through the idempotent migration `docs/architecture/content-variant-media-url.sql` for existing installations. The worker loads the field but still cannot publish because the official adapter registry remains empty and all publishing flags are off.
+The new `media_url` column is added to fresh schemas and through the idempotent migration `docs/architecture/content-variant-media-url.sql` for existing installations. The worker loads the field. The M22 Instagram Reels adapter can use it only when an operator explicitly configures both publishing flags and a supported Meta API version; those switches remain off.
+
+## Instagram Reels publishing adapter
+
+M22 adds the first official provider adapter for Instagram Login, limited to the `Instagram Reels` variant. It requires an HTTPS public video URL with an `.mp4` or `.mov` path and the `instagram_business_content_publish` permission.
+
+The adapter checks publishing quota, creates a media container, polls its state until `FINISHED`, then calls `media_publish`. It reads access tokens only through the backend-only Vault RPC and sends them to Meta in the HTTPS Authorization header. Lease-fenced checkpoints are stored with the publishing job so a worker restart can reuse an existing container or recover a provider post ID.
+
+If the publish request times out or the response is ambiguous, the job is marked `PUBLISH_OUTCOME_UNKNOWN` for manual reconciliation rather than automatically posting again. This avoids duplicates when Meta accepted a post but the worker lost the response.
+
+Activation later requires `META_GRAPH_API_VERSION`, `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED=true`, and the separate `ORBITOS_PUBLISHING_ENABLED=true` in Supabase Edge Function secrets. None of these switches is enabled here; no publishing schedule is added.
