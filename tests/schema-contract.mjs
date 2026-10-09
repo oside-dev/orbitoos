@@ -384,3 +384,41 @@ assert.ok(
 );
 
 console.log("OrbitOS Instagram token refresh contract tests passed.");
+
+const reconnectSql = readFileSync(
+  new URL("../docs/architecture/social-account-reconnect.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+const reconnectCallback = readFileSync(
+  new URL("../supabase/functions/instagram-oauth-callback/index.ts", import.meta.url),
+  "utf8",
+);
+const reconnectContract = [
+  "create or replace function public.upsert_instagram_social_account(",
+  "on conflict (workspace_id, platform, external_account_id) do nothing",
+  "return pg_catalog.jsonb_build_object(",
+  "'accountid', v_account_id",
+  "grant execute on function public.upsert_instagram_social_account(",
+  "create policy social_account_secrets_service_role_all",
+  "create policy social_oauth_states_service_role_all",
+  "for all to service_role",
+  "using (true)",
+  "with check (true)",
+];
+
+for (const fragment of reconnectContract) {
+  assert.ok(
+    reconnectSql.includes(fragment),
+    "Missing Instagram reconnect SQL safety fragment: " + fragment,
+  );
+}
+
+assert.ok(
+  reconnectCallback.includes('"upsert_instagram_social_account"') &&
+    reconnectCallback.includes("accountCreated") &&
+    reconnectCallback.includes("previousStatus") &&
+    !reconnectCallback.includes('.from("social_accounts")\n        .upsert('),
+  "Instagram OAuth callback must use the atomic account identity RPC.",
+);
+
+console.log("OrbitOS account reconnect safety contract tests passed.");
