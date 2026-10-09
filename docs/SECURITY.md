@@ -26,9 +26,9 @@ The contract grants:
 
 ## Workspace roles for approval and scheduling
 
-Workspace-scoped CRUD access remains governed by RLS. Approval is a separate authorization boundary: browser writes that create or transition content into/out of an approved state, or modify the copy of already-approved content, are accepted only for workspace owners, admins, and editors. This includes both `content_items.status` and `content_variants.approved/status`; the database guard is not a UI-only check.
+Workspace-scoped CRUD access remains governed by RLS. Approval is a separate authorization boundary: browser writes that create or transition content into/out of an approved state, modify any protected field on an already-approved record, change its workspace/brand/content linkage, or delete approved content are accepted only for workspace owners, admins, and editors. This includes both `content_items.status` and `content_variants.approved/status`; the database guard is not a UI-only check.
 
-Schedules remain visible to workspace members, but inserting, updating, and deleting them requires the owner, admin, or editor role. Analysts and viewers can still read content and schedules, but cannot directly set approval state or alter schedule records. The scheduler independently rechecks approval before job materialization, so a schedule alone does not authorize publishing.
+Schedules remain visible to workspace members, but inserting, updating, and deleting them requires the owner, admin, or editor role. Analysts and viewers can still read content and schedules and work with drafts, but cannot directly set approval state, change protected fields on approved records, delete approved content, or alter schedule records. The UI also hides approval/scheduling actions for these roles; database enforcement remains authoritative. The scheduler independently rechecks approval before job materialization, so a schedule alone does not authorize publishing.
 
 ## Current deployment posture
 
