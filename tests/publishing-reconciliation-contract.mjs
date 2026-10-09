@@ -28,8 +28,8 @@ mustContain(sql, "('confirmed_published', 'closed_without_retry')", "explicit re
 mustContain(sql, "v_job.last_error_code is distinct from 'PUBLISH_OUTCOME_UNKNOWN'", "only ambiguous failed jobs are eligible");
 mustContain(sql, "v_operator_role not in ('owner', 'admin')", "workspace operator authorization");
 mustContain(sql, "'publish_started'", "ambiguous checkpoint eligibility");
-mustContain("insert into private.publishing_job_reconciliation_events", "durable audit insertion");
-mustContain("grant execute on function public.reconcile_unknown_publishing_job", "RPC execute grant");
+mustContain(sql, "insert into private.publishing_job_reconciliation_events", "durable audit insertion");
+mustContain(sql, "grant execute on function public.reconcile_unknown_publishing_job", "RPC execute grant");
 assert.ok(!/grant\s+(all|update|delete)\s+on\s+table\s+private\.publishing_job_reconciliation_events\s+to\s+service_role/i.test(sql), "Audit events must not be mutable by service_role through table grants.");
 assert.ok(!/set\s+status\s*=\s*'queued'/i.test(sql), "Manual reconciliation must never requeue an ambiguous job.");
 assert.ok(sql.indexOf("update public.publishing_jobs") < sql.indexOf("insert into private.publishing_job_reconciliation_events"), "The job transition and audit insert must be part of the same transaction/function.");
