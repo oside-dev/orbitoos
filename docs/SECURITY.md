@@ -24,6 +24,10 @@ The contract grants:
 - Authenticated workspace members: CRUD access to brand/content/analytics/learning records in their own workspaces.
 - Workspace provisioning and membership writes: backend-controlled until a dedicated invitation/bootstrap flow exists.
 
+## Optional legacy profile visibility
+
+The production project contains an optional `public.profiles` table that is not part of the canonical OrbitOS application schema or current UI. Its former `profiles_public_read` policy allowed any authenticated user to read every profile. The workspace-visibility migration replaces it with `profiles_workspace_member_read`: users can read their own profile and profiles belonging to users who share one of their workspaces. Anonymous table grants are revoked. The migration is deliberately conditional so a fresh project without this optional table remains unaffected. If profiles become a supported product feature, add the table and its final policy to the canonical schema before relying on it.
+
 ## Workspace roles for approval and scheduling
 
 Workspace-scoped CRUD access remains governed by RLS. Approval is a separate authorization boundary: browser writes that create or transition content into/out of an approved state, modify any protected field on an already-approved record, change its workspace/brand/content linkage, or delete approved content are accepted only for workspace owners, admins, and editors. This includes both `content_items.status` and `content_variants.approved/status`; the database guard is not a UI-only check.
