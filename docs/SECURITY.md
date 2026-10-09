@@ -24,11 +24,11 @@ The contract grants:
 - Authenticated workspace members: CRUD access to brand/content/analytics/learning records in their own workspaces.
 - Workspace provisioning and membership writes: backend-controlled until a dedicated invitation/bootstrap flow exists.
 
-## Why this is not live yet
+## Current deployment posture
 
-OrbitOS remains local-first. The repository contains the persistent schema and adapter contract, but no live Supabase project is created or connected by default.
+The production UI remains local-first by default. The Supabase project hosts the live schema, authentication boundary, OAuth/publishing Edge Functions, Vault-backed credentials, and gated schedulers. The current database has no authenticated users, connected social accounts, scheduled records, or publishing jobs, so real-account integration still requires an operator-controlled setup and test.
 
-When a real backend is introduced, Auth supplies the user identity and RLS enforces workspace ownership at the database boundary.
+When the browser uses authenticated-persistent mode, Auth supplies the verified user identity and RLS enforces workspace ownership at the database boundary.
 
 ## Publishing boundary
 
@@ -54,3 +54,7 @@ Schedule-derived IDs and idempotency keys plus conflict-safe inserts make repeat
 ## Runtime honesty
 
 The UI must never label the local browser runtime as authenticated or backend-persistent. Runtime mode is explicit and comes from the runtime environment boundary. A future Supabase connection must provide a verified Auth user and workspace membership before switching to authenticated-persistent mode.
+
+## Backend-owned records
+
+The browser must not write `social_accounts`, `publishing_jobs`, or `subscriptions` directly. Authenticated workspace members retain RLS-scoped read access only. OAuth callbacks own social-account metadata; job materialization and lease-fenced worker RPCs own publishing state; trusted backend/billing services own subscription state. The browser persistence adapter reads these records for display but excludes them from snapshot writes.
