@@ -2,6 +2,8 @@
 -- This resolves an ambiguous post outcome without automatically retrying the post.
 -- Keep this file as the architecture/source SQL for the live migration.
 
+create schema if not exists private;
+
 create table if not exists private.publishing_job_reconciliation_events (
   event_id uuid primary key default pg_catalog.gen_random_uuid(),
   job_id text not null unique,
@@ -148,6 +150,10 @@ begin
     end if;
     if v_phase <> 'publish_started' then
       raise exception 'A checkpoint with a confirmed post cannot be closed as unpublished'
+        using errcode = '55000';
+    end if;
+    if nullif(pg_catalog.btrim(coalesce(v_checkpoint ->> 'providerPostId', '')), '') is not null then
+      raise exception 'A checkpoint with a provider post ID cannot be closed as unpublished'
         using errcode = '55000';
     end if;
   end if;
