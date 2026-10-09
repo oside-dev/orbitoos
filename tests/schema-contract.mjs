@@ -115,8 +115,6 @@ const publishingWorker = readFileSync(
 const publishingWorkerContract = [
   'withSupabase({ auth: "secret" }',
   'Deno.env.get("ORBITOS_PUBLISHING_ENABLED") !== "true"',
-  'Deno.env.get("ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED") === "true"',
-  'Deno.env.get("META_GRAPH_API_VERSION")?.trim() ?? ""',
   "createInstagramReelsAdapter",
   "return Object.freeze({",
   'return json({ error: "NO_OFFICIAL_ADAPTER_CONFIGURED" }, 503);',
@@ -231,6 +229,8 @@ const oauthCallback = readFileSync(
 
 const instagramOAuthContract = [
   [oauthStart, 'withSupabase({ auth: "user" }'],
+  [oauthStart, "ctx.userClaims?.id ?? ctx.jwtClaims?.sub"],
+  [oauthStart, "ctx.userClaims?.sub", false],
   [oauthStart, '"instagram_business_basic"'],
   [oauthStart, '"instagram_business_content_publish"'],
   [oauthStart, '"create_social_oauth_state"'],
@@ -242,20 +242,22 @@ const instagramOAuthContract = [
   [oauthCallback, '"https://graph.instagram.com/access_token"'],
   [oauthCallback, '"https://graph.instagram.com/me"'],
   [oauthCallback, '"store_social_account_secret"'],
-  [oauthCallback, '.select("id, status, metadata, connected_at")'],
-  [oauthCallback, 'id: existingAccount?.id ?? "social-instagram-" + crypto.randomUUID()'],
-  [oauthCallback, 'status: existingAccount.status'],
-  [oauthCallback, 'metadata: existingAccount.metadata ?? {}'],
-  [oauthCallback, 'if (!existingAccount) {'],
+  [oauthCallback, '"upsert_instagram_social_account"'],
+  [oauthCallback, 'id: existingAccount?.id ?? "social-instagram-" + crypto.randomUUID()', false],
+  [oauthCallback, 'status: existingAccount.status', false],
+  [oauthCallback, 'metadata: existingAccount.metadata ?? {}', false],
+  [oauthCallback, "previousMetadata"],
+  [oauthCallback, "if (accountCreated) {"],
   [oauthCallback, '"delete_social_account_secrets"'],
   [oauthCallback, 'return appResult("token_storage_failed");'],
   [oauthCallback, 'return appResult("connected");'],
 ];
 
-for (const [source, fragment] of instagramOAuthContract) {
-  assert.ok(
+for (const [source, fragment, shouldExist = true] of instagramOAuthContract) {
+  assert.equal(
     source.includes(fragment),
-    "Missing Instagram OAuth safety fragment: " + fragment,
+    shouldExist,
+    "Unexpected Instagram OAuth safety fragment state: " + fragment,
   );
 }
 
@@ -384,6 +386,44 @@ assert.ok(
 );
 
 console.log("OrbitOS Instagram token refresh contract tests passed.");
+
+const reconnectSql = readFileSync(
+  new URL("../docs/architecture/social-account-reconnect.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+const reconnectCallback = readFileSync(
+  new URL("../supabase/functions/instagram-oauth-callback/index.ts", import.meta.url),
+  "utf8",
+);
+const reconnectContract = [
+  "create or replace function public.upsert_instagram_social_account(",
+  "on conflict (workspace_id, platform, external_account_id) do nothing",
+  "return pg_catalog.jsonb_build_object(",
+  "'accountid', v_account_id",
+  "grant execute on function public.upsert_instagram_social_account(",
+  "create policy social_account_secrets_service_role_all",
+  "create policy social_oauth_states_service_role_all",
+  "for all to service_role",
+  "using (true)",
+  "with check (true)",
+];
+
+for (const fragment of reconnectContract) {
+  assert.ok(
+    reconnectSql.includes(fragment),
+    "Missing Instagram reconnect SQL safety fragment: " + fragment,
+  );
+}
+
+assert.ok(
+  reconnectCallback.includes('"upsert_instagram_social_account"') &&
+    reconnectCallback.includes("accountCreated") &&
+    reconnectCallback.includes("previousStatus") &&
+    !reconnectCallback.includes('.from("social_accounts")\n        .upsert('),
+  "Instagram OAuth callback must use the atomic account identity RPC.",
+);
+
+console.log("OrbitOS account reconnect safety contract tests passed.");
 
 const instagramReelsPublisher = readFileSync(
   new URL("../supabase/functions/publishing-worker/index.ts", import.meta.url),
