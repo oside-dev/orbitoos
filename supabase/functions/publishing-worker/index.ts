@@ -233,7 +233,7 @@ async function graphRequest(
       ...(method === "POST" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
     },
     ...(method === "POST" ? { body: form ?? new URLSearchParams() } : {}),
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(8000),
   });
   let body: GraphBody | null = null;
   try {
