@@ -126,6 +126,19 @@ begin
   where s.state_hash = p_state_hash
     and s.consumed_at is null
     and s.expires_at > pg_catalog.now()
+    and exists (
+      select 1
+      from public.workspace_members as wm
+      where wm.workspace_id = s.workspace_id
+        and wm.user_id = s.user_id
+        and wm.role in ('owner', 'admin')
+    )
+    and exists (
+      select 1
+      from public.brands as b
+      where b.id = s.brand_id
+        and b.workspace_id = s.workspace_id
+    )
   returning s.user_id, s.workspace_id, s.brand_id;
 end;
 $function$;
