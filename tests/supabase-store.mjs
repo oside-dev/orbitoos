@@ -196,30 +196,34 @@ await store.set({
   learningInsights: [],
 });
 
-assert.equal((tables.get("ideas") ?? []).some((row) => row.id === "stale-idea"), false);
+// Snapshot writes do not infer deletions; this protects rows created by concurrent sessions.
+assert.equal((tables.get("ideas") ?? []).some((row) => row.id === "stale-idea"), true);
 
 const persistentRuntime = createPersistentOrbitRuntime({
   client: fakeClient,
   workspaceId: "workspace-1",
 });
 const persistentSnapshot = await persistentRuntime.snapshot();
-assert.equal(persistentSnapshot.ideas[0].id, "idea-1");
+assert.equal(persistentSnapshot.ideas.some((idea) => idea.id === "idea-1"), true);
 
 const restored = await store.get();
 assert.equal(restored.workspace.name, "Northstar Studio");
 assert.equal(restored.brand.name, "Second Brand");
 assert.equal(restored.activeBrandId, "brand-2");
 assert.equal(restored.brands.length, 2);
-assert.equal(restored.ideas[0].metadata.brandId, "brand-2");
+const restoredIdea = restored.ideas.find((idea) => idea.id === "idea-1");
+assert.ok(restoredIdea);
+assert.equal(restoredIdea.metadata.brandId, "brand-2");
 assert.equal(restored.contentItems[0].brandId, "brand-2");
 assert.equal(restored.contentVariants[0].brandId, "brand-2");
-assert.equal(restored.ideas[0].stage, "approved");
-assert.equal(restored.ideas[0].variants.TikTok.approved, true);
+assert.equal(restoredIdea.stage, "approved");
+assert.equal(restoredIdea.variants.TikTok.approved, true);
 assert.equal(restored.research[0].generatedBy, "test");
 
 const exported = await store.export();
 const imported = await store.import(exported);
-assert.equal(imported.ideas.length, 1);
+assert.equal(imported.ideas.some((idea) => idea.id === "idea-1"), true);
+assert.equal(imported.ideas.some((idea) => idea.id === "stale-idea"), true);
 assert.equal(imported.contentVariants.length, 1);
 
 console.log("OrbitOS Supabase adapter tests passed.");
