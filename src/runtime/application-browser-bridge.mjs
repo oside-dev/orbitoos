@@ -93,6 +93,13 @@ export async function createOrbitApplicationBrowserBridge({
   }
 
   async function initializeRemote() {
+    // Check session state before calling getUser(), which requires an active session.
+    const sessionSnapshot = await auth.getSession();
+    if (sessionSnapshot?.status !== "signed_in" || !sessionSnapshot?.user?.id) {
+      remote = null;
+      return null;
+    }
+
     const user = await auth.getUser();
     if (!user?.id) {
       remote = null;

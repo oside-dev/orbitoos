@@ -22,6 +22,15 @@ assert.match(
   /async function resendSignupConfirmation\(input\)\s*\{\s*return auth\.resendSignupConfirmation\(input\);/,
 );
 assert.match(bridge, /    resendSignupConfirmation,/);
+const initializeRemote = bridge.match(
+  /async function initializeRemote\(\) \{([\s\S]*?)\n  \}\n\n  async function refresh/,
+)?.[1] ?? "";
+assert.ok(initializeRemote, "initializeRemote implementation must exist");
+assert.match(
+  initializeRemote,
+  /const sessionSnapshot = await auth\.getSession\(\);[\s\S]*?if \(sessionSnapshot\?\.status !== "signed_in" \|\| !sessionSnapshot\?\.user\?\.id\)[\s\S]*?return null;[\s\S]*?const user = await auth\.getUser\(\);/,
+  "signed-out visitors must be handled before getUser() is called",
+);
 assert.match(
   bridge,
   /async function signUp\(input\)\s*\{\s*const result = await auth\.signUp\(input\);\s*\/\/[\s\S]*?if \(result\?\.status === "signed_in" && result\?\.user\?\.id\)\s*\{\s*await initializeRemote\(\);\s*\}/,
