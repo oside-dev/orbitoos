@@ -79,7 +79,7 @@ begin
       and ci.brand_id is not distinct from s.brand_id
       and ci.status = 'approved'
     join lateral (
-      select cv.id
+      select cv.id, cv.status, cv.approved
       from public.content_variants as cv
       cross join lateral (
         select case pg_catalog.lower(pg_catalog.btrim(cv.platform))
@@ -98,11 +98,9 @@ begin
         and cv.content_item_id = s.content_item_id
         and cv.brand_id is not distinct from s.brand_id
         and variant_platform.normalized_platform = schedule_platform.normalized_platform
-        and cv.status = 'approved'
-        and cv.approved is true
       order by cv.version desc, cv.updated_at desc, cv.id desc
       limit 1
-    ) as variant on true
+    ) as variant on variant.status = 'approved' and variant.approved is true
     join lateral (
       select
         pg_catalog.count(*) as account_count,
@@ -167,9 +165,9 @@ begin
   into v_scanned, v_created;
 
   return pg_catalog.jsonb_build_object(
-    'scanned', v_scanned,
+    'candidateCount', v_scanned,
     'created', v_created,
-    'alreadyMaterialized', pg_catalog.greatest(0, v_scanned - v_created),
+    'insertConflicts', pg_catalog.greatest(0, v_scanned - v_created),
     'generatedAt', v_now
   );
 end;
