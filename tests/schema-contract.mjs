@@ -393,7 +393,7 @@ const instagramReelsPublisherContract = [
   ['"https://graph.instagram.com/"', "Instagram Login requests must use the Instagram Graph host."],
   ['"instagram_business_content_publish"', "The adapter must require the modern content-publish permission."],
   ['"content_publishing_limit"', "The adapter must verify provider publishing quota."],
-  ['"media_type: "REELS""', "The first official adapter must explicitly create Reel containers."],
+  ['media_type: "REELS"', "The first official adapter must explicitly create Reel containers."],
   ['"media_publish"', "The adapter must publish the completed media container."],
   ['' + 'phase: "publish_started"', "The publish request must have a durable pre-call checkpoint."],
   ['"PUBLISH_OUTCOME_UNKNOWN"', "Ambiguous publish outcomes must not be retried automatically."],
