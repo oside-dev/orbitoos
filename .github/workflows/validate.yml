@@ -39,6 +39,8 @@ jobs:
           test -f docs/architecture/publishing-job-reconciliation.sql
           test -f docs/architecture/publishing-operations-overview.sql
           test -f supabase/functions/publishing-operations/index.ts
+          test -f docs/architecture/publishing-operations-overview.sql
+          test -f supabase/functions/publishing-operations/index.ts
           test -f supabase/functions/publishing-reconciliation/index.ts
           test -f docs/operations/instagram-reels-publishing-runbook.md
           test -f supabase/schema.sql
@@ -96,6 +98,7 @@ jobs:
           test -f tests/publishing-worker-contract.mjs
           test -f tests/publishing-reconciliation-contract.mjs
           test -f tests/publishing-operations-contract.mjs
+          test -f tests/publishing-operations-contract.mjs
           test -f tests/analytics-gateway.mjs
           test -f tests/imported-analytics-provider.mjs
           test -f tests/multi-brand.mjs
@@ -138,6 +141,9 @@ jobs:
 
       - name: Run publishing reconciliation contract tests
         run: node tests/publishing-reconciliation-contract.mjs
+
+      - name: Run publishing operations contract tests
+        run: node tests/publishing-operations-contract.mjs
 
       - name: Run publishing operations contract tests
         run: node tests/publishing-operations-contract.mjs
