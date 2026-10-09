@@ -382,7 +382,7 @@ test("approved schedules create a durable publishing job when a matching account
   assert.equal(next.publishingJobs.length, 1);
   assert.equal(next.publishingJobs[0].socialAccountId, "social-test");
   assert.equal(next.publishingJobs[0].status, "queued");
-  assert.equal(next.publishingJobs[0].idempotencyKey, "schedule-" + next.schedules[0].id + ":1");
+  assert.equal(next.publishingJobs[0].idempotencyKey, next.schedules[0].id + ":1");
 });
 
 test("scheduling without a connected account remains a schedule-only operation", async () => {
