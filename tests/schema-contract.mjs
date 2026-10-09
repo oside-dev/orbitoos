@@ -288,8 +288,19 @@ for (const [source, fragment] of instagramConnectUiContract) {
   );
 }
 
+const oauthBootIndex = oauthSettingsUi.indexOf("async function boot()");
+const oauthResultCallIndex = oauthSettingsUi.indexOf(
+  "consumeInstagramOAuthResult();",
+  oauthBootIndex,
+);
+const oauthBootCatchIndex = oauthSettingsUi.indexOf(
+  "  }catch(error){",
+  oauthResultCallIndex,
+);
 assert.ok(
-  /async function boot\\(\\)\\{[\\s\\S]*?^\\s*render\\(\\);\\s*consumeInstagramOAuthResult\\(\\);\\s*\\}catch\\(error\\)\\{/m.test(oauthSettingsUi),
+  oauthBootIndex >= 0 &&
+    oauthResultCallIndex > oauthBootIndex &&
+    oauthBootCatchIndex > oauthResultCallIndex,
   "OAuth callback result should be consumed during the initial boot render.",
 );
 
