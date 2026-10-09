@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const migration = readFileSync(
-  new URL("../supabase/migrations/20261009113800_orbitoos_workspace_settings_role_guard.sql", import.meta.url),
+  new URL("../supabase/migrations/20261009114305_orbitoos_workspace_settings_role_guard.sql", import.meta.url),
   "utf8",
 ).toLowerCase();
 const schema = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8").toLowerCase();
