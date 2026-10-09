@@ -275,7 +275,7 @@ const instagramConnectUiContract = [
   [oauthSettingsUi, "async function connectInstagram()"],
   [oauthSettingsUi, "window.location.assign(result.authorizationUrl)"],
   [oauthSettingsUi, "function consumeInstagramOAuthResult()"],
-  [oauthSettingsUi, 'render();\n    consumeInstagramOAuthResult();\n  }catch(error){'],
+  [oauthSettingsUi, "consumeInstagramOAuthResult()"],
   [oauthSettingsUi, 'connected:"Instagram account connected securely."'],
   [oauthBrowserBridge, "Instagram connection is not configured yet."],
   [oauthSettingsUi, "Connecting an account does not enable automatic publishing."],
@@ -287,5 +287,10 @@ for (const [source, fragment] of instagramConnectUiContract) {
     "Missing Instagram connect UI safety fragment: " + fragment,
   );
 }
+
+assert.ok(
+  /async function boot\\(\\)\\{[\\s\\S]*?^\\s*render\\(\\);\\s*consumeInstagramOAuthResult\\(\\);\\s*\\}catch\\(error\\)\\{/m.test(oauthSettingsUi),
+  "OAuth callback result should be consumed during the initial boot render.",
+);
 
 console.log("OrbitOS Instagram connect UI contract tests passed.");
