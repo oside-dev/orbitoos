@@ -68,9 +68,10 @@ function normalizeImportedMetric(row, state, options = {}) {
 export async function createOrbitApplicationBrowserBridge({
   storage = globalThis.localStorage,
   key = "orbit-v4",
+  supabaseClient = null,
 } = {}) {
   const localBridge = createOrbitBrowserBridge({ storage, key });
-  const client = await createSupabaseBrowserClient();
+  const client = supabaseClient ?? await createSupabaseBrowserClient();
   const auth = createSupabaseAuthAdapter({ auth: client.auth });
   const workspaceContext = createSupabaseWorkspaceContextAdapter({ client });
 
