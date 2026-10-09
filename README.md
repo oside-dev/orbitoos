@@ -105,7 +105,8 @@ The live SQL contract is recorded in `docs/architecture/social-publishing-founda
 ## Publishing job orchestration
 
 The M15 database contract in `docs/architecture/publishing-job-orchestration.sql` adds:
-- atomic job claiming with `FOR UPDATE SKIP LOCKED`,
+- atomic job claiming with `FOR UPDATE SKIP LOCKED`, scoped to the worker's explicitly supported platforms,
+- claim-time checks for a connected account plus approved content and variant,
 - lease tokens and expiry recovery to prevent a stale worker from finalizing a reclaimed job,
 - bounded attempt counts and delayed retry scheduling,
 - backend-only claim/complete/retry RPCs granted only to `service_role`.

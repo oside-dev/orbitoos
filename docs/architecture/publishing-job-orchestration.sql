@@ -37,9 +37,14 @@ create index if not exists publishing_jobs_expired_lease_idx
 
 -- A lease token prevents a stale worker from finalizing a job after another
 -- worker has reclaimed its expired lease. RPC execution is backend-only.
+-- Replace the initial unfiltered claim RPC. Only a worker with a known adapter
+-- should provide its explicitly supported platform set.
+drop function if exists public.claim_due_publishing_jobs(integer, integer);
+
 create or replace function public.claim_due_publishing_jobs(
-  p_limit integer default 10,
-  p_lease_seconds integer default 120
+  p_limit integer,
+  p_lease_seconds integer,
+  p_platforms text[]
 )
 returns setof public.publishing_jobs
 language plpgsql
@@ -62,22 +67,67 @@ begin
       using errcode = '22023';
   end if;
 
+  if p_platforms is null
+    or pg_catalog.cardinality(p_platforms) < 1
+    or pg_catalog.cardinality(p_platforms) > 6
+  then
+    raise exception 'p_platforms must contain 1 to 6 supported platforms'
+      using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from pg_catalog.unnest(p_platforms) as requested(platform)
+    where requested.platform not in (
+      'facebook', 'instagram', 'tiktok', 'youtube', 'x', 'linkedin'
+    )
+  ) then
+    raise exception 'p_platforms contains an unsupported platform'
+      using errcode = '22023';
+  end if;
+
   -- Expired work that has already exhausted its retry budget becomes terminal.
-  update public.publishing_jobs
+  update public.publishing_jobs as j
   set status = 'failed',
       finished_at = pg_catalog.now(),
       lease_expires_at = null,
       lease_token = null,
       last_error_code = 'MAX_ATTEMPTS_EXCEEDED',
       last_error_message = 'The publishing job exhausted its configured attempt limit.'
-  where attempts >= max_attempts
+  where j.attempts >= j.max_attempts
     and (
-      (status = 'queued'
-        and scheduled_at <= pg_catalog.now()
-        and next_attempt_at <= pg_catalog.now())
+      (j.status = 'queued'
+        and j.scheduled_at <= pg_catalog.now()
+        and j.next_attempt_at <= pg_catalog.now())
       or
-      (status = 'processing'
-        and (lease_expires_at is null or lease_expires_at <= pg_catalog.now()))
+      (j.status = 'processing'
+        and (j.lease_expires_at is null or j.lease_expires_at <= pg_catalog.now()))
+    )
+    and exists (
+      select 1
+      from public.social_accounts as sa
+      where sa.id = j.social_account_id
+        and sa.workspace_id = j.workspace_id
+        and sa.brand_id is not distinct from j.brand_id
+        and sa.platform = any(p_platforms)
+        and sa.status = 'connected'
+    )
+    and exists (
+      select 1
+      from public.content_items as ci
+      where ci.id = j.content_item_id
+        and ci.workspace_id = j.workspace_id
+        and ci.status = 'approved'
+    )
+    and j.content_variant_id is not null
+    and exists (
+      select 1
+      from public.content_variants as cv
+      where cv.id = j.content_variant_id
+        and cv.workspace_id = j.workspace_id
+        and cv.content_item_id = j.content_item_id
+        and cv.approved is true
+        and cv.status = 'approved'
     );
 
   return query
@@ -92,6 +142,32 @@ begin
         or
         (j.status = 'processing'
           and (j.lease_expires_at is null or j.lease_expires_at <= pg_catalog.now()))
+      )
+      and exists (
+        select 1
+        from public.social_accounts as sa
+        where sa.id = j.social_account_id
+          and sa.workspace_id = j.workspace_id
+          and sa.brand_id is not distinct from j.brand_id
+          and sa.platform = any(p_platforms)
+          and sa.status = 'connected'
+      )
+      and exists (
+        select 1
+        from public.content_items as ci
+        where ci.id = j.content_item_id
+          and ci.workspace_id = j.workspace_id
+          and ci.status = 'approved'
+      )
+      and j.content_variant_id is not null
+      and exists (
+        select 1
+        from public.content_variants as cv
+        where cv.id = j.content_variant_id
+          and cv.workspace_id = j.workspace_id
+          and cv.content_item_id = j.content_item_id
+          and cv.approved is true
+          and cv.status = 'approved'
       )
     order by j.scheduled_at, j.created_at
     limit p_limit
@@ -208,14 +284,14 @@ begin
 end;
 $function$;
 
-revoke all on function public.claim_due_publishing_jobs(integer, integer)
+revoke all on function public.claim_due_publishing_jobs(integer, integer, text[])
   from public, anon, authenticated;
 revoke all on function public.complete_publishing_job(text, uuid, text)
   from public, anon, authenticated;
 revoke all on function public.retry_publishing_job(text, uuid, text, text, integer)
   from public, anon, authenticated;
 
-grant execute on function public.claim_due_publishing_jobs(integer, integer)
+grant execute on function public.claim_due_publishing_jobs(integer, integer, text[])
   to service_role;
 grant execute on function public.complete_publishing_job(text, uuid, text)
   to service_role;
