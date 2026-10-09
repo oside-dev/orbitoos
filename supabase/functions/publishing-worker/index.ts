@@ -75,14 +75,22 @@ type InstagramCheckpoint = {
 type WorkerContext = { supabaseAdmin: any };
 
 function getInstagramCheckpoint(job: PublishingJob): InstagramCheckpoint | null {
-  const value = job.payload?._instagramPublishing;
-  if (!value || typeof value !== "object") return null;
+  const payload = job.payload ?? {};
+  if (!Object.prototype.hasOwnProperty.call(payload, "_instagramPublishing")) return null;
+
+  const value = payload._instagramPublishing;
+  if (!value || typeof value !== "object") {
+    throw new PermanentPublishError("PUBLISH_CHECKPOINT_INVALID");
+  }
   const checkpoint = value as Partial<InstagramCheckpoint>;
   if (
     typeof checkpoint.idempotencyKey !== "string" ||
     typeof checkpoint.containerId !== "string" ||
     !["container_created", "publish_started", "published"].includes(String(checkpoint.phase))
-  ) return null;
+  ) {
+    // Never discard a malformed durable checkpoint and start a second publish flow.
+    throw new PermanentPublishError("PUBLISH_CHECKPOINT_INVALID");
+  }
   return checkpoint as InstagramCheckpoint;
 }
 
@@ -410,7 +418,7 @@ function createInstagramReelsAdapter(
       }
 
       let containerReady = false;
-      for (let poll = 0; poll < 15; poll++) {
+      for (let poll = 0; poll < 6; poll++) {
         let statusResult: { response: Response; body: GraphBody | null };
         try {
           statusResult = await graphRequest(
