@@ -74,7 +74,7 @@ Deno.serve(
       return json(req, { error: "METHOD_NOT_ALLOWED" }, 405);
     }
 
-    const userId = ctx.userClaims?.sub;
+    const userId = ctx.userClaims?.id ?? ctx.jwtClaims?.sub;
     if (!userId) {
       return json(req, { error: "AUTH_REQUIRED" }, 401);
     }
