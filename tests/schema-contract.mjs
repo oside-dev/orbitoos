@@ -198,6 +198,8 @@ const oauthStateContract = [
   "create or replace function public.consume_social_oauth_state(",
   "consumed_at is null",
   "expires_at > pg_catalog.now()",
+  "wm.user_id = s.user_id",
+  "b.workspace_id = s.workspace_id",
   "revoke all on function public.create_social_oauth_state(text, uuid, text, text, timestamptz)",
   "revoke all on function public.consume_social_oauth_state(text)",
   "grant execute on function public.create_social_oauth_state(text, uuid, text, text, timestamptz)",
