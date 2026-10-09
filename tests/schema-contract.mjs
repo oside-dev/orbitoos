@@ -72,3 +72,33 @@ assert.ok(
 );
 
 console.log("OrbitOS schema security contract tests passed.");
+
+const publishingJobSql = readFileSync(
+  new URL("../docs/architecture/publishing-job-orchestration.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+
+const publishingJobContract = [
+  "add column if not exists max_attempts",
+  "add column if not exists next_attempt_at",
+  "add column if not exists lease_expires_at",
+  "add column if not exists lease_token uuid",
+  "create or replace function public.claim_due_publishing_jobs",
+  "for update of j skip locked",
+  "create or replace function public.complete_publishing_job",
+  "create or replace function public.retry_publishing_job",
+  "security invoker",
+  "revoke all on function public.claim_due_publishing_jobs(integer, integer)",
+  "grant execute on function public.claim_due_publishing_jobs(integer, integer)",
+  "grant execute on function public.complete_publishing_job(text, uuid, text)",
+  "grant execute on function public.retry_publishing_job(text, uuid, text, text, integer)",
+];
+
+for (const fragment of publishingJobContract) {
+  assert.ok(
+    publishingJobSql.includes(fragment),
+    "Missing publishing job orchestration fragment: " + fragment,
+  );
+}
+
+console.log("OrbitOS publishing job orchestration contract tests passed.");
