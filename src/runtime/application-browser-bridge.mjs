@@ -202,7 +202,8 @@ export async function createOrbitApplicationBrowserBridge({
 
     const status = Number(error?.context?.status ?? error?.status ?? 0);
     if (status === 503 || data?.error === "OAUTH_NOT_CONFIGURED") {
-      throw new Error(        "Instagram connection is not configured yet. A workspace administrator must finish Meta app setup.",
+      throw new Error(
+        "Instagram connection is not configured yet. A workspace administrator must finish Meta app setup.",
       );
     }
     if (status === 403) {
