@@ -93,6 +93,7 @@ https://orbitoos.vercel.app
 - M18 — Instagram Login OAuth foundation — signed-in workspace-admin start endpoint, hashed single-use callback state, server-side token exchange, Vault storage, and disabled-by-default configuration
 - M19 — Instagram token refresh foundation — service-role-only refresh endpoint, Vault token rotation, expiry metadata maintenance, and a safe reauthorization state for invalid/expired tokens; no schedule is enabled
 - M20 — Platform media URL contract — validated HTTPS media references on content variants, persistent storage, and the publishing worker's approved-variant read model; publishing stays disabled
+- M21 — Instagram Reels adapter — official container/publish flow, publishing-quota guard, Vault token retrieval, durable job checkpoints, and manual reconciliation for uncertain outcomes; disabled until explicit server flags are set
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -157,4 +158,14 @@ The endpoint requires Supabase secret-key authentication plus `ORBITOS_INSTAGRAM
 
 M20 adds an optional `mediaUrl` to each platform-native content variant. It is validated as an HTTPS URL with a public-looking hostname, without embedded username/password credentials or a local/IP host. Empty values remain valid while drafting; Instagram publishing will require a URL that the platform can fetch without authentication. The application does not download or proxy the media and therefore cannot guarantee reachability at save time.
 
-The new `media_url` column is added to fresh schemas and through the idempotent migration `docs/architecture/content-variant-media-url.sql` for existing installations. The worker loads the field but still cannot publish because the official adapter registry remains empty and all publishing flags are off.
+The new `media_url` column is added to fresh schemas and through the idempotent migration `docs/architecture/content-variant-media-url.sql` for existing installations. The worker loads the field. The Instagram adapter is introduced in M21, but it remains disabled until its server-side adapter flag and the separate global publishing switch are deliberately enabled.
+
+## Instagram Reels publishing adapter
+
+M21 adds the first official provider adapter for Instagram Login. It deliberately supports only the `Instagram Reels` variant until image posts and other media formats have their own contracts. The adapter requires an HTTPS public video URL with an `.mp4` or `.mov` path and the `instagram_business_content_publish` permission.
+
+The worker follows Meta's two-phase publishing flow: create the media container, wait for its status to be `FINISHED`, then call `media_publish`. It checks the provider's current publishing quota before publishing. The access token is read through the backend-only Vault RPC and sent in the HTTPS Authorization header; it is never put in logs or diagnostics. See [Meta's Instagram API collection](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api).
+
+To activate this adapter later, the operator must configure `META_GRAPH_API_VERSION` to a currently supported Meta version, then explicitly set both `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED=true` and `ORBITOS_PUBLISHING_ENABLED=true` in Supabase Edge Function secrets. These flags are not enabled by this change, and no publishing schedule is created.
+
+The job payload holds a lease-fenced checkpoint for the container and provider post ID. If a network timeout or server error happens after the publish request may have reached Meta, the job becomes failed with `PUBLISH_OUTCOME_UNKNOWN` and requires manual reconciliation; the worker will not automatically submit that post again. This avoids the common duplicate-post failure mode when a remote API succeeds but the worker loses the response.
