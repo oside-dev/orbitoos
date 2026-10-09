@@ -19,6 +19,8 @@ mustContain(config, "verify_jwt = false", "custom Vault-token authentication is 
 mustContain(scheduler, "verify_orbitoos_publishing_scheduler_token", "server-side Vault-token verification");
 mustContain(scheduler, "AUTH_REQUIRED", "unauthorized callers are rejected");
 mustContain(scheduler, "SUPABASE_SERVICE_ROLE_KEY", "server-side administrative key is required");
+mustContain(scheduler, "/rest/v1/rpc/", "RPC calls use native authenticated fetch");
+assert.ok(!scheduler.includes("npm:@supabase/supabase-js"), "Scheduler keeps dependencies pinned by using the native fetch API.");
 mustContain(scheduler, "ORBITOS_PUBLISHING_ENABLED", "global publishing switch checked by dispatcher");
 mustContain(scheduler, "claim_orbitoos_publishing_scheduler_lease", "single-flight lease claimed");
 mustContain(scheduler, "release_orbitoos_publishing_scheduler_lease", "lease released on completed HTTP requests");
