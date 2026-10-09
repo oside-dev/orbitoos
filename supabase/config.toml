@@ -1,0 +1,4 @@
+# Only this function skips the platform JWT check because its handler
+# validates a Supabase secret key via @supabase/server (auth: "secret").
+[functions.publishing-worker]
+verify_jwt = false

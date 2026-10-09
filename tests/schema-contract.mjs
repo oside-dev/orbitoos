@@ -106,3 +106,45 @@ for (const fragment of publishingJobContract) {
 }
 
 console.log("OrbitOS publishing job orchestration contract tests passed.");
+
+const publishingWorker = readFileSync(
+  new URL("../supabase/functions/publishing-worker/index.ts", import.meta.url),
+  "utf8",
+);
+
+const publishingWorkerContract = [
+  'withSupabase({ auth: "secret" }',
+  'Deno.env.get("ORBITOS_PUBLISHING_ENABLED") !== "true"',
+  "return Object.freeze({});",
+  'return json({ error: "NO_OFFICIAL_ADAPTER_CONFIGURED" }, 503);',
+  "adapter.enabled === true",
+  "adapter.official === true",
+  "adapter.credentialsReady === true",
+  "adapter.supportsIdempotency === true",
+  "adapter.rateLimitReady === true",
+  '"claim_due_publishing_jobs"',
+  "p_platforms: platforms",
+  '"PROVIDER_REQUEST_FAILED"',
+  "The official publishing adapter reported a failure.",
+  ".eq(\"lease_token\", job.lease_token)",
+];
+
+for (const fragment of publishingWorkerContract) {
+  assert.ok(
+    publishingWorker.includes(fragment),
+    "Missing publishing worker safety fragment: " + fragment,
+  );
+}
+
+const supabaseConfig = readFileSync(
+  new URL("../supabase/config.toml", import.meta.url),
+  "utf8",
+);
+
+assert.ok(
+  supabaseConfig.includes("[functions.publishing-worker]") &&
+    supabaseConfig.includes("verify_jwt = false"),
+  "Publishing worker's custom secret authentication configuration is missing.",
+);
+
+console.log("OrbitOS publishing worker safety contract tests passed.");

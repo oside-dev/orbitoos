@@ -88,6 +88,7 @@ https://orbitoos.vercel.app
 - M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
 - M14 — Social publishing foundation — workspace-scoped social account metadata, durable publishing jobs, idempotency records, and secret-reference boundaries; official OAuth/platform adapters remain gated
 - M15 — Publishing job orchestration — atomic leased claims, expired-lease recovery, bounded retries, and service-role-only job transition RPCs; worker execution and official platform adapters remain gated
+- M16 — Publishing worker shell — secret-key-authenticated Edge Function, fail-closed execution, adapter-readiness gates, and sanitized failure handling; no official adapter is registered yet
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -112,3 +113,8 @@ The M15 database contract in `docs/architecture/publishing-job-orchestration.sql
 - backend-only claim/complete/retry RPCs granted only to `service_role`.
 
 This is orchestration infrastructure, not a live publisher. Jobs will not be sent to social networks until an official provider adapter, OAuth credential lifecycle, provider idempotency strategy, rate limits, and human approval checks are implemented and configured. Error diagnostics must be sanitized before they are persisted.
+
+
+## Publishing worker shell
+
+M16 adds `supabase/functions/publishing-worker/index.ts`. The endpoint validates a Supabase secret key through `@supabase/server`; the Edge Function gateway's JWT check is disabled only because the handler applies its own secret-key authentication. It is disabled unless `ORBITOS_PUBLISHING_ENABLED=true`, and even then it returns without claiming jobs until an official adapter is registered with credentials, idempotency, and rate-limit capabilities marked ready. No worker schedule or auto-publishing flag is configured.
