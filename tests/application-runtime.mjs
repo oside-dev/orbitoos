@@ -42,6 +42,7 @@ const fakeAuth = {
   },
   async signInWithPassword() {},
   async signUp() {},
+  async resendSignupConfirmation() {},
   async signOut() {},
   onAuthStateChange() {
     return { unsubscribe() {} };
