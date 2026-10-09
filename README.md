@@ -87,6 +87,7 @@ https://orbitoos.vercel.app
 - M12 — Strategy-aware learning — performance metrics are correlated back to persisted strategy angles
 - M13 — Imported analytics provider contract — CSV/JSON report imports use a provider adapter boundary
 - M14 — Social publishing foundation — workspace-scoped social account metadata, durable publishing jobs, idempotency records, and secret-reference boundaries; official OAuth/platform adapters remain gated
+- M15 — Publishing job orchestration — atomic leased claims, expired-lease recovery, bounded retries, and service-role-only job transition RPCs; worker execution and official platform adapters remain gated
 
 The next engineering work happens in GitHub first. Production deployment is a release activity, not the development loop.
 
@@ -100,3 +101,13 @@ Pull requests and main-branch pushes run the existing runtime checks plus framew
 The persistence layer now separates public social-account metadata from credential references. Access/refresh credentials are represented by secret names only; credential values do not enter OrbitOS state, content payloads, or browser storage. Approved schedules can materialize durable publishing jobs when a matching connected social account exists.
 
 The live SQL contract is recorded in `docs/architecture/social-publishing-foundation.sql`. Actual platform OAuth adapters and worker execution remain the next gated layer.
+
+## Publishing job orchestration
+
+The M15 database contract in `docs/architecture/publishing-job-orchestration.sql` adds:
+- atomic job claiming with `FOR UPDATE SKIP LOCKED`,
+- lease tokens and expiry recovery to prevent a stale worker from finalizing a reclaimed job,
+- bounded attempt counts and delayed retry scheduling,
+- backend-only claim/complete/retry RPCs granted only to `service_role`.
+
+This is orchestration infrastructure, not a live publisher. Jobs will not be sent to social networks until an official provider adapter, OAuth credential lifecycle, provider idempotency strategy, rate limits, and human approval checks are implemented and configured. Error diagnostics must be sanitized before they are persisted.
