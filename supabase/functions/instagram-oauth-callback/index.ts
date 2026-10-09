@@ -273,7 +273,7 @@ Deno.serve(
           .from("social_accounts")
           .update({
             status: accountCreated ? "reauth_required" : previousStatus,
-            metadata: accountCreated ? (account?.previousMetadata ?? {}) : previousMetadata,
+            metadata: accountCreated ? (account?.previousMetadata ?? {}) : { ...previousMetadata, provider: "instagram_login", tokenExpiresAt },
             updated_at: new Date().toISOString(),
           })
           .eq("id", accountId)
