@@ -297,3 +297,14 @@ grant execute on function public.complete_publishing_job(text, uuid, text)
   to service_role;
 grant execute on function public.retry_publishing_job(text, uuid, text, text, integer)
   to service_role;
+
+
+-- M28 security boundary: direct browser writes bypass the lease-fenced RPCs.
+-- Keep reads for the workspace operations panel, but make all state transitions
+-- backend-owned. See the follow-up migration for the matching social/subscription boundary.
+drop policy if exists publishing_jobs_member_insert on public.publishing_jobs;
+drop policy if exists publishing_jobs_member_update on public.publishing_jobs;
+drop policy if exists publishing_jobs_member_delete on public.publishing_jobs;
+revoke all on table public.publishing_jobs from public, anon, authenticated;
+grant select on table public.publishing_jobs to authenticated;
+grant select, insert, update, delete on table public.publishing_jobs to service_role;
