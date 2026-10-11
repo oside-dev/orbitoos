@@ -162,6 +162,9 @@ const requiredObjects = new Map([
     "public.plans",
     "public.profiles",
     "from public, anon, authenticated",
+    "alter default privileges for role postgres in schema public",
+    "revoke all privileges on tables from anon, authenticated",
+    "revoke all privileges on sequences from anon, authenticated",
     "grant select on table public.plans to anon, authenticated",
   ]],
 ]);
