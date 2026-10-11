@@ -17,7 +17,7 @@ Most restored migrations were recovered from the versioned SQL contracts already
 
 A read-only production catalog query on 2026-10-11 found effective `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges for both `anon` and `authenticated` on `activities`, `api_logs`, `notifications`, and `plans`. The `authenticated` role also had those table-level privileges on the optional legacy `profiles` table. RLS was enabled, and the inspected row policies were scoped to workspace membership, the signed-in user, or active plans, but **RLS does not protect a table from `TRUNCATE`**. The broad default grants therefore did not follow the intended row-level security boundary.
 
-The pending source migration `20261011102000_orbitoos_restrict_unsafe_table_privileges` revokes browser-role table grants on those five tables, then restores only the operations supported by existing policies: workspace-scoped CRUD for activities and notifications; SELECT/INSERT/DELETE for API logs; SELECT-only active plan access; and self/workspace-scoped profile access. Explicit `service_role` permissions are retained. Its CI contract prevents broad grants from being reintroduced.
+The pending source migration `20261011102000_orbitoos_restrict_unsafe_table_privileges` revokes browser-role table grants on those five tables, then restores only the operations supported by existing policies: workspace-scoped CRUD for activities and notifications; SELECT/INSERT/DELETE for API logs; SELECT-only active plan access; and self/workspace-scoped profile access. It also revokes broad default table and sequence privileges for `anon` and `authenticated` on future objects created by the application migration role (`postgres`) in `public`, so the same grants are not silently reintroduced by later migrations. Explicit `service_role` permissions are retained. Its CI contract checks both current-table grants and future-object defaults.
 
 **Production is not yet fixed by this source change.** The migration must pass CI, be reviewed, and then be applied as a controlled release. Until that deployment is verified, do not describe the production grants as remediated. Keep both publishing gates and token refresh disabled during this verification.
 
@@ -26,8 +26,9 @@ The pending source migration `20261011102000_orbitoos_restrict_unsafe_table_priv
 1. Compare tables, columns, constraints, indexes, RLS policies, grants, functions, extension placement, and scheduled-job definitions between a clean local replay and production using read-only metadata queries.
 2. Resolve only verified differences. Keep production changes separate from repository reconstruction and review any DDL before applying it.
 3. Release the pending `20261011102000_orbitoos_restrict_unsafe_table_privileges` migration only after its CI replay and contract test pass; then query effective grants again to confirm `anon` and `authenticated` do not hold `TRUNCATE`, `REFERENCES`, or `TRIGGER` on the five tables.
-4. Verify that the active-plan SELECT path and intended authenticated row-scoped operations still work after the privilege migration.
-5. Verify scheduler and Vault setup without copying production secret values. Keep `ORBITOS_PUBLISHING_ENABLED`, `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED`, and `ORBITOS_INSTAGRAM_REFRESH_ENABLED` disabled throughout verification.
-6. Do not claim full production schema parity until the comparison is complete.
+4. Query `pg_default_acl` after release and confirm the `postgres` defaults for `public` tables and sequences no longer grant privileges to `anon` or `authenticated`.
+5. Verify that the active-plan SELECT path and intended authenticated row-scoped operations still work after the privilege migration.
+6. Verify scheduler and Vault setup without copying production secret values. Keep `ORBITOS_PUBLISHING_ENABLED`, `ORBITOS_INSTAGRAM_PUBLISHING_ADAPTER_ENABLED`, and `ORBITOS_INSTAGRAM_REFRESH_ENABLED` disabled throughout verification.
+7. Do not claim full production schema parity until the comparison is complete.
 
 The pending security migration and its CI changes have not been applied to the live production database. This is a reproducibility/schema-parity issue and an identified least-privilege gap, not evidence that the production app is down.
