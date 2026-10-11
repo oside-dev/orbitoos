@@ -53,6 +53,8 @@ jobs:
           test -f supabase/migrations/20261009091753_orbitoos_approved_content_role_guard.sql
           test -f supabase/migrations/20261009114305_orbitoos_workspace_settings_role_guard.sql
           test -f supabase/migrations/20261009232954_orbitoos_profiles_workspace_visibility.sql
+          test -f supabase/migrations/20261011102000_orbitoos_restrict_unsafe_table_privileges.sql
+          test -f tests/unsafe-table-privileges-contract.mjs
           test -f tests/profile-workspace-visibility-contract.mjs
           test -f tests/workspace-settings-role-guard-contract.mjs
           test -f tests/local-demo-recovery-contract.mjs
@@ -179,6 +181,9 @@ jobs:
 
       - name: Run profile workspace visibility contract tests
         run: node tests/profile-workspace-visibility-contract.mjs
+
+      - name: Run unsafe table privilege contract tests
+        run: node tests/unsafe-table-privileges-contract.mjs
 
       - name: Run local demo recovery safety contract tests
         run: node tests/local-demo-recovery-contract.mjs
