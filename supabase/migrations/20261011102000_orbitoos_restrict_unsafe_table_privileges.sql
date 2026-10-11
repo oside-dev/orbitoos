@@ -4,6 +4,12 @@
 --
 -- This migration is source-only until reviewed and applied as a controlled release.
 -- The service_role grants are explicit and are not revoked by this migration.
+-- Future application tables/sequences created by the migration role must also
+-- require explicit browser grants rather than inheriting broad defaults.
+alter default privileges for role postgres in schema public
+  revoke all privileges on tables from anon, authenticated;
+alter default privileges for role postgres in schema public
+  revoke all privileges on sequences from anon, authenticated;
 
 revoke all privileges on table
   public.activities,
