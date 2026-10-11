@@ -284,8 +284,8 @@ jobs:
           version: 2.84.2
 
       - name: Replay all migrations in a fresh local Supabase database
-        run: supabase db start
+        run: supabase start
 
-      - name: Stop local Supabase database
+      - name: Stop local Supabase stack
         if: always()
         run: supabase stop --no-backup
