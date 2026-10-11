@@ -1,23 +1,23 @@
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
-import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const migrationsDir = fileURLToPath(new URL("../supabase/migrations/", import.meta.url));
 const files = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
 const versions = files.map((name) => {
-  const match = name.match(/^(\\d{14})_(.+)\\.sql$/);
+  const match = name.match(/^(\d{14})_(.+)\.sql$/);
   assert.ok(match, `Migration filename must begin with a 14-digit version: ${name}`);
   return { version: match[1], name: match[2], file: name };
 });
 
-assert.equal(new Set(versions.map(({ version }) => version)).size, versions.length,
-  "Migration versions must be unique.");
+assert.equal(
+  new Set(versions.map(({ version }) => version)).size,
+  versions.length,
+  "Migration versions must be unique.",
+);
 
-// These are the tracked migrations whose application versions are recorded in
-// the live Supabase project's migration history. This intentionally validates
-// only the tracked subset; it does not claim that historical baseline SQL has
-// been fully restored to supabase/migrations/.
+// Check the tracked subset against versions actually recorded by the connected
+// production project. This is deliberately not a claim of full-history parity.
 const recordedProductionMigrations = new Map([
   ["20261008060308", "content_strategy_artifact"],
   ["20261009075030", "orbitoos_publishing_scheduler"],
@@ -38,8 +38,12 @@ for (const migration of versions) {
 }
 
 for (const version of recordedProductionMigrations.keys()) {
-  assert.ok(versions.some((migration) => migration.version === version),
-    `Missing tracked migration for recorded production version ${version}`);
+  assert.ok(
+    versions.some((migration) => migration.version === version),
+    `Missing tracked migration for recorded production version ${version}`,
+  );
 }
 
-console.log(`Migration version contract passed (${versions.length} tracked migrations checked against the production history subset).`);
+console.log(
+  `Migration version contract passed (${versions.length} tracked migrations checked against the production history subset).`,
+);
