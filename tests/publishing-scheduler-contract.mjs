@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const scheduler = read("../supabase/functions/publishing-scheduler/index.ts");
-const sql = read("../supabase/migrations/20261009074000_orbitoos_publishing_scheduler.sql");
+const sql = read("../supabase/migrations/20261009075030_orbitoos_publishing_scheduler.sql");
 const config = read("../supabase/config.toml");
 const worker = read("../supabase/functions/publishing-worker/index.ts");
 const runbook = read("../docs/operations/publishing-scheduler.md");
