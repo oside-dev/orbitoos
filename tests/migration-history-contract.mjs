@@ -7,7 +7,7 @@ const migrationsDir = fileURLToPath(new URL("../supabase/migrations/", import.me
 const files = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
 const versions = files.map((name) => {
   const match = name.match(/^(\d{14})_(.+)\.sql$/);
-  assert.ok(match, \`Migration filename must begin with a 14-digit version: \${name}\`);
+  assert.ok(match, `Migration filename must begin with a 14-digit version: ${name}`);
   return { version: match[1], name: match[2], file: name };
 });
 
@@ -43,11 +43,11 @@ assert.equal(versions.length, expected.size,
   "Tracked migration file count must match the recorded 22-entry production history.");
 for (const migration of versions) {
   assert.equal(expected.get(migration.version), migration.name,
-    \`Tracked migration does not match expected version/name: \${migration.file}\`);
+    `Tracked migration does not match expected version/name: ${migration.file}`);
 }
 for (const version of expected.keys()) {
   assert.ok(versions.some((migration) => migration.version === version),
-    \`Missing tracked migration for recorded production version \${version}\`);
+    `Missing tracked migration for recorded production version ${version}`);
 }
 
 // Static object contracts keep critical schema dependencies from silently
@@ -145,8 +145,8 @@ for (const [name, fragments] of requiredObjects) {
   const source = readMigration(name).toLowerCase();
   for (const fragment of fragments) {
     assert.ok(source.includes(fragment.toLowerCase()),
-      \`Missing required migration object \${fragment} in \${name}\`);
+      `Missing required migration object ${fragment} in ${name}`);
   }
 }
 
-console.log(\`Migration history contract passed: \${versions.length} versioned files and critical object contracts checked. Full database replay is still a separate acceptance gate.\`);
+console.log(`Migration history contract passed: ${versions.length} versioned files and critical object contracts checked. Full database replay is still a separate acceptance gate.`);
