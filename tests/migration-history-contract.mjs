@@ -129,7 +129,7 @@ const requiredObjects = new Map([
     "revoke all on table public.social_accounts", "grant select on table public.subscriptions to authenticated",
   ]],
   ["20261009090948_orbitoos_workspace_role_approval_guard.sql", [
-    "workspaces_member_update", "owner", "admin",
+    "guard_content_approval_role", "owner", "admin", "editor",
   ]],
   ["20261009091753_orbitoos_approved_content_role_guard.sql", [
     "approved", "owner", "admin",
