@@ -1,0 +1,416 @@
+-- Historical baseline matching the schema recorded before the production initial-schema migration.
+-- Recovered from repository commit 0b80dc7bb83de2c28aaf7ef6bd07a060cc41645f.
+-- Do not treat this alone as a complete current-schema snapshot; later versioned migrations follow.
+
+-- OrbitOS target schema for Supabase Free
+-- This file is a contract for the persistent backend adapter.
+-- The local-first runtime remains the default until a real backend is connected.
+
+create table if not exists workspaces (
+  id text primary key,
+  name text not null,
+  slug text unique not null,
+  timezone text not null default 'UTC',
+  settings jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists workspace_members (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null default 'viewer'
+    check (role in ('owner', 'admin', 'editor', 'analyst', 'viewer')),
+  created_at timestamptz not null default now(),
+  unique (workspace_id, user_id)
+);
+
+create index if not exists workspace_members_user_workspace_idx
+  on workspace_members(user_id, workspace_id);
+
+create index if not exists workspace_members_workspace_idx
+  on workspace_members(workspace_id);
+
+create table if not exists brands (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  name text not null,
+  voice text not null default '',
+  audience text not null default '',
+  pillars text[] not null default '{}',
+  prohibited text[] not null default '{}',
+  visual_direction text not null default '',
+  posting_goals jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists ideas (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  title text not null,
+  objective text not null default '',
+  audience text not null default '',
+  platforms text[] not null default '{}',
+  pillar text not null default '',
+  tone text not null default '',
+  status text not null default 'idea',
+  score integer not null default 50,
+  deadline date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+
+
+create table if not exists research_items (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  idea_id text references ideas(id) on delete set null,
+  topic text not null default '',
+  summary text not null default '',
+  signals jsonb not null default '[]'::jsonb,
+  opportunity_score integer not null default 0,
+  sources jsonb not null default '[]'::jsonb,
+  generated_by text not null default 'backend',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists content_items (
+  id text primary key,
+  idea_id text references ideas(id) on delete set null,
+  brand_id text references brands(id) on delete set null,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  title text not null,
+  brief text not null default '',
+  status text not null default 'draft',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists content_variants (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  content_item_id text not null references content_items(id) on delete cascade,
+  platform text not null,
+  hook text not null default '',
+  body text not null default '',
+  cta text not null default '',
+  hashtags text[] not null default '{}',
+  creative_brief text not null default '',
+  visual_direction text not null default '',
+  status text not null default 'draft',
+  approved boolean not null default false,
+  version integer not null default 1,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists schedules (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  content_item_id text not null references content_items(id) on delete cascade,
+  platform text not null,
+  scheduled_at timestamptz not null,
+  status text not null default 'scheduled',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists analytics_snapshots (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  content_item_id text references content_items(id) on delete set null,
+  platform text not null,
+  snapshot_date date not null,
+  views integer not null default 0,
+  reach integer not null default 0,
+  engagements integer not null default 0,
+  follower_delta integer not null default 0,
+  is_demo boolean not null default true,
+  source text not null default 'unknown',
+  provider text not null default 'unknown'
+);
+
+create table if not exists agent_runs (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  agent text not null,
+  task text not null,
+  status text not null default 'queued',
+  input jsonb not null default '{}'::jsonb,
+  output jsonb not null default '{}'::jsonb,
+  started_at timestamptz not null default now(),
+  finished_at timestamptz
+);
+
+create table if not exists learning_insights (
+  id text primary key,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  brand_id text references brands(id) on delete set null,
+  title text not null,
+  detail text not null default '',
+  category text not null default 'general',
+  confidence numeric not null default 0.5,
+  impact text not null default 'medium',
+  status text not null default 'new',
+  created_at timestamptz not null default now(),
+  generated_at timestamptz not null default now()
+);
+
+
+-- Security contract: browser/API access is restricted to authenticated
+-- users who belong to the workspace. Workspace provisioning/membership changes
+-- remain backend-controlled until an explicit invitation/bootstrap flow exists.
+-- Never expose a Supabase service_role/secret key to the browser.
+
+create schema if not exists private;
+
+create or replace function private.user_workspace_ids()
+returns setof text
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select wm.workspace_id
+  from public.workspace_members wm
+  where wm.user_id = (select auth.uid());
+$$;
+
+revoke execute on function private.user_workspace_ids() from public;
+revoke execute on function private.user_workspace_ids() from anon;
+grant usage on schema private to authenticated;
+grant execute on function private.user_workspace_ids() to authenticated;
+
+alter table if exists workspaces enable row level security;
+alter table if exists workspace_members enable row level security;
+alter table if exists brands enable row level security;
+alter table if exists ideas enable row level security;
+alter table if exists research_items enable row level security;
+alter table if exists content_items enable row level security;
+alter table if exists content_variants enable row level security;
+alter table if exists schedules enable row level security;
+alter table if exists analytics_snapshots enable row level security;
+alter table if exists agent_runs enable row level security;
+alter table if exists learning_insights enable row level security;
+
+revoke all on table workspaces from anon, authenticated;
+revoke all on table workspace_members from anon, authenticated;
+revoke all on table brands from anon, authenticated;
+revoke all on table ideas from anon, authenticated;
+revoke all on table research_items from anon, authenticated;
+revoke all on table content_items from anon, authenticated;
+revoke all on table content_variants from anon, authenticated;
+revoke all on table schedules from anon, authenticated;
+revoke all on table analytics_snapshots from anon, authenticated;
+revoke all on table agent_runs from anon, authenticated;
+revoke all on table learning_insights from anon, authenticated;
+
+grant select, update on table workspaces to authenticated;
+grant select on table workspace_members to authenticated;
+grant select, insert, update, delete on table brands to authenticated;
+grant select, insert, update, delete on table ideas to authenticated;
+grant select, insert, update, delete on table research_items to authenticated;
+grant select, insert, update, delete on table content_items to authenticated;
+grant select, insert, update, delete on table content_variants to authenticated;
+grant select, insert, update, delete on table schedules to authenticated;
+grant select, insert, update, delete on table analytics_snapshots to authenticated;
+grant select, insert, update, delete on table agent_runs to authenticated;
+grant select, insert, update, delete on table learning_insights to authenticated;
+
+drop policy if exists "workspace_members_read" on workspace_members;
+drop policy if exists "workspaces_member_read" on workspaces;
+drop policy if exists "workspaces_member_update" on workspaces;
+drop policy if exists "brands_member_access" on brands;
+drop policy if exists "ideas_member_access" on ideas;
+drop policy if exists "research_member_access" on research_items;
+drop policy if exists "content_items_member_access" on content_items;
+drop policy if exists "content_variants_member_access" on content_variants;
+drop policy if exists "schedules_member_access" on schedules;
+drop policy if exists "analytics_member_access" on analytics_snapshots;
+drop policy if exists "agent_runs_member_access" on agent_runs;
+drop policy if exists "learning_member_access" on learning_insights;
+
+create policy "workspace_members_member_read"
+on workspace_members
+for select
+to authenticated
+using (
+  workspace_id in (select private.user_workspace_ids())
+);
+
+create policy "workspaces_member_read"
+on workspaces
+for select
+to authenticated
+using (
+  id in (select private.user_workspace_ids())
+);
+
+create policy "workspaces_member_update"
+on workspaces
+for update
+to authenticated
+using (
+  id in (select private.user_workspace_ids())
+)
+with check (
+  id in (select private.user_workspace_ids())
+);
+
+create policy "brands_member_read"
+on brands for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "brands_member_insert"
+on brands for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "brands_member_update"
+on brands for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "brands_member_delete"
+on brands for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "ideas_member_read"
+on ideas for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "ideas_member_insert"
+on ideas for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "ideas_member_update"
+on ideas for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "ideas_member_delete"
+on ideas for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "research_member_read"
+on research_items for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "research_member_insert"
+on research_items for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "research_member_update"
+on research_items for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "research_member_delete"
+on research_items for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_read"
+on content_items for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_insert"
+on content_items for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_update"
+on content_items for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_items_member_delete"
+on content_items for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_read"
+on content_variants for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_insert"
+on content_variants for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_update"
+on content_variants for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "content_variants_member_delete"
+on content_variants for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_read"
+on schedules for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_insert"
+on schedules for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_update"
+on schedules for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "schedules_member_delete"
+on schedules for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_read"
+on analytics_snapshots for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_insert"
+on analytics_snapshots for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_update"
+on analytics_snapshots for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "analytics_member_delete"
+on analytics_snapshots for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_read"
+on agent_runs for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_insert"
+on agent_runs for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_update"
+on agent_runs for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "agent_runs_member_delete"
+on agent_runs for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_read"
+on learning_insights for select to authenticated
+using (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_insert"
+on learning_insights for insert to authenticated
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_update"
+on learning_insights for update to authenticated
+using (workspace_id in (select private.user_workspace_ids()))
+with check (workspace_id in (select private.user_workspace_ids()));
+
+create policy "learning_member_delete"
+on learning_insights for delete to authenticated
+using (workspace_id in (select private.user_workspace_ids()));

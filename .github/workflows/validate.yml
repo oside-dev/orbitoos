@@ -272,3 +272,20 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:4173/ >/dev/null
           node tests/browser-e2e.cjs
+
+  database-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+
+      - name: Replay all migrations in a fresh local Supabase database
+        run: supabase start
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup
