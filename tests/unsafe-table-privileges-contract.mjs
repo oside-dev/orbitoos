@@ -9,6 +9,18 @@ const runbook = read("../docs/operations/migration-history-reconciliation.md");
 
 assert.ok(
   normalizedMigration.includes(
+    "alter default privileges for role postgres in schema public revoke all privileges on tables from anon, authenticated;",
+  ),
+  "New application tables created by the migration role must not inherit broad browser table grants.",
+);
+assert.ok(
+  normalizedMigration.includes(
+    "alter default privileges for role postgres in schema public revoke all privileges on sequences from anon, authenticated;",
+  ),
+  "New application sequences created by the migration role must not inherit broad browser sequence grants.",
+);
+assert.ok(
+  normalizedMigration.includes(
     "revoke all privileges on table public.activities, public.api_logs, public.notifications, public.plans, public.profiles from public, anon, authenticated;",
   ),
   "The migration must remove inherited/broad table privileges from public browser roles on all affected tables.",
