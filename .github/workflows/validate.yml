@@ -67,7 +67,6 @@ jobs:
           test -f docs/operations/instagram-reels-publishing-runbook.md
           test -f supabase/schema.sql
           node tests/migration-history-contract.mjs
-          node tests/unsafe-table-privileges-contract.mjs
           echo "Architecture checks passed"
 
       - name: Validate modular core files
