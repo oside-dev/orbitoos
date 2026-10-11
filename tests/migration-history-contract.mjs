@@ -149,4 +149,4 @@ for (const [name, fragments] of requiredObjects) {
   }
 }
 
-console.log(`Migration history contract passed: ${versions.length} versioned files and critical object contracts checked. Full database replay is still a separate acceptance gate.`);
+console.log(`Migration history contract passed: ${versions.length} versioned files and critical object contracts checked. Fresh local replay is enforced by the database-migrations CI job; exact production catalog parity remains a separate check.`);
