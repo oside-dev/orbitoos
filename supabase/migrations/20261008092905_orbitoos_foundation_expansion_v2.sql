@@ -116,7 +116,8 @@ revoke all on table public.plans from public, anon, authenticated;
 
 grant select, insert, update, delete on table public.activities,
   public.api_logs, public.notifications, public.profiles to authenticated;
-grant select on table public.plans, public.subscriptions to anon, authenticated;
+grant select on table public.plans to anon, authenticated;
+grant select on table public.subscriptions to authenticated;
 grant select, insert, update, delete on table public.activities,
   public.api_logs, public.notifications, public.profiles, public.plans,
   public.subscriptions to service_role;
