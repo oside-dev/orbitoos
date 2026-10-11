@@ -74,9 +74,7 @@ https://orbitoos.vercel.app
 
 The Supabase Auth and persistent backend components are deployed, but real-account acceptance is not complete. Verify Site URL/redirects and email delivery, then test email confirmation and workspace bootstrap with an email you control. Meta OAuth still requires the operator's own app credentials and professional account. Follow the [first-workspace acceptance runbook](docs/operations/first-workspace-acceptance.md); publishing and token refresh stay disabled during this check.
 
-
-
-The complete 22-version migration history is now tracked under `supabase/migrations/`. A clean replay is still a separate verification gate because the foundation-expansion migration was reconstructed from the live schema catalog and tracked SQL contract. See the [migration history reconciliation runbook](docs/operations/migration-history-reconciliation.md) before attempting a clean database reset.
+The complete 22-version migration history is now tracked under `supabase/migrations/`. A fresh local replay of all 22 migrations now passes in GitHub Actions. Exact schema equivalence to production still needs a controlled catalog comparison because the foundation-expansion migration was reconstructed from the live schema catalog and tracked SQL contract. See the [migration history reconciliation runbook](docs/operations/migration-history-reconciliation.md) before attempting a clean database reset.
 
 ## Engineering roadmap
 
