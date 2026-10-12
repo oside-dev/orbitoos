@@ -107,6 +107,7 @@ jobs:
           test -f src/adapters/analytics-report-parser.mjs
           test -f src/adapters/imported-analytics-provider.mjs
           test -f src/runtime/ui-state.mjs
+          test -f tests/ui-state.mjs
           test -f src/runtime/browser-bridge.mjs
           test -f src/runtime/persistent-runtime.mjs
           test -f src/agents/orchestrator.mjs
@@ -196,6 +197,9 @@ jobs:
 
       - name: Run first-workspace acceptance contract tests
         run: node tests/first-workspace-acceptance-contract.mjs
+
+      - name: Run UI-state normalization tests
+        run: node tests/ui-state.mjs
 
       - name: Run persistent content loop tests
         run: node tests/persistent-content-loop.mjs
