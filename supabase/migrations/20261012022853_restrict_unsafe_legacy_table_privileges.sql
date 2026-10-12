@@ -2,7 +2,8 @@
 -- table-level privileges. PostgreSQL RLS does not govern TRUNCATE.
 -- Preserve only the DML operations supported by the existing row-scoped policies.
 --
--- This migration is source-only until reviewed and applied as a controlled release.
+-- Applied to the connected production project on 2026-10-12.
+-- Supabase recorded this migration as 20261012022853_restrict_unsafe_legacy_table_privileges.
 -- The service_role grants are explicit and are not revoked by this migration.
 -- Future application tables/sequences created by the migration role must also
 -- require explicit browser grants rather than inheriting broad defaults.

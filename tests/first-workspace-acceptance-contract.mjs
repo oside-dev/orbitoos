@@ -12,7 +12,7 @@ const workflow = readFileSync(
 );
 
 for (const required of [
-  "State observed on 2026-10-10",
+  "Latest database preflight: 2026-10-12",
   "Confirm your email",
   "Backend persistent",
   "bootstrap-workspace",
