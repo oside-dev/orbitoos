@@ -54,6 +54,8 @@ jobs:
           test -f supabase/migrations/20261009114305_orbitoos_workspace_settings_role_guard.sql
           test -f supabase/migrations/20261009232954_orbitoos_profiles_workspace_visibility.sql
           test -f supabase/migrations/20261012022853_restrict_unsafe_legacy_table_privileges.sql
+          test -f supabase/migrations/20261012030454_track_auth_profile_creation_trigger.sql
+          test -f tests/auth-profile-trigger-contract.mjs
           test -f tests/unsafe-table-privileges-contract.mjs
           test -f tests/profile-workspace-visibility-contract.mjs
           test -f tests/workspace-settings-role-guard-contract.mjs
@@ -67,6 +69,7 @@ jobs:
           test -f docs/operations/instagram-reels-publishing-runbook.md
           test -f supabase/schema.sql
           node tests/migration-history-contract.mjs
+          node tests/auth-profile-trigger-contract.mjs
           echo "Architecture checks passed"
 
       - name: Validate modular core files

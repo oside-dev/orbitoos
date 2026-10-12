@@ -13,6 +13,9 @@ const workflow = readFileSync(
 
 for (const required of [
   "Latest database preflight: 2026-10-12",
+  "on_auth_user_created",
+  "private.handle_new_user",
+  "20261012030454_track_auth_profile_creation_trigger",
   "Confirm your email",
   "Backend persistent",
   "bootstrap-workspace",

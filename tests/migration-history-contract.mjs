@@ -38,12 +38,13 @@ const expected = new Map([
   ["20261009114305", "orbitoos_workspace_settings_role_guard"],
   ["20261009232954", "orbitoos_profiles_workspace_visibility"],
   ["20261012022853", "restrict_unsafe_legacy_table_privileges"],
+  ["20261012030454", "track_auth_profile_creation_trigger"],
 ]);
 
 assert.equal(
   versions.length,
   expected.size,
-  "Tracked migration file count must match the recorded 23-entry production history.",
+  "Tracked migration file count must match the recorded 24-entry production history.",
 );
 for (const migration of versions) {
   assert.equal(expected.get(migration.version), migration.name,
@@ -156,6 +157,16 @@ const requiredObjects = new Map([
     "revoke all privileges on tables from anon, authenticated",
     "revoke all privileges on sequences from anon, authenticated",
     "grant select on table public.plans to anon, authenticated",
+  ]],
+  ["20261012030454_track_auth_profile_creation_trigger.sql", [
+    "create or replace function private.handle_new_user()",
+    "security definer",
+    "set search_path = ''",
+    "insert into public.profiles",
+    "on conflict (id) do nothing",
+    "auth.users",
+    "on_auth_user_created",
+    "private.handle_new_user()",
   ]],
 ]);
 for (const [name, fragments] of requiredObjects) {
