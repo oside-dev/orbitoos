@@ -24,4 +24,8 @@ The database lease prevents overlapping dispatches. A completed worker HTTP resp
 4. Keep `ORBITOS_PUBLISHING_ENABLED` unset or false until the Instagram app credentials, redirect URI, current supported Meta API version, connected professional account, publishing permission, approved content, public HTTPS media URL, quota, and operator-controlled test plan have been verified.
 5. For a first live publish, follow the Instagram Reels runbook. Verify the Reel directly in the connected account; a successful cron call or worker response is not proof of publication.
 
+## Production verification snapshot — 2026-10-12
+
+A read-only check of Supabase `net._http_response` for the preceding 24 hours found **360** successful HTTP 200 responses from the publishing dispatcher returning `PUBLISHING_DISABLED`, with the latest at 02:52 UTC. Across the 361 responses from both scheduled dispatchers, there were no timeouts, HTTP errors, or transport errors. The publishing cron is active and continues to run every minute, but the response confirms the global publishing gate prevented worker dispatch at those invocations. This is not evidence that a social post was published.
+
 The scheduler can be installed and observed while publishing remains disabled. Do not enable the worker as a diagnostic probe.
