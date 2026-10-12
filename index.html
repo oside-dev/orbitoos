@@ -98,7 +98,7 @@ let selectedId=state.ideas[0]?.id||null;
 function save(){if((state.runtime?.mode||"local")==="local")localStorage.setItem(STORE,JSON.stringify(state))}
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 function toast(msg){const x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
-function log(agent,msg){state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
+function log(agent,msg){if(!Array.isArray(state.events))state.events=[];state.events.unshift([new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),agent+" • "+msg]);state.events=state.events.slice(0,30);save()}
 function btn(label,fn,primary=false,extra=""){return '<button class="btn '+(primary?"primary ":"")+extra+'" onclick="'+fn+'">'+esc(label)+"</button>"}
 function updateAuthSnapshot(snapshot){
  state.auth={...(state.auth||{}),...(snapshot||{})};
@@ -150,12 +150,13 @@ function overview(){
  const active=visibleIdeas().filter(x=>x.stage!=="Archived").length;
  const approved=visibleIdeas().filter(x=>x.stage==="Approved").length;
  const activeIdeas=visibleIdeas();
+ const events=Array.isArray(state.events)?state.events:[];
  const avg=Math.round(activeIdeas.reduce((a,x)=>a+x.score,0)/Math.max(1,activeIdeas.length));
  const draft=visibleIdeas().filter(x=>x.stage==="Draft").length;
  const cards='<div class="grid kpis">'+kpi("Active ideas",active,"local records")+kpi("Ready to publish",approved,"human-approved only")+kpi("Draft queue",draft,"editing work")+kpi("Avg opportunity",avg+"/100","heuristic score")+'</div>';
  const pipe='<div class="card"><div class="row"><h2>Operating pipeline</h2><span class="badge ok">LOCAL</span></div><div class="pipeline" style="margin-top:12px">'+stages.slice(0,6).map((s,i)=>'<div class="step"><span>'+s+'</span><b>'+activeIdeas.filter(x=>x.stage===s).length+'</b></div>').join("")+'</div><div class="small" style="margin-top:9px">Idea → Research → Strategy → Draft → Review → Approved. Schedule remains a separate execution step.</div></div>';
  const right='<div class="card"><div class="row"><h2>System guardrails</h2><span class="badge warn">FREE-FIRST</span></div><div class="notice" style="margin-top:10px">No paid provider calls. No social account credentials. No automatic external publishing. Human approval remains mandatory.</div><div class="small" style="margin-top:10px">Runtime v4 • local persistence • portable JSON backup</div></div>';
- const activity='<div class="card"><div class="row"><h2>Activity</h2><span class="badge">EVENT LOG</span></div><div class="timeline" style="margin-top:10px">'+state.events.slice(0,8).map(e=>'<div class="event"><div class="time">'+esc(e[0])+'</div><div class="eventBody">'+esc(e[1])+'</div></div>').join("")+'</div></div>';
+ const activity='<div class="card"><div class="row"><h2>Activity</h2><span class="badge">EVENT LOG</span></div><div class="timeline" style="margin-top:10px">'+events.slice(0,8).map(e=>'<div class="event"><div class="time">'+esc(e[0])+'</div><div class="eventBody">'+esc(e[1])+'</div></div>').join("")+'</div></div>';
  const learning='<div class="card"><div class="row"><h2>Learning loop</h2><span class="badge '+(learningEntries().length?'ok':'warn')+'">'+(learningEntries().length?'RUNTIME':'WAITING')+'</span></div><div class="list" style="margin-top:10px">'+(learningEntries().length?learningEntries().slice(0,3).map((x,i)=>'<div class="item"><strong>'+(i+1)+". "+esc(x.title)+'</strong><small>'+esc(x.detail)+'</small></div>').join(""):'<div class="small">Run Learning from Analytics after metrics are available.</div>')+'</div></div>';
  shell("Command Center","One idea → research → platform variants → review → schedule → analytics → learning",btn("+ New idea","newIdea()",true)+btn("Run local workflow","runWorkflow()"),cards+'<div class="grid two" style="margin-top:14px">'+pipe+right+'</div><div class="grid two" style="margin-top:14px">'+activity+learning+"</div>");
 }
