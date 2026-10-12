@@ -38,7 +38,9 @@ Workspace-level updates—including workspace identity and shared AI settings st
 
 ## Current deployment posture
 
-The production UI remains local-first by default. The Supabase project hosts the live schema, authentication boundary, OAuth/publishing Edge Functions, Vault-backed credentials, and gated schedulers. The current database has no authenticated users, connected social accounts, scheduled records, or publishing jobs, so real-account integration still requires an operator-controlled setup and test.
+The production UI remains local-first by default. The Supabase project hosts the live schema, authentication boundary, OAuth/publishing Edge Functions, Vault-backed credentials, and gated schedulers.
+
+As of 2026-10-12, production has one confirmed Auth user and profile, one workspace, one owner membership, and one default brand. The authenticated workspace bootstrap is verified. The first real account's authenticated UI content loop (create an idea, edit a variant, reload, and confirm persistence) remains pending. The `ideas`, `content_items`, `content_variants`, `schedules`, `social_accounts`, and `publishing_jobs` tables currently have zero rows. Publishing and token-refresh feature gates remain disabled while acceptance is in progress.
 
 When the browser uses authenticated-persistent mode, Auth supplies the verified user identity and RLS enforces workspace ownership at the database boundary.
 
