@@ -45,6 +45,8 @@ jobs:
           test -f docs/operations/instagram-token-refresh-scheduler.md
           test -f docs/operations/first-workspace-acceptance.md
           test -f docs/operations/migration-history-reconciliation.md
+          test -f supabase/functions/bootstrap-workspace/index.ts
+          test -f tests/bootstrap-workspace-contract.mjs
           test -f tests/first-workspace-acceptance-contract.mjs
           test -f supabase/migrations/20261009082359_orbitoos_instagram_token_refresh_scheduler.sql
           test -f supabase/migrations/20261009085818_orbitoos_backend_owned_records.sql
@@ -70,6 +72,7 @@ jobs:
           test -f supabase/schema.sql
           node tests/migration-history-contract.mjs
           node tests/auth-profile-trigger-contract.mjs
+          node tests/bootstrap-workspace-contract.mjs
           echo "Architecture checks passed"
 
       - name: Validate modular core files

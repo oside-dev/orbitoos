@@ -10,10 +10,14 @@ const [adapter, authContract, bridge, html, workflow] = await Promise.all([
 ]);
 
 assert.match(authContract, /"resendSignupConfirmation"/);
-assert.match(
-  adapter,
-  /auth\.resend\(\{\s*type: "signup",\s*email: normalizedEmail,\s*\}\)/,
-  "resend must request the signup confirmation flow, not another auth flow",
+assert.ok(
+  adapter.includes("async function resendSignupConfirmation({ email, options = {} } = {})"),
+  "resend must accept optional redirect options",
+);
+assert.ok(
+  adapter.includes('const resendOptions = options && typeof options === "object" ? options : {};') &&
+    adapter.includes("...(Object.keys(resendOptions).length > 0 ? { options: resendOptions } : {}),"),
+  "resend must pass through redirect options only when supplied",
 );
 assert.match(adapter, /if \(!normalizedEmail\)/);
 assert.match(adapter, /status: "requested"/);
@@ -41,6 +45,14 @@ assert.match(html, /authModal\("confirm-email",email\)/);
 assert.match(html, /Resend confirmation email/);
 assert.match(html, /If an eligible account exists, a confirmation email has been sent/);
 assert.match(html, /function resendSignupConfirmation\(\)/);
+assert.ok(
+  html.includes("await window.orbitCore.signUp({email,password,options:{emailRedirectTo:window.location.origin}})"),
+  "Sign-up confirmation links must return to the current app origin.",
+);
+assert.ok(
+  html.includes("await window.orbitCore.resendSignupConfirmation({email,options:{emailRedirectTo:window.location.origin}})"),
+  "Resent confirmation links must return to the current app origin.",
+);
 assert.match(workflow, /node tests\/auth\.mjs/);
 assert.match(workflow, /node tests\/signup-confirmation-recovery-contract\.mjs/);
 

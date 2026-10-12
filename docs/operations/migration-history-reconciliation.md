@@ -27,7 +27,7 @@ The production migration `20261012022853_restrict_unsafe_legacy_table_privileges
 
 **Post-apply verification on 2026-10-12:** a read-only query confirmed that RLS remained enabled and effective `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges were false for both browser roles on all five tables. The `postgres` default ACL entries for new `public` tables and sequences no longer list `anon` or `authenticated`. The application tables inspected are owned by `postgres`. The managed `supabase_admin` role still has its own broad default ACL entry; it was not changed because that superuser may be used by Supabase-managed operations. Revisit only after a separate compatibility assessment identifies whether application objects are ever created under that role.
 
-The production Auth user/workspace/membership/social-account/schedule/job/content-item/profile counts are still zero, so real-account workspace acceptance has not yet passed. The auth profile trigger is now tracked, but remains unexercised until a real signup. Keep publishing and token-refresh feature switches disabled until workspace acceptance and operator-controlled Meta setup are complete.
+A real signup has now created one confirmed Auth user and one profile row, but the workspace, membership, brand, ideas, content items, schedules, social accounts, and publishing jobs remain zero because `bootstrap-workspace` returns HTTP 401. The auth profile trigger has therefore been exercised; the separate workspace bootstrap has not passed acceptance. A source fix for the normalized user-claim field is in review/deployment. Keep publishing and token-refresh feature switches disabled until workspace acceptance and operator-controlled Meta setup are complete.
 
 ## Follow-up acceptance criteria
 

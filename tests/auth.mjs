@@ -88,6 +88,15 @@ assert.deepEqual(resentConfirmation, {
   type: "signup",
   email: "boss@example.com",
 });
+await auth.resendSignupConfirmation({
+  email: " boss@example.com ",
+  options: { emailRedirectTo: "https://orbitoos.vercel.app" },
+});
+assert.deepEqual(resentConfirmation, {
+  type: "signup",
+  email: "boss@example.com",
+  options: { emailRedirectTo: "https://orbitoos.vercel.app" },
+});
 await assert.rejects(
   () => auth.resendSignupConfirmation({ email: "   " }),
   /requires an email address/,
