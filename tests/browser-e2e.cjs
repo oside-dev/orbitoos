@@ -17,8 +17,8 @@ export function createClient() {
         mock.calls.push({ op: "getUser" });
         return { data: { user: null }, error: { message: "Auth session missing" } };
       },
-      async signUp({ email, password }) {
-        mock.calls.push({ op: "signUp", email, passwordProvided: Boolean(password) });
+      async signUp({ email, password, options }) {
+        mock.calls.push({ op: "signUp", email, passwordProvided: Boolean(password), options });
         return {
           data: {
             user: {
@@ -150,8 +150,18 @@ async function run() {
     const authCalls = await page.evaluate(() => window.__orbitBrowserE2E.calls);
     assert.equal(authCalls.filter((call) => call.op === "signUp").length, 1);
     assert.deepEqual(
+      authCalls.filter((call) => call.op === "signUp").map((call) => call.options),
+      [{ emailRedirectTo: "http://127.0.0.1:4173" }],
+      "sign-up confirmation should return to the current app origin",
+    );
+    assert.deepEqual(
       authCalls.filter((call) => call.op === "resend").map((call) => call.input),
-      [{ type: "signup", email: "browser-e2e@example.invalid" }],
+      [{
+        type: "signup",
+        email: "browser-e2e@example.invalid",
+        options: { emailRedirectTo: "http://127.0.0.1:4173" },
+      }],
+      "resent confirmation should return to the current app origin",
     );
     assert.equal(
       authCalls.some((call) => call.op === "getUser" || call.op === "from" || call.op === "function"),
