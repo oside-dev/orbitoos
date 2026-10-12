@@ -55,6 +55,12 @@ async function run() {
     const bootText = await page.locator("#root").innerText();
     assert.match(bootText, /AUTHENTICATED/);
     assert.match(bootText, /Authenticated Browser QA Workspace/);
+    const projectedUiState = await page.evaluate(() => window.orbitCore.snapshot());
+    assert.equal(
+      projectedUiState.settings?.autoResearch,
+      true,
+      "authenticated UI snapshot must include safe legacy settings defaults",
+    );
     assert.equal(
       pageErrors.some((message) => message.includes("reading 'slice'")),
       false,
