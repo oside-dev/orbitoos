@@ -489,7 +489,7 @@ async function submitAuth(mode){
  try{
   await window.orbitCoreReady;
   const result=mode==="signup"
-   ? await window.orbitCore.signUp({email,password})
+   ? await window.orbitCore.signUp({email,password,options:{emailRedirectTo:window.location.origin}})
    : await window.orbitCore.signInWithPassword({email,password});
   updateAuthSnapshot(await window.orbitCore.getAuthSnapshot());
   if(mode==="signup" && result.status==="signed_out"){
@@ -510,7 +510,7 @@ async function resendSignupConfirmation(){
  if(!email)return toast("Email is required");
  try{
   await window.orbitCoreReady;
-  await window.orbitCore.resendSignupConfirmation({email});
+  await window.orbitCore.resendSignupConfirmation({email,options:{emailRedirectTo:window.location.origin}});
   toast("If an eligible account exists, a confirmation email has been sent. Check your inbox and spam folder.");
  }catch(error){toast(error.message||"Confirmation email could not be requested. Please try again.")}
 }
