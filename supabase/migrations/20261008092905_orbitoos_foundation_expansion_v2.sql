@@ -46,7 +46,7 @@ create table if not exists public.plans (
   id text primary key,
   name text not null unique,
   description text not null default '',
-  price_monthly numeric not null default 0,
+  price_monthly numeric(12,2) not null default 0,
   currency text not null default 'USD',
   billing_interval text not null default 'month'
     check (billing_interval in ('month', 'year')),
