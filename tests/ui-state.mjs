@@ -9,6 +9,39 @@ assert.deepEqual(
   [],
   "authenticated/core state projection must supply an empty activity list when no UI history exists",
 );
+assert.deepEqual(
+  projectedWithoutUiHistory.settings,
+  {
+    costGuard: true,
+    autoResearch: true,
+    publishing: false,
+    ai: {
+      provider: "local",
+      model: "",
+      baseUrl: "http://localhost:11434/api",
+    },
+  },
+  "authenticated/core state projection must provide the legacy UI settings object",
+);
+
+const coreStateWithPersistedAi = createInitialState({
+  workspace: {
+    id: "workspace-ui-state",
+    settings: {
+      ai: {
+        provider: "ollama",
+        model: "qa-model",
+        baseUrl: "http://localhost:11434/api",
+      },
+    },
+  },
+});
+const projectedSettings = toUiState(coreStateWithPersistedAi);
+assert.deepEqual(projectedSettings.settings.ai, {
+  provider: "ollama",
+  model: "qa-model",
+  baseUrl: "http://localhost:11434/api",
+});
 
 const priorEvents = [["12:00", "Browser runtime initialized"]];
 const projectedWithUiHistory = toUiState(coreState, { events: priorEvents });
