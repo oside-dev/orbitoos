@@ -93,9 +93,40 @@ export function toUiState(coreState, previousUiState = {}) {
       : {};
 
   const latestResearch = coreState.research.at(-1);
+  const previousSettings =
+    previous.settings && typeof previous.settings === "object" && !Array.isArray(previous.settings)
+      ? previous.settings
+      : {};
+  const workspaceSettings =
+    coreState.workspace?.settings &&
+    typeof coreState.workspace.settings === "object" &&
+    !Array.isArray(coreState.workspace.settings)
+      ? coreState.workspace.settings
+      : {};
+  const workspaceAi =
+    workspaceSettings.ai &&
+    typeof workspaceSettings.ai === "object" &&
+    !Array.isArray(workspaceSettings.ai)
+      ? workspaceSettings.ai
+      : {};
+
+  const settings = {
+    ...previousSettings,
+    costGuard: typeof previousSettings.costGuard === "boolean" ? previousSettings.costGuard : true,
+    autoResearch: typeof previousSettings.autoResearch === "boolean" ? previousSettings.autoResearch : true,
+    publishing: typeof previousSettings.publishing === "boolean" ? previousSettings.publishing : false,
+    ai: {
+      provider: "local",
+      model: "",
+      baseUrl: "http://localhost:11434/api",
+      ...(previousSettings.ai && typeof previousSettings.ai === "object" ? previousSettings.ai : {}),
+      ...workspaceAi,
+    },
+  };
 
   return {
     ...previous,
+    settings,
     events: Array.isArray(previous.events) ? structuredClone(previous.events) : [],
     version: UI_STATE_VERSION,
     workspace: structuredClone(coreState.workspace),
