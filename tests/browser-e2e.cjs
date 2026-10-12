@@ -125,6 +125,27 @@ async function run() {
       "missing activity history must not crash overview rendering",
     );
 
+    await page.locator(".nav button").filter({ hasText: "Brand" }).click();
+    await page.evaluate(() => {
+      state.brand.rules = undefined;
+      render();
+    });
+    assert.match(
+      await page.locator("#root").innerText(),
+      /Guardrails/,
+      "Brand settings should render even when a legacy brand lacks a rules array",
+    );
+    assert.equal(
+      pageErrors.length,
+      0,
+      "missing brand guardrails must not crash the Brand page",
+    );
+    await page.evaluate(() => {
+      state.brand.rules = [];
+      render();
+    });
+    await page.locator(".nav button").first().click();
+
     const navigation = page.locator(".nav button");
     const navigationCount = await navigation.count();
     assert.equal(navigationCount, 9);
