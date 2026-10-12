@@ -177,6 +177,23 @@ function mockQuery(table) {
       filters.push([column, value]);
       return this;
     },
+    upsert(rows) {
+      const incoming = Array.isArray(rows) ? rows : [rows];
+      const current = authenticatedRows.get(table) ?? [];
+      const byId = new Map(current.map((row) => [row.id, row]));
+      for (const row of incoming) byId.set(row.id, structuredClone(row));
+      authenticatedRows.set(table, [...byId.values()]);
+      return Promise.resolve({ data: structuredClone(incoming), error: null });
+    },
+    delete() {
+      return {
+        async eq(column, value) {
+          const current = authenticatedRows.get(table) ?? [];
+          authenticatedRows.set(table, current.filter((row) => row[column] !== value));
+          return { data: [], error: null };
+        },
+      };
+    },
     then(resolve, reject) {
       try {
         let rows = authenticatedRows.get(table) ?? [];
@@ -272,6 +289,92 @@ assert.equal(authenticatedSnapshot.workspace.name, "Authenticated QA Workspace")
 assert.equal(authenticatedSnapshot.brand.id, authenticatedBrandId);
 assert.equal(authenticatedSnapshot.auth.user.id, authenticatedUser.id);
 assert.equal(authenticatedSnapshot.auth.membership.role, "owner");
+assert.deepEqual(
+  authenticatedSnapshot.events,
+  [],
+  "authenticated runtime snapshots must contain a safe empty UI activity log",
+);
+
+const persistentIdeaId = "idea-authenticated-content-loop";
+let persistentState = await authenticatedBridge.createDraft(
+  {
+    id: persistentIdeaId,
+    title: "Authenticated persistent content loop",
+    pillar: "Systems",
+    audience: "QA operators",
+    goal: "Education",
+    brief: "Verify idea and variants survive a backend snapshot reload.",
+  },
+  authenticatedSnapshot.brand,
+);
+assert.ok(persistentState.ideas.some((idea) => idea.id === persistentIdeaId));
+assert.equal(
+  persistentState.contentVariants.length,
+  6,
+  "authenticated idea creation should persist platform-native variants",
+);
+assert.equal(
+  (authenticatedRows.get("ideas") ?? []).some((row) => row.id === persistentIdeaId),
+  true,
+  "the authenticated Supabase adapter should persist the idea row",
+);
+assert.equal(
+  (authenticatedRows.get("content_items") ?? []).some((row) => row.idea_id === persistentIdeaId),
+  true,
+  "the authenticated Supabase adapter should persist the content item row",
+);
+
+persistentState = await authenticatedBridge.updateContentVariant({
+  ideaId: persistentIdeaId,
+  platform: "TikTok",
+  changes: { hook: "This edit must survive a backend reload." },
+});
+assert.equal(
+  persistentState.contentVariants.find((item) => item.platform === "TikTok")?.hook,
+  "This edit must survive a backend reload.",
+);
+assert.equal(
+  (authenticatedRows.get("content_variants") ?? []).some(
+    (row) => row.platform === "TikTok" && row.hook === "This edit must survive a backend reload.",
+  ),
+  true,
+  "the edited variant should be written to persistent storage",
+);
+
+persistentState = await authenticatedBridge.approveIdea(persistentIdeaId);
+assert.equal(persistentState.ideas.find((idea) => idea.id === persistentIdeaId)?.stage, "Approved");
+assert.equal(
+  persistentState.contentVariants.find((item) => item.platform === "TikTok")?.approved,
+  true,
+);
+
+persistentState = await authenticatedBridge.scheduleIdeaVariant({
+  ideaId: persistentIdeaId,
+  platform: "TikTok",
+  scheduledAt: "2030-10-12T09:00:00Z",
+});
+assert.equal(
+  persistentState.schedules.some((item) => item.platform === "TikTok"),
+  true,
+  "approved variants can be persisted as schedules while external publishing remains disabled",
+);
+
+const reloadedPersistentState = await authenticatedBridge.snapshot();
+assert.ok(reloadedPersistentState.ideas.some((idea) => idea.id === persistentIdeaId));
+assert.equal(
+  reloadedPersistentState.contentVariants.find((item) => item.platform === "TikTok")?.hook,
+  "This edit must survive a backend reload.",
+);
+assert.equal(
+  reloadedPersistentState.contentVariants.find((item) => item.platform === "TikTok")?.approved,
+  true,
+);
+assert.ok(reloadedPersistentState.schedules.some((item) => item.platform === "TikTok"));
+assert.equal(
+  (authenticatedRows.get("publishing_jobs") ?? []).length,
+  0,
+  "scheduling browser content must not forge publishing jobs",
+);
 await authenticatedBridge.signOut();
 assert.equal(
   (await authenticatedBridge.getEnvironment()).mode,
