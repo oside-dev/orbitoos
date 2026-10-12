@@ -14,7 +14,9 @@ Deno.serve(
       return new Response("ok", { headers: corsHeaders });
     }
 
-    const userId = ctx.userClaims?.sub;
+    // @supabase/server exposes a normalized userClaims.id; raw JWT claims use sub.
+    // Keep the fallback for compatibility with contexts exposing only jwtClaims.
+    const userId = ctx.userClaims?.id ?? ctx.jwtClaims?.sub;
     if (!userId) {
       return Response.json(
         { error: "AUTH_REQUIRED" },
