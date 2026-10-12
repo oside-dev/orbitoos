@@ -110,6 +110,21 @@ async function run() {
     assert.equal(environment.mode, "local");
     assert.equal(environment.authenticated, false);
 
+    await page.evaluate(() => {
+      state.events = undefined;
+      render();
+    });
+    assert.match(
+      await page.locator("#root").innerText(),
+      /Activity/,
+      "overview should still render when activity history is missing",
+    );
+    assert.equal(
+      pageErrors.some((message) => message.includes("reading 'slice'")),
+      false,
+      "missing activity history must not crash overview rendering",
+    );
+
     const navigation = page.locator(".nav button");
     const navigationCount = await navigation.count();
     assert.equal(navigationCount, 9);
