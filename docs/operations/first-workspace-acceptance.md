@@ -2,7 +2,7 @@
 
 **Purpose:** verify the first real OrbitOS account and persistent workspace without accidentally enabling social publishing.
 
-**State observed on 2026-10-10:** the Supabase project was healthy, email signup was enabled, email confirmation was required, and there were no Auth users, workspaces, workspace memberships, connected social accounts, schedules, or publishing jobs. The test suite and signed-out browser flow were green. Real email delivery, a real authenticated workspace, and Meta OAuth have not yet been exercised. Recheck this state before running the checklist; these observations can become stale.
+**Latest database preflight: 2026-10-12.** The production project still has zero Auth users, workspaces, workspace memberships, connected social accounts, schedules, and publishing jobs. The repository tests and signed-out browser flow are green, but real email delivery, a real authenticated workspace, and Meta OAuth have not yet been exercised. Email-signup/confirmation settings were last checked on 2026-10-10 and must be rechecked in the Dashboard before the operator test.
 
 ## Safety rules
 
