@@ -74,6 +74,19 @@ async function run() {
       .getByRole("button", { name: /Create & research/i })
       .click();
 
+    try {
+      await page.waitForFunction(async (expectedTitle) => {
+        const current = await window.orbitCore.snapshot();
+        return current.ideas.some((idea) => idea.title === expectedTitle);
+      }, title, { timeout: 15000 });
+    } catch (error) {
+      const toasts = await page.locator(".toast").allTextContents();
+      throw new Error(
+        "Authenticated idea creation did not persist. UI messages: " +
+          (toasts.join(" | ") || "(none)") + ". " + error.message,
+      );
+    }
+
     let snapshot = await page.evaluate(() => window.orbitCore.snapshot());
     assert.ok(snapshot.ideas.some((idea) => idea.title === title));
     assert.equal(snapshot.contentVariants.length, 6);
