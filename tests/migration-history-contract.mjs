@@ -37,31 +37,21 @@ const expected = new Map([
   ["20261009091753", "orbitoos_approved_content_role_guard"],
   ["20261009114305", "orbitoos_workspace_settings_role_guard"],
   ["20261009232954", "orbitoos_profiles_workspace_visibility"],
-]);
-
-// This release migration is intentionally source-only until it is reviewed and
-// applied to production. Do not count it as part of the live 22-version history.
-const pendingSourceOnly = new Map([
-  ["20261011102000", "orbitoos_restrict_unsafe_table_privileges"],
+  ["20261012022853", "restrict_unsafe_legacy_table_privileges"],
 ]);
 
 assert.equal(
   versions.length,
-  expected.size + pendingSourceOnly.size,
-  "Tracked migrations must equal the 22 production-recorded versions plus explicitly documented source-only versions.",
+  expected.size,
+  "Tracked migration file count must match the recorded 23-entry production history.",
 );
 for (const migration of versions) {
-  const expectedName = expected.get(migration.version) ?? pendingSourceOnly.get(migration.version);
-  assert.equal(expectedName, migration.name,
-    `Tracked migration does not match a known production or pending source version: ${migration.file}`);
+  assert.equal(expected.get(migration.version), migration.name,
+    `Tracked migration does not match the production-recorded version/name: ${migration.file}`);
 }
 for (const [version, name] of expected) {
   assert.ok(versions.some((migration) => migration.version === version && migration.name === name),
     `Missing tracked migration for recorded production version ${version}`);
-}
-for (const [version, name] of pendingSourceOnly) {
-  assert.ok(versions.some((migration) => migration.version === version && migration.name === name),
-    `Missing tracked source-only migration for pending version ${version}`);
 }
 
 // Static object contracts keep critical schema dependencies from silently
@@ -154,7 +144,7 @@ const requiredObjects = new Map([
   ["20261009232954_orbitoos_profiles_workspace_visibility.sql", [
     "profiles_workspace_member_read", "revoke all on table public.profiles from anon",
   ]],
-  ["20261011102000_orbitoos_restrict_unsafe_table_privileges.sql", [
+  ["20261012022853_restrict_unsafe_legacy_table_privileges.sql", [
     "revoke all privileges on table",
     "public.activities",
     "public.api_logs",
@@ -176,4 +166,4 @@ for (const [name, fragments] of requiredObjects) {
   }
 }
 
-console.log(`Migration history contract passed: ${expected.size} production-recorded versions plus ${pendingSourceOnly.size} source-only version(s), and critical object contracts checked. Fresh local replay is enforced by the database-migrations CI job; exact production catalog parity remains a separate check.`);
+console.log(`Migration history contract passed: ${expected.size} production-recorded versions and critical object contracts checked. Fresh local replay is enforced by the database-migrations CI job; exact production catalog parity remains a separate check.`);
