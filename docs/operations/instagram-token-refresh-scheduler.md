@@ -22,4 +22,8 @@ The scheduler does not read or return social tokens. The existing refresh endpoi
 3. Before enabling refresh, confirm the Meta app setup, connect a professional Instagram account, and verify its token metadata and scopes.
 4. Enable `ORBITOS_INSTAGRAM_REFRESH_ENABLED` only after controlled testing and monitoring are ready. Verify the new expiry metadata and account status after one run.
 
+## Production verification snapshot — 2026-10-12
+
+The daily dispatcher ran at 02:17 UTC and returned HTTP 200 with `TOKEN_REFRESH_DISABLED`. Across the preceding 24 hours, the scheduled dispatchers recorded no HTTP failures, timeouts, or transport errors. This confirms refresh remained disabled at the latest scheduled invocation; no token refresh was executed by that call.
+
 A scheduled HTTP 200 only proves the dispatcher ran. It is not proof that a provider token was rotated.
