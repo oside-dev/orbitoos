@@ -71,7 +71,7 @@ export function createSupabaseAuthAdapter({ auth } = {}) {
     });
   }
 
-  async function resendSignupConfirmation({ email } = {}) {
+  async function resendSignupConfirmation({ email, options = {} } = {}) {
     const normalizedEmail = String(email ?? "").trim();
     if (!normalizedEmail) {
       throw new Error("OrbitOS signup confirmation requires an email address.");
@@ -80,9 +80,11 @@ export function createSupabaseAuthAdapter({ auth } = {}) {
       throw new Error("OrbitOS Supabase Auth confirmation resend is unavailable.");
     }
 
+    const resendOptions = options && typeof options === "object" ? options : {};
     const result = await auth.resend({
       type: "signup",
       email: normalizedEmail,
+      ...(Object.keys(resendOptions).length > 0 ? { options: resendOptions } : {}),
     });
     if (result?.error) {
       throw new Error(
