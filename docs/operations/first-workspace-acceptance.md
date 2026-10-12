@@ -2,7 +2,11 @@
 
 **Purpose:** verify the first real OrbitOS account and persistent workspace without accidentally enabling social publishing.
 
-**Latest database preflight: 2026-10-12.** The production project still has zero Auth users, workspaces, workspace memberships, connected social accounts, schedules, and publishing jobs. The repository tests and signed-out browser flow are green, but real email delivery, a real authenticated workspace, and Meta OAuth have not yet been exercised. Email-signup/confirmation settings were last checked on 2026-10-10 and must be rechecked in the Dashboard before the operator test.
+**Latest database preflight: 2026-10-12.** The production project still has zero Auth users, workspaces, workspace memberships, connected social accounts, schedules, publishing jobs, and content items. The repository tests and signed-out browser flow are green, but real email delivery, a real authenticated workspace, and Meta OAuth have not yet been exercised. Email-signup/confirmation settings were last checked on 2026-10-10 and must be rechecked in the Dashboard before the operator test.
+
+**Deployed function source-parity audit: 2026-10-12.** Ten key production Edge Functions were compared byte-for-byte against the `main` source and all were active and matched: `bootstrap-workspace` (v3), `instagram-integration-readiness` (v1), `instagram-oauth-start` (v2), `instagram-oauth-callback` (v3), `instagram-token-refresh` (v1), `publishing-worker` (v4), `publishing-scheduler` (v1), `instagram-token-refresh-scheduler` (v1), `publishing-reconciliation` (v1), and `publishing-operations` (v1). Gateway JWT verification matched the tracked configuration for all checked functions. This confirms deployment/source alignment, not successful real-account or Meta-provider execution.
+
+**Live scheduler safety check: 2026-10-12.** The publishing dispatcher returned `PUBLISHING_DISABLED` 360 times in the preceding 24 hours, and the token-refresh dispatcher returned `TOKEN_REFRESH_DISABLED` at 02:17 UTC. All 361 observed dispatcher responses were HTTP 2xx with no timeout/error. This verifies the gates are currently failing closed; it does not complete the real-account acceptance.
 
 ## Safety rules
 
