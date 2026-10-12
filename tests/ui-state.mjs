@@ -10,6 +10,11 @@ assert.deepEqual(
   "authenticated/core state projection must supply an empty activity list when no UI history exists",
 );
 assert.deepEqual(
+  projectedWithoutUiHistory.brand.rules,
+  [],
+  "UI projection must normalize an absent brand guardrail list to an empty array",
+);
+assert.deepEqual(
   projectedWithoutUiHistory.settings,
   {
     costGuard: true,
