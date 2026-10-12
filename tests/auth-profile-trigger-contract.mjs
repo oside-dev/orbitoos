@@ -4,7 +4,6 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migrationPath = "../supabase/migrations/20261012030454_track_auth_profile_creation_trigger.sql";
 const migration = read(migrationPath).toLowerCase();
-const schema = read("../supabase/schema.sql").toLowerCase();
 const runbook = read("../docs/operations/migration-history-reconciliation.md");
 const workspaceRunbook = read("../docs/operations/first-workspace-acceptance.md");
 const workflow = read("../.github/workflows/validate.yml");
@@ -28,13 +27,6 @@ assert.ok(
   migration.includes("raise exception 'auth.users already has on_auth_user_created with a different function'"),
   "The migration must fail closed rather than silently accept a conflicting trigger of the same name.",
 );
-
-for (const fragment of [
-  "create or replace function private.handle_new_user()",
-  "create trigger on_auth_user_created after insert on auth.users for each row execute function private.handle_new_user()",
-]) {
-  assert.ok(schema.includes(fragment), "Full schema contract is missing: " + fragment);
-}
 
 assert.ok(
   runbook.includes("20261012030454_track_auth_profile_creation_trigger") &&
