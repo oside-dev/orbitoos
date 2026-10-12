@@ -93,6 +93,16 @@ export function toUiState(coreState, previousUiState = {}) {
       : {};
 
   const latestResearch = coreState.research.at(-1);
+  const projectedBrand =
+    coreState.brand &&
+    typeof coreState.brand === "object" &&
+    !Array.isArray(coreState.brand)
+      ? structuredClone(coreState.brand)
+      : {};
+  projectedBrand.rules = Array.isArray(projectedBrand.rules)
+    ? projectedBrand.rules.map(String)
+    : [];
+
   const previousSettings =
     previous.settings && typeof previous.settings === "object" && !Array.isArray(previous.settings)
       ? previous.settings
@@ -130,7 +140,7 @@ export function toUiState(coreState, previousUiState = {}) {
     events: Array.isArray(previous.events) ? structuredClone(previous.events) : [],
     version: UI_STATE_VERSION,
     workspace: structuredClone(coreState.workspace),
-    brand: structuredClone(coreState.brand),
+    brand: projectedBrand,
     brands: structuredClone(coreState.brands),
     activeBrandId: coreState.activeBrandId,
     runtime: structuredClone(previous.runtime ?? {
