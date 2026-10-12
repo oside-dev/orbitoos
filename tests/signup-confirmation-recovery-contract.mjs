@@ -41,6 +41,14 @@ assert.match(html, /authModal\("confirm-email",email\)/);
 assert.match(html, /Resend confirmation email/);
 assert.match(html, /If an eligible account exists, a confirmation email has been sent/);
 assert.match(html, /function resendSignupConfirmation\(\)/);
+assert.ok(
+  html.includes("await window.orbitCore.signUp({email,password,options:{emailRedirectTo:window.location.origin}})"),
+  "Sign-up confirmation links must return to the current app origin.",
+);
+assert.ok(
+  html.includes("await window.orbitCore.resendSignupConfirmation({email,options:{emailRedirectTo:window.location.origin}})"),
+  "Resent confirmation links must return to the current app origin.",
+);
 assert.match(workflow, /node tests\/auth\.mjs/);
 assert.match(workflow, /node tests\/signup-confirmation-recovery-contract\.mjs/);
 
