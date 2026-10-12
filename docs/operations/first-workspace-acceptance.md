@@ -25,7 +25,7 @@
 In the Supabase Dashboard for project `orbitoos` (`lkcbtgqdvzmaihcnxxwk`), open **Authentication → URL Configuration**.
 
 1. Set the production Site URL to `https://orbitoos.vercel.app`.
-2. Add the exact production app URL to the allowed redirect list if it is not already present. Avoid broad wildcard rules for production. Supabase documents Site URL and redirect allow-list behavior here: [Auth Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
+2. Add the exact production app URL to the allowed redirect list if it is not already present. If testing from a local development server, add only the exact local origin you use (for example, `http://localhost:3000`) as a separate redirect entry. Sign-up and resend flows explicitly return confirmation links to the current app origin, so that origin must be allow-listed. Avoid broad wildcard rules for production. Supabase documents Site URL and redirect allow-list behavior here: [Auth Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
 3. Under email provider settings, verify that email signups and email confirmation are enabled.
 4. Confirm transactional email delivery is configured before using an address outside the Supabase organization. Supabase's default SMTP service is intended for testing and has recipient restrictions and low rate limits; configure a custom SMTP provider for production delivery. See [Supabase custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
