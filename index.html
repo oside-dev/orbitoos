@@ -536,13 +536,14 @@ function closeModal(){document.getElementById("modalRoot").innerHTML=""}
 async function createIdea(){
  const title=document.getElementById("newTitle").value.trim();
  if(!title)return toast("Title required");
- const idea={id:"i"+Date.now(),title,pillar:document.getElementById("newPillar").value.trim()||"General",audience:document.getElementById("newAudience").value.trim()||"General audience",goal:document.getElementById("newGoal").value,brief:document.getElementById("newBrief").value.trim()||"One useful, specific takeaway.",stage:state.settings.autoResearch?"Research":"Idea",score:80,variants:{}};
+ const autoResearch=state.settings?.autoResearch??true;
+ const idea={id:"i"+Date.now(),title,pillar:document.getElementById("newPillar").value.trim()||"General",audience:document.getElementById("newAudience").value.trim()||"General audience",goal:document.getElementById("newGoal").value,brief:document.getElementById("newBrief").value.trim()||"One useful, specific takeaway.",stage:autoResearch?"Research":"Idea",score:80,variants:{}};
  try{
   await window.orbitCoreReady;
   state=await window.orbitCore.createDraft(idea,state.brand);
   selectedId=idea.id;
   log("Command Center","Created "+title+" through Orbit Runtime");
-  if(state.settings.autoResearch)log("Research Agent","Created local research record for "+title);
+  if(autoResearch)log("Research Agent","Created local research record for "+title);
   save();closeModal();go("studio");
  }catch(error){toast(error.message||"Orbit Runtime failed")}
 }
