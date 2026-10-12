@@ -53,6 +53,13 @@ const securityContract = [
   "set search_path = ''",
   'grant execute on function private.user_workspace_ids() to authenticated;',
   'revoke execute on function private.user_workspace_ids() from anon;',
+  'create or replace function private.handle_new_user()',
+  'security definer',
+  "set search_path = ''",
+  'insert into public.profiles (id, full_name, avatar_url, username, website)',
+  'on conflict (id) do nothing;',
+  "t.tgname = 'on_auth_user_created'",
+  "t.tgfoid = 'private.handle_new_user()'::regprocedure",
   'revoke all on table workspace_members from anon, authenticated;',
   'grant select on table workspace_members to authenticated;',
   'create policy "workspace_members_member_read"',
@@ -72,6 +79,10 @@ assert.ok(
 );
 
 console.log("OrbitOS schema security contract tests passed.");
+assert.ok(
+  sql.includes("create trigger on_auth_user_created after insert on auth.users for each row execute function private.handle_new_user()"),
+  "Auth profile creation trigger must be represented in the full schema contract.",
+);
 
 const publishingJobSql = readFileSync(
   new URL("../docs/architecture/publishing-job-orchestration.sql", import.meta.url),
