@@ -96,6 +96,7 @@ export function toUiState(coreState, previousUiState = {}) {
 
   return {
     ...previous,
+    events: Array.isArray(previous.events) ? structuredClone(previous.events) : [],
     version: UI_STATE_VERSION,
     workspace: structuredClone(coreState.workspace),
     brand: structuredClone(coreState.brand),
