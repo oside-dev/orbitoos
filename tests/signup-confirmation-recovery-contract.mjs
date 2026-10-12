@@ -10,10 +10,14 @@ const [adapter, authContract, bridge, html, workflow] = await Promise.all([
 ]);
 
 assert.match(authContract, /"resendSignupConfirmation"/);
-assert.match(
-  adapter,
-  /auth\.resend\(\{\s*type: "signup",\s*email: normalizedEmail,\s*\}\)/,
-  "resend must request the signup confirmation flow, not another auth flow",
+assert.ok(
+  adapter.includes("async function resendSignupConfirmation({ email, options = {} } = {})"),
+  "resend must accept optional redirect options",
+);
+assert.ok(
+  adapter.includes('const resendOptions = options && typeof options === "object" ? options : {};') &&
+    adapter.includes("...(Object.keys(resendOptions).length > 0 ? { options: resendOptions } : {}),"),
+  "resend must pass through redirect options only when supplied",
 );
 assert.match(adapter, /if \(!normalizedEmail\)/);
 assert.match(adapter, /status: "requested"/);
