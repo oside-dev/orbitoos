@@ -290,7 +290,7 @@ function agents(){
 }
 function brand(){
  const brands=Array.isArray(state.brands)?state.brands:[];
- const rules=state.brand.rules.map((r,i)=>'<div class="item"><div class="row"><div><strong>'+esc(r)+'</strong></div><input type="checkbox" checked onchange="toggleRule('+i+',this.checked)"></div></div>').join("");
+ const rules=(Array.isArray(state.brand?.rules)?state.brand.rules:[]).map((r,i)=>'<div class="item"><div class="row"><div><strong>'+esc(r)+'</strong></div><input type="checkbox" checked onchange="toggleRule('+i+',this.checked)"></div></div>').join("");
  const brandSelect=brands.length
    ? '<select class="select" onchange="switchBrand(this.value)">'+brands.map(b=>'<option value="'+esc(b.id)+'" '+(b.id===state.activeBrandId?"selected":"")+'>'+esc(b.name)+'</option>').join("")+'</select>'
    : '<div class="small">No brand profiles yet.</div>';
