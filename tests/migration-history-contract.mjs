@@ -177,4 +177,15 @@ for (const [name, fragments] of requiredObjects) {
   }
 }
 
+// The foundation-expansion migration was reconstructed from the live production
+// catalog. Preserve the observed precision rather than silently widening the
+// plan price column during a clean local replay.
+const foundationExpansion = readMigration(
+  "20261008092905_orbitoos_foundation_expansion_v2.sql",
+).toLowerCase();
+assert.ok(
+  foundationExpansion.includes("price_monthly numeric(12,2) not null default 0"),
+  "Reconstructed foundation migration must preserve production plans.price_monthly precision (numeric(12,2)).",
+);
+
 console.log(`Migration history contract passed: ${expected.size} production-recorded versions and critical object contracts checked. Fresh local replay is enforced by the database-migrations CI job; exact production catalog parity remains a separate check.`);
