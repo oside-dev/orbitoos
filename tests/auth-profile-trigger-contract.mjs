@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migrationPath = "../supabase/migrations/20261012030454_track_auth_profile_creation_trigger.sql";
 const migration = read(migrationPath).toLowerCase();
-const privilegeMigrationPath = "../supabase/migrations/20261013050058_restrict_auth_profile_trigger_execution.sql";
+const privilegeMigrationPath = "../supabase/migrations/20261013050901_restrict_auth_profile_trigger_execution.sql";
 const privilegeMigration = read(privilegeMigrationPath).toLowerCase();
 const runbook = read("../docs/operations/migration-history-reconciliation.md");
 const workspaceRunbook = read("../docs/operations/first-workspace-acceptance.md");
@@ -64,7 +64,7 @@ for (const fragment of [
 }
 
 assert.ok(
-  runbook.includes("20261013050058_restrict_auth_profile_trigger_execution"),
+  runbook.includes("20261013050901_restrict_auth_profile_trigger_execution"),
   "Migration reconciliation runbook must document the privilege-hardening migration.",
 );
 
