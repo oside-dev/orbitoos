@@ -24,7 +24,7 @@ assert.ok(
 assert.ok(
   runbook.includes("supabase/migrations/20261013060348_public_function_default_execute_privileges.sql") &&
     runbook.includes("pending source migration") &&
-    runbook.includes("default EXECUTE"),
+    runbook.includes("default `EXECUTE`"),
   "The migration-history runbook must explain that the default-privilege migration is pending and not yet production-applied.",
 );
 
