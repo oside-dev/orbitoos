@@ -35,7 +35,9 @@ In the Supabase Dashboard for project `orbitoos` (`lkcbtgqdvzmaihcnxxwk`), open 
 
 ## 2. Create the first real account and workspace
 
-1. Open [OrbitOS production](https://orbitoos.vercel.app). The signed-out/local experience should work without creating an account.
+**Deployment access gate (checked 2026-10-13):** Vercel reports `ssoProtection.enabled=true` with deployment type `all_except_custom_domains`. The project's listed hostnames are Vercel-generated domains, and no separate custom domain is listed. The production URL may therefore require a Vercel account with access to the project; this protection is separate from OrbitOS Supabase Auth. Use an authorized Vercel team session for internal acceptance. Do not turn off deployment protection as part of workspace acceptance; public-launch access (for example, a custom domain and its protection policy) is a separate reviewed release decision. See [Vercel Deployment Protection](https://vercel.com/docs/deployment-protection) and [Vercel Authentication](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication).
+
+1. From a Vercel team-authorized browser session, open [OrbitOS production](https://orbitoos.vercel.app). The signed-out/local experience should work without creating an OrbitOS account.
 2. Go to **Settings → Create account** and use the operator's own email address. Keep the password private.
 3. Expect the **Confirm your email** message. Check the inbox and spam folder. If the link goes to the wrong domain, fix Supabase's Site URL/allowed redirects and email template configuration rather than disabling confirmation.
 4. Follow the confirmation link, return to OrbitOS, and sign in.
