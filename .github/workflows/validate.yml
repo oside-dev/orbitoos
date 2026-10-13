@@ -308,6 +308,9 @@ jobs:
       - name: Replay all migrations in a fresh local Supabase database
         run: supabase start
 
+      - name: Run PostgreSQL row-level security integration tests
+        run: supabase test db
+
       - name: Stop local Supabase stack
         if: always()
         run: supabase stop --no-backup
