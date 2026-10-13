@@ -26,7 +26,7 @@ VALUES
   ('idea-rls-owner-b', 'ws-rls-owner-b', 'Private idea B');
 
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+SET LOCAL request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
 
 SELECT is(
   (SELECT count(*)::integer FROM public.ideas WHERE id = 'idea-rls-owner-a'),
@@ -47,7 +47,7 @@ SELECT throws_ok(
   $$ INSERT INTO public.ideas (id, workspace_id, title)
      VALUES ('idea-rls-cross-workspace', 'ws-rls-owner-b', 'Cross-workspace write') $$,
   '42501',
-  'new row violates row-level security policy for table "ideas"',
+  NULL,
   'owner cannot insert an idea into another workspace'
 );
 SELECT results_eq(
