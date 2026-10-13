@@ -31,6 +31,7 @@ for (const required of [
   "all 84 application indexes are valid and ready",
   "all 95 CHECK, foreign-key, primary-key, and unique constraints are validated",
   "semantically equivalent in all seven cases",
+  "23 pgTAP assertions against a disposable local Supabase/PostgreSQL database",
   "all 53 standalone source index definitions",
   "managed `supabase_admin` role still has a `public` default ACL",
   "Default-ACL parity therefore remains open for non-`postgres` object-creation roles.",
@@ -48,6 +49,22 @@ assert.equal(
   (workflow.match(/node tests\/application-browser-bridge-auth\.mjs/g) ?? []).length,
   1,
   "The application browser bridge auth test must run once, not twice.",
+);
+assert.ok(
+  workflow.includes("test -f supabase/tests/rls_workspace_isolation_test.sql"),
+  "The PostgreSQL RLS integration fixture must be present in the migration job.",
+);
+assert.ok(
+  workflow.includes("run: supabase test db"),
+  "The migration job must execute the pgTAP database integration suite.",
+);
+const databaseRlsTest = readFileSync(
+  new URL("../supabase/tests/rls_workspace_isolation_test.sql", import.meta.url),
+  "utf8",
+);
+assert.ok(
+  databaseRlsTest.includes("SELECT plan(23);"),
+  "The database RLS/catalog suite must keep its 23 planned assertions.",
 );
 assert.ok(
   workflow.includes("node tests/first-workspace-acceptance-contract.mjs"),
