@@ -73,6 +73,7 @@ jobs:
           test -f supabase/functions/publishing-reconciliation/index.ts
           test -f docs/operations/instagram-reels-publishing-runbook.md
           test -f supabase/schema.sql
+          test -f supabase/tests/rls_workspace_isolation_test.sql
           node tests/migration-history-contract.mjs
           node tests/auth-profile-trigger-contract.mjs
           node tests/bootstrap-workspace-contract.mjs
