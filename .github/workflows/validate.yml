@@ -194,7 +194,9 @@ jobs:
 
       - name: Run unsafe table privilege contract tests
         run: node tests/unsafe-table-privileges-contract.mjs
-          node tests/public-function-default-privileges-contract.mjs
+
+      - name: Run public function default privilege contract tests
+        run: node tests/public-function-default-privileges-contract.mjs
 
       - name: Run local demo recovery safety contract tests
         run: node tests/local-demo-recovery-contract.mjs
