@@ -5,9 +5,9 @@
 
 ## Current state
 
-The connected Supabase project now reports 24 applied migrations, ending at `20261012030454_track_auth_profile_creation_trigger`. The repository tracks all 24 production version/name pairs under `supabase/migrations/`. The latest migration was applied through the connected Supabase project on 2026-10-12; Supabase recorded the exact version/name pair `20261012030454 / track_auth_profile_creation_trigger`.
+The connected Supabase project reports 25 applied migrations, ending at `20261013050901_restrict_auth_profile_trigger_execution`. The repository tracks all 25 production version/name pairs under `supabase/migrations/`. The latest migration was applied through the connected Supabase project on 2026-10-13; Supabase recorded the exact version/name pair `20261013050901 / restrict_auth_profile_trigger_execution`.
 
-The merged main commit (`15cdfa5bbdc0ed9e62bc5e4af8ae1f576ca9cfd1`) passed runtime/security contract tests, browser E2E, and fresh local migration replay in GitHub Actions. A successful local replay proves replayability, not exact schema equivalence to production.
+The latest main validation run passed runtime/security contract tests, browser E2E, and fresh local migration replay in GitHub Actions. A successful local replay proves replayability, not exact schema equivalence to production.
 
 Most restored migrations were recovered from the versioned SQL contracts already stored under `docs/architecture/`. The initial schema was recovered from historical repository commit `0b80dc7bb83de2c28aaf7ef6bd07a060cc41645f`, and workspace/brand indexes from commit `39f69be5ae7146c78c3dd7c7673cd55fac71fada`.
 
@@ -17,9 +17,9 @@ Most restored migrations were recovered from the versioned SQL contracts already
 
 A read-only catalog audit on 2026-10-12 found the live trigger `auth.on_auth_user_created`, calling `private.handle_new_user()`. The function is `SECURITY DEFINER`, sets an empty `search_path`, and inserts a supplementary `public.profiles` row from user metadata with `ON CONFLICT (id) DO NOTHING`. That function and trigger were present in production but were missing from the tracked migration chain and `supabase/schema.sql`, so a newly rebuilt local database could behave differently on Auth signup.
 
-Migration `20261012030454_track_auth_profile_creation_trigger` is now applied to production and tracked in source. It recreates the same function definition and adds the trigger only if the exact trigger/function binding is absent; it fails closed if a trigger with the same name points elsewhere. The live trigger remains enabled and the Auth user/profile counts remain zero, so a real signup has not yet exercised it end to end.
+Migration `20261012030454_track_auth_profile_creation_trigger` is now applied to production and tracked in source. It recreates the same function definition and adds the trigger only if the exact trigger/function binding is absent; it fails closed if a trigger with the same name points elsewhere. The live trigger remains enabled. A later observed signup created one confirmed Auth user and one profile row, demonstrating the trigger's profile side effect; the separate workspace bootstrap acceptance still needs verification.
 
-A follow-up least-privilege audit on 2026-10-13 found PostgreSQL's default function ACL left EXECUTE effective for anon, authenticated, and service_role on this trigger helper. Source migration 20261013050058_restrict_auth_profile_trigger_execution revokes those grants plus PUBLIC, then checks the effective ACLs and trigger binding. This is an explicitly pending source migration until CI passes and it is merged/applied; do not count it among the 24 production-applied migration versions before that happens.
+A follow-up least-privilege audit on 2026-10-13 found PostgreSQL's default function ACL left EXECUTE effective for anon, authenticated, and service_role on this trigger helper. Migration `20261013050901_restrict_auth_profile_trigger_execution` is applied in production and tracked in source at the exact recorded version. It revokes EXECUTE from PUBLIC, anon, authenticated, and service_role, then checks the effective ACLs and the trigger/function binding. A read-only post-apply query confirmed EXECUTE is false for anon, authenticated, and service_role, and the Auth trigger remains enabled. The migration history now records 25 applied versions.
 
 ## Security finding: excessive table-level grants
 
