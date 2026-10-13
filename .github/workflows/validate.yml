@@ -57,6 +57,7 @@ jobs:
           test -f supabase/migrations/20261009232954_orbitoos_profiles_workspace_visibility.sql
           test -f supabase/migrations/20261012022853_restrict_unsafe_legacy_table_privileges.sql
           test -f supabase/migrations/20261012030454_track_auth_profile_creation_trigger.sql
+          test -f supabase/migrations/20261013050058_restrict_auth_profile_trigger_execution.sql
           test -f tests/auth-profile-trigger-contract.mjs
           test -f tests/unsafe-table-privileges-contract.mjs
           test -f tests/profile-workspace-visibility-contract.mjs

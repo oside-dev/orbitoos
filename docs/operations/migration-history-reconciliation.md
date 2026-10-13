@@ -19,6 +19,8 @@ A read-only catalog audit on 2026-10-12 found the live trigger `auth.on_auth_use
 
 Migration `20261012030454_track_auth_profile_creation_trigger` is now applied to production and tracked in source. It recreates the same function definition and adds the trigger only if the exact trigger/function binding is absent; it fails closed if a trigger with the same name points elsewhere. The live trigger remains enabled and the Auth user/profile counts remain zero, so a real signup has not yet exercised it end to end.
 
+A follow-up least-privilege audit on 2026-10-13 found PostgreSQL's default function ACL left EXECUTE effective for anon, authenticated, and service_role on this trigger helper. Source migration 20261013050058_restrict_auth_profile_trigger_execution revokes those grants plus PUBLIC, then checks the effective ACLs and trigger binding. This is an explicitly pending source migration until CI passes and it is merged/applied; do not count it among the 24 production-applied migration versions before that happens.
+
 ## Security finding: excessive table-level grants
 
 A read-only production catalog query on 2026-10-11 found effective `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges for both `anon` and `authenticated` on `activities`, `api_logs`, `notifications`, and `plans`. The `authenticated` role also had those table-level privileges on the optional legacy `profiles` table. RLS was enabled, and the inspected row policies were scoped to workspace membership, the signed-in user, or active plans, but **RLS does not protect a table from `TRUNCATE`**. The broad default grants therefore did not follow the intended row-level security boundary.
