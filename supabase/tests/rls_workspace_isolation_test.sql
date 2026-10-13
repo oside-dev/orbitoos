@@ -1,7 +1,7 @@
 -- Exercise the real PostgreSQL RLS policies against two workspaces and two roles.
 -- The fixed fixtures are rolled back at the end and never touch production.
 BEGIN;
-SELECT plan(12);
+SELECT plan(23);
 
 INSERT INTO auth.users (id, aud, role, email, email_confirmed_at)
 VALUES
@@ -24,6 +24,126 @@ INSERT INTO public.ideas (id, workspace_id, title)
 VALUES
   ('idea-rls-owner-a', 'ws-rls-owner-a', 'Private idea A'),
   ('idea-rls-owner-b', 'ws-rls-owner-b', 'Private idea B');
+
+
+-- Assert the production security hardening remains true after replaying migrations.
+SELECT is(
+  (SELECT count(*)::integer FROM pg_constraint
+   WHERE connamespace IN ('public'::regnamespace, 'private'::regnamespace)),
+  95,
+  'the application schema contains the expected constraints'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE connamespace IN ('public'::regnamespace, 'private'::regnamespace)
+      AND NOT convalidated
+  ),
+  'all application constraints are validated'
+);
+SELECT is(
+  (SELECT count(*)::integer FROM pg_class c
+   JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname IN ('public', 'private') AND c.relkind = 'r'),
+  24,
+  'the application table inventory remains stable'
+);
+SELECT is(
+  (SELECT count(*)::integer FROM pg_class c
+   JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname IN ('public', 'private')
+     AND c.relkind = 'r' AND c.relrowsecurity),
+  24,
+  'row-level security is enabled on every application table'
+);
+SELECT is(
+  (SELECT count(*)::integer FROM pg_index i
+   JOIN pg_class t ON t.oid = i.indrelid
+   JOIN pg_namespace n ON n.oid = t.relnamespace
+   WHERE n.nspname IN ('public', 'private') AND t.relkind = 'r'),
+  84,
+  'the application index inventory remains stable'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM pg_index i
+    JOIN pg_class t ON t.oid = i.indrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+    WHERE n.nspname IN ('public', 'private') AND t.relkind = 'r'
+      AND (NOT i.indisvalid OR NOT i.indisready)
+  ),
+  'all application indexes are valid and ready'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM (VALUES ('anon'::text), ('authenticated'::text)) AS browser(role_name)
+    CROSS JOIN (
+      VALUES
+        ('public.activities'::regclass),
+        ('public.api_logs'::regclass),
+        ('public.notifications'::regclass),
+        ('public.plans'::regclass),
+        ('public.profiles'::regclass)
+    ) AS app_table(relation_id)
+    WHERE has_table_privilege(browser.role_name, app_table.relation_id, 'TRUNCATE')
+       OR has_table_privilege(browser.role_name, app_table.relation_id, 'REFERENCES')
+       OR has_table_privilege(browser.role_name, app_table.relation_id, 'TRIGGER')
+  ),
+  'browser roles have no TRUNCATE, REFERENCES, or TRIGGER grants on hardened legacy tables'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM (VALUES ('anon'::text), ('authenticated'::text)) AS browser(role_name)
+    CROSS JOIN (
+      VALUES
+        ('private.social_account_secrets'::regclass),
+        ('private.social_oauth_states'::regclass),
+        ('private.publishing_scheduler_leases'::regclass),
+        ('private.instagram_token_refresh_scheduler_leases'::regclass),
+        ('private.publishing_job_reconciliation_events'::regclass)
+    ) AS private_table(relation_id)
+    WHERE has_table_privilege(browser.role_name, private_table.relation_id, 'SELECT')
+       OR has_table_privilege(browser.role_name, private_table.relation_id, 'INSERT')
+       OR has_table_privilege(browser.role_name, private_table.relation_id, 'UPDATE')
+       OR has_table_privilege(browser.role_name, private_table.relation_id, 'DELETE')
+  ),
+  'browser roles cannot directly access private credential, OAuth, lease, or reconciliation tables'
+);
+SELECT ok(
+  NOT has_function_privilege('anon', 'private.handle_new_user()', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'private.handle_new_user()', 'EXECUTE')
+  AND NOT has_function_privilege('service_role', 'private.handle_new_user()', 'EXECUTE'),
+  'the Auth profile trigger helper remains non-executable by browser and service roles'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_default_acl d
+    CROSS JOIN LATERAL aclexplode(d.defaclacl) acl
+    LEFT JOIN pg_roles grantee ON grantee.oid = acl.grantee
+    WHERE d.defaclrole = 'postgres'::regrole
+      AND d.defaclobjtype = 'f'
+      AND (d.defaclnamespace = 0 OR d.defaclnamespace = 'public'::regnamespace)
+      AND acl.privilege_type = 'EXECUTE'
+      AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
+  ),
+  'future postgres-created functions do not default to PUBLIC or browser-role EXECUTE'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_default_acl d
+    CROSS JOIN LATERAL aclexplode(d.defaclacl) acl
+    LEFT JOIN pg_roles grantee ON grantee.oid = acl.grantee
+    WHERE d.defaclrole = 'postgres'::regrole
+      AND d.defaclobjtype IN ('r', 'S')
+      AND (d.defaclnamespace = 0 OR d.defaclnamespace = 'public'::regnamespace)
+      AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
+  ),
+  'future postgres-created public tables and sequences have no PUBLIC or browser-role default grants'
+);
 
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
