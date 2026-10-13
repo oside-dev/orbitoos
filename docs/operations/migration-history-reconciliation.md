@@ -5,7 +5,11 @@
 
 ## Current state
 
-The connected Supabase project reports 25 applied migrations, ending at `20261013050901_restrict_auth_profile_trigger_execution`. The repository tracks all 25 production version/name pairs under `supabase/migrations/`. The latest migration was applied through the connected Supabase project on 2026-10-13; Supabase recorded the exact version/name pair `20261013050901 / restrict_auth_profile_trigger_execution`.
+The connected Supabase project reports 26 applied migrations, ending at `20261013060943_public_function_default_execute_privileges`. The repository tracks all 26 production version/name pairs under `supabase/migrations/`. The latest migration was applied through the connected Supabase project on 2026-10-13; Supabase recorded the exact version/name pair `20261013060943 / public_function_default_execute_privileges`.
+
+A read-only default-ACL audit found that functions created by `postgres` could inherit `EXECUTE` for `PUBLIC` and direct `anon`/`authenticated` grants in `public`. Migration `supabase/migrations/20261013060943_public_function_default_execute_privileges.sql` has now been applied and verified in production. It revokes the global default `PUBLIC EXECUTE` grant for future `postgres`-owned functions and removes the direct `anon`/`authenticated` default grants for future functions in `public`, while retaining `postgres` and server-only `service_role` default execution there. It leaves managed `storage` schema defaults unchanged. Existing application function ACLs were not changed by this migration; a post-apply check confirmed all 17 public application functions remain non-executable by `anon` and `authenticated`, and `private.handle_new_user()` remains non-executable by browser/service roles while its Auth trigger stays enabled.
+
+**Post-apply verification on 2026-10-13:** `pg_default_acl` now has no global `PUBLIC EXECUTE` entry for functions created by `postgres`; the `public` schema default entries contain `postgres` and `service_role`, but no `anon` or `authenticated`. All 21 current application functions still have the expected restricted effective grants.
 
 The latest main validation run passed runtime/security contract tests, browser E2E, and fresh local migration replay in GitHub Actions. A successful local replay proves replayability, not exact schema equivalence to production.
 

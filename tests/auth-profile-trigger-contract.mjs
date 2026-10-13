@@ -34,7 +34,7 @@ assert.ok(
   runbook.includes("20261012030454_track_auth_profile_creation_trigger") &&
     runbook.includes("private.handle_new_user") &&
     runbook.includes("on_auth_user_created") &&
-    runbook.includes("25 applied migrations"),
+    runbook.includes("26 applied migrations"),
   "Migration reconciliation runbook must document the observed and tracked trigger.",
 );
 assert.ok(

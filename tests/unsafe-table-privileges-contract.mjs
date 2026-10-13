@@ -55,7 +55,7 @@ assert.ok(
 );
 assert.ok(
   runbook.includes("20261012022853_restrict_unsafe_legacy_table_privileges") &&
-    runbook.includes("25 applied migrations") &&
+    runbook.includes("26 applied migrations") &&
     runbook.includes("TRUNCATE") &&
     runbook.includes("Post-apply verification on 2026-10-12"),
   "The runbook must match the recorded production migration version and document the post-apply privilege verification.",

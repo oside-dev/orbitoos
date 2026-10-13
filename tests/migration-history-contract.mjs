@@ -40,12 +40,13 @@ const expected = new Map([
   ["20261012022853", "restrict_unsafe_legacy_table_privileges"],
   ["20261012030454", "track_auth_profile_creation_trigger"],
   ["20261013050901", "restrict_auth_profile_trigger_execution"],
+  ["20261013060943", "public_function_default_execute_privileges"],
 ]);
 
 assert.equal(
   versions.length,
   expected.size,
-  "Tracked migration file count must match the recorded 25-entry production history.",
+  "Tracked migration file count must match the recorded 26-entry production history.",
 );
 for (const migration of versions) {
   const expectedName = expected.get(migration.version);
@@ -164,6 +165,10 @@ const requiredObjects = new Map([
     "has_function_privilege('anon', 'private.handle_new_user()', 'execute')",
     "has_function_privilege('authenticated', 'private.handle_new_user()', 'execute')",
     "auth.users.on_auth_user_created",
+  ]],
+  ["20261013060943_public_function_default_execute_privileges.sql", [
+    "alter default privileges for role postgres revoke execute on functions from public",
+    "alter default privileges for role postgres in schema public revoke execute on functions from anon, authenticated",
   ]],
   ["20261012030454_track_auth_profile_creation_trigger.sql", [
     "create or replace function private.handle_new_user()",
