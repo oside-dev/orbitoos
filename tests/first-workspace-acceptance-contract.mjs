@@ -50,6 +50,42 @@ assert.ok(
   readme.includes("docs/operations/first-workspace-acceptance.md"),
   "README must link to the first-workspace acceptance runbook.",
 );
+
+const migrationRunbook = readFileSync(
+  new URL("../docs/operations/migration-history-reconciliation.md", import.meta.url),
+  "utf8",
+);
+for (const required of [
+  "All 26 migration versions recorded by production",
+  "20261013060943_public_function_default_execute_privileges",
+  "all 24 application tables and 243 columns",
+]) {
+  assert.ok(readme.includes(required), `README migration status is missing: ${required}`);
+}
+assert.equal(
+  readme.includes("All 24 migration versions recorded by production"),
+  false,
+  "README must not keep a stale production migration count.",
+);
+assert.equal(
+  readme.includes("20261012030454_track_auth_profile_creation_trigger`. Production privilege"),
+  false,
+  "README must point to the current production migration head.",
+);
+assert.ok(
+  migrationRunbook.includes("the owner-specific default-ACL compatibility assessment has been completed for the current application schema"),
+  "Migration runbook must state the current managed-owner ACL assessment.",
+);
+assert.equal(
+  migrationRunbook.includes("Treat compatibility review of that owner-specific ACL as an open item"),
+  false,
+  "Migration runbook must not contradict the completed current-schema ACL assessment.",
+);
+assert.equal(
+  migrationRunbook.includes("it does not close the separate managed supabase_admin default-ACL compatibility review"),
+  false,
+  "Migration runbook must not leave a superseded ACL status in the constraint findings.",
+);
 assert.equal(
   (workflow.match(/node tests\/application-browser-bridge-auth\.mjs/g) ?? []).length,
   1,
