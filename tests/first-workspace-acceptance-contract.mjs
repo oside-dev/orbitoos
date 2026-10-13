@@ -41,6 +41,9 @@ for (const required of [
   "all 46 foreign keys match their ordered column sets",
   "Two CHECK expressions were manually confirmed semantically equivalent",
   "Real signed-in idea creation → variant edit → reload persistence remains pending",
+  "ssoProtection.enabled=true",
+  "all_except_custom_domains",
+  "Do not turn off deployment protection as part of workspace acceptance",
   "BLOCKED",
 ]) {
   assert.ok(runbook.includes(required), `Acceptance runbook is missing: ${required}`);
