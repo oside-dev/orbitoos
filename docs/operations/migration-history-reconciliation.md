@@ -1,6 +1,6 @@
 # Database migration history reconciliation
 
-**Audit date:** 2026-10-12  
+**Audit date:** 2026-10-13  
 **Purpose:** reconcile tracked schema history with the connected production project's applied migration versions.
 
 ## Current state
@@ -17,7 +17,7 @@ Most restored migrations were recovered from the versioned SQL contracts already
 
 A read-only catalog audit on 2026-10-12 found the live trigger `auth.on_auth_user_created`, calling `private.handle_new_user()`. The function is `SECURITY DEFINER`, sets an empty `search_path`, and inserts a supplementary `public.profiles` row from user metadata with `ON CONFLICT (id) DO NOTHING`. That function and trigger were present in production but were missing from the tracked migration chain and `supabase/schema.sql`, so a newly rebuilt local database could behave differently on Auth signup.
 
-Migration `20261012030454_track_auth_profile_creation_trigger` is now applied to production and tracked in source. It recreates the same function definition and adds the trigger only if the exact trigger/function binding is absent; it fails closed if a trigger with the same name points elsewhere. The live trigger remains enabled. A later observed signup created one confirmed Auth user and one profile row, demonstrating the trigger's profile side effect; the separate workspace bootstrap acceptance still needs verification.
+Migration `20261012030454_track_auth_profile_creation_trigger` is now applied to production and tracked in source. It recreates the same function definition and adds the trigger only if the exact trigger/function binding is absent; it fails closed if a trigger with the same name points elsewhere. The live trigger remains enabled. A read-only acceptance refresh on 2026-10-13 confirms one Auth user and one profile row, and confirms that the same user has the expected workspace, owner membership, and default brand. The content creation/persistence flow remains a separate acceptance step.
 
 A follow-up least-privilege audit on 2026-10-13 found PostgreSQL's default function ACL left EXECUTE effective for anon, authenticated, and service_role on this trigger helper. Migration `20261013050901_restrict_auth_profile_trigger_execution` is applied in production and tracked in source at the exact recorded version. It revokes EXECUTE from PUBLIC, anon, authenticated, and service_role, then checks the effective ACLs and the trigger/function binding. A read-only post-apply query confirmed EXECUTE is false for anon, authenticated, and service_role, and the Auth trigger remains enabled. The migration history now records 25 applied versions.
 
@@ -29,7 +29,7 @@ The production migration `20261012022853_restrict_unsafe_legacy_table_privileges
 
 **Post-apply verification on 2026-10-12:** a read-only query confirmed that RLS remained enabled and effective `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges were false for both browser roles on all five tables. The `postgres` default ACL entries for new `public` tables and sequences no longer list `anon` or `authenticated`. The application tables inspected are owned by `postgres`. The managed `supabase_admin` role still has its own broad default ACL entry; it was not changed because that superuser may be used by Supabase-managed operations. Revisit only after a separate compatibility assessment identifies whether application objects are ever created under that role.
 
-A real signup has now created one confirmed Auth user and one profile row, but the workspace, membership, brand, ideas, content items, schedules, social accounts, and publishing jobs remain zero because `bootstrap-workspace` returns HTTP 401. The auth profile trigger has therefore been exercised; the separate workspace bootstrap has not passed acceptance. A source fix for the normalized user-claim field is in review/deployment. Keep publishing and token-refresh feature switches disabled until workspace acceptance and operator-controlled Meta setup are complete.
+The first acceptance attempt observed `bootstrap-workspace` returning HTTP 401 after the Auth user/profile rows were created. That observation is now superseded by a read-only production check on 2026-10-13: there is one Auth user, one profile, one workspace, one owner membership, and one default brand. Each row matches the deterministic `workspace-<user>`, `membership-<user>`, and `brand-default-<user>` bootstrap pattern. Edge Function `bootstrap-workspace` is ACTIVE at version 4, and its deployed source matches `main`; the current handler resolves the user from `ctx.userClaims.id` with a fallback to JWT `sub`. Workspace provisioning is therefore confirmed from the live catalog. The remaining acceptance is the real signed-in product flow—create an idea, edit a content variant, reload, and verify persistence—because production still has zero ideas, content items, content variants, schedules, social accounts, and publishing jobs. Keep publishing and token-refresh feature switches disabled until that content-flow acceptance and operator-controlled Meta setup are complete.
 
 ## Read-only core-schema parity checkpoint — 2026-10-13
 
