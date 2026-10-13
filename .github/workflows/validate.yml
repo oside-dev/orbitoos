@@ -62,6 +62,7 @@ jobs:
           test -f tests/auth-profile-trigger-contract.mjs
           test -f tests/unsafe-table-privileges-contract.mjs
           test -f tests/public-function-default-privileges-contract.mjs
+          test -f tests/managed-owner-default-acl-contract.mjs
           test -f tests/profile-workspace-visibility-contract.mjs
           test -f tests/workspace-settings-role-guard-contract.mjs
           test -f tests/local-demo-recovery-contract.mjs
@@ -198,6 +199,9 @@ jobs:
 
       - name: Run public function default privilege contract tests
         run: node tests/public-function-default-privileges-contract.mjs
+
+      - name: Run managed owner default ACL contract tests
+        run: node tests/managed-owner-default-acl-contract.mjs
 
       - name: Run local demo recovery safety contract tests
         run: node tests/local-demo-recovery-contract.mjs
