@@ -37,7 +37,7 @@ for (const required of [
   "Default-ACL compatibility therefore remains open for non-`postgres` object-creation roles.",
   "110/110 column defaults",
   "95/95 constraint definitions",
-  "All 46 foreign keys match their ordered column sets",
+  "all 46 foreign keys match their ordered column sets",
   "Two CHECK expressions were manually confirmed semantically equivalent",
   "Default-ACL compatibility therefore remains open for non-postgres object-creation roles.",
   "Real signed-in idea creation → variant edit → reload persistence remains pending",
