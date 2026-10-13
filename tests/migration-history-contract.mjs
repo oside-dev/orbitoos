@@ -41,18 +41,27 @@ const expected = new Map([
   ["20261012030454", "track_auth_profile_creation_trigger"],
 ]);
 
+const pendingMigrations = new Map([
+  ["20261013050058", "restrict_auth_profile_trigger_execution"],
+]);
+
 assert.equal(
   versions.length,
-  expected.size,
-  "Tracked migration file count must match the recorded 24-entry production history.",
+  expected.size + pendingMigrations.size,
+  "Tracked migration file count must equal recorded production history plus explicitly pending source migrations.",
 );
 for (const migration of versions) {
-  assert.equal(expected.get(migration.version), migration.name,
-    `Tracked migration does not match the production-recorded version/name: ${migration.file}`);
+  const expectedName = expected.get(migration.version) ?? pendingMigrations.get(migration.version);
+  assert.equal(expectedName, migration.name,
+    "Tracked migration is neither a recorded production version nor an approved pending migration: " + migration.file);
 }
 for (const [version, name] of expected) {
   assert.ok(versions.some((migration) => migration.version === version && migration.name === name),
-    `Missing tracked migration for recorded production version ${version}`);
+    "Missing tracked migration for recorded production version " + version);
+}
+for (const [version, name] of pendingMigrations) {
+  assert.ok(versions.some((migration) => migration.version === version && migration.name === name),
+    "Missing explicitly pending source migration " + version);
 }
 
 // Static object contracts keep critical schema dependencies from silently
@@ -158,6 +167,12 @@ const requiredObjects = new Map([
     "revoke all privileges on sequences from anon, authenticated",
     "grant select on table public.plans to anon, authenticated",
   ]],
+  ["20261013050058_restrict_auth_profile_trigger_execution.sql", [
+    "revoke execute on function private.handle_new_user() from public, anon, authenticated, service_role",
+    "has_function_privilege('anon', 'private.handle_new_user()', 'execute')",
+    "has_function_privilege('authenticated', 'private.handle_new_user()', 'execute')",
+    "auth.users.on_auth_user_created",
+  ]],
   ["20261012030454_track_auth_profile_creation_trigger.sql", [
     "create or replace function private.handle_new_user()",
     "security definer",
@@ -188,4 +203,4 @@ assert.ok(
   "Reconstructed foundation migration must preserve production plans.price_monthly precision (numeric(12,2)).",
 );
 
-console.log(`Migration history contract passed: ${expected.size} production-recorded versions and critical object contracts checked. Fresh local replay is enforced by the database-migrations CI job; exact production catalog parity remains a separate check.`);
+console.log("Migration history contract passed: " + expected.size + " production-recorded versions, " + pendingMigrations.size + " explicitly pending source migration(s), and critical object contracts checked. Fresh local replay is enforced by the database-migrations CI job; exact production catalog parity remains a separate check.");
