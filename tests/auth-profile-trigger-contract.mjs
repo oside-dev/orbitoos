@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migrationPath = "../supabase/migrations/20261012030454_track_auth_profile_creation_trigger.sql";
 const migration = read(migrationPath).toLowerCase();
+const privilegeMigrationPath = "../supabase/migrations/20261013050058_restrict_auth_profile_trigger_execution.sql";
+const privilegeMigration = read(privilegeMigrationPath).toLowerCase();
 const runbook = read("../docs/operations/migration-history-reconciliation.md");
 const workspaceRunbook = read("../docs/operations/first-workspace-acceptance.md");
 const workflow = read("../.github/workflows/validate.yml");
@@ -45,6 +47,25 @@ assert.ok(
     workflow.includes("tests/auth-profile-trigger-contract.mjs") &&
     workflow.includes("node tests/auth-profile-trigger-contract.mjs"),
   "The auth profile trigger migration and contract must run in CI.",
+);
+
+
+for (const fragment of [
+  "revoke execute on function private.handle_new_user() from public, anon, authenticated, service_role",
+  "has_function_privilege('anon', 'private.handle_new_user()', 'execute')",
+  "has_function_privilege('authenticated', 'private.handle_new_user()', 'execute')",
+  "has_function_privilege('service_role', 'private.handle_new_user()', 'execute')",
+  "auth.users.on_auth_user_created trigger must remain attached to private.handle_new_user()",
+]) {
+  assert.ok(
+    privilegeMigration.includes(fragment),
+    "Missing auth profile trigger privilege hardening contract: " + fragment,
+  );
+}
+
+assert.ok(
+  runbook.includes("20261013050058_restrict_auth_profile_trigger_execution"),
+  "Migration reconciliation runbook must document the privilege-hardening migration.",
 );
 
 console.log("OrbitOS auth profile trigger contract tests passed.");
