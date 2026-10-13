@@ -30,7 +30,10 @@ for (const required of [
   "24/24 application tables have RLS enabled",
   "all 84 application indexes are valid and ready",
   "all 95 CHECK, foreign-key, primary-key, and unique constraints are validated",
-  "Full predicate-level parity remains open",
+  "semantically equivalent in all seven cases",
+  "all 53 standalone source index definitions",
+  "managed `supabase_admin` role still has a `public` default ACL",
+  "Default-ACL parity therefore remains open for non-`postgres` object-creation roles.",
   "Real signed-in idea creation → variant edit → reload persistence remains pending",
   "BLOCKED",
 ]) {
