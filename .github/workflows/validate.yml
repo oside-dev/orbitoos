@@ -58,7 +58,7 @@ jobs:
           test -f supabase/migrations/20261012022853_restrict_unsafe_legacy_table_privileges.sql
           test -f supabase/migrations/20261012030454_track_auth_profile_creation_trigger.sql
           test -f supabase/migrations/20261013050901_restrict_auth_profile_trigger_execution.sql
-          test -f supabase/migrations/20261013060348_public_function_default_execute_privileges.sql
+          test -f supabase/migrations/20261013060943_public_function_default_execute_privileges.sql
           test -f tests/auth-profile-trigger-contract.mjs
           test -f tests/unsafe-table-privileges-contract.mjs
           test -f tests/public-function-default-privileges-contract.mjs
