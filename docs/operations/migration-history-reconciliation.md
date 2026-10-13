@@ -7,6 +7,8 @@
 
 The connected Supabase project reports 25 applied migrations, ending at `20261013050901_restrict_auth_profile_trigger_execution`. The repository tracks all 25 production version/name pairs under `supabase/migrations/`. The latest migration was applied through the connected Supabase project on 2026-10-13; Supabase recorded the exact version/name pair `20261013050901 / restrict_auth_profile_trigger_execution`.
 
+A read-only default-ACL audit found that functions created by `postgres` could inherit `EXECUTE` for `PUBLIC` and direct `anon`/`authenticated` grants in `public`. Current application function ACLs have already been individually restricted, so this is a future-object hardening item, not evidence that the current 21 functions are callable by browser roles. Source migration `supabase/migrations/20261013060348_public_function_default_execute_privileges.sql` removes the global default `PUBLIC EXECUTE` grant for future `postgres`-owned functions and removes the direct `anon`/`authenticated` default grants in `public`. It is an explicitly pending source migration during PR validation and must not be counted among the 25 production-applied versions until CI passes and the migration is applied and verified.
+
 The latest main validation run passed runtime/security contract tests, browser E2E, and fresh local migration replay in GitHub Actions. A successful local replay proves replayability, not exact schema equivalence to production.
 
 Most restored migrations were recovered from the versioned SQL contracts already stored under `docs/architecture/`. The initial schema was recovered from historical repository commit `0b80dc7bb83de2c28aaf7ef6bd07a060cc41645f`, and workspace/brand indexes from commit `39f69be5ae7146c78c3dd7c7673cd55fac71fada`.
