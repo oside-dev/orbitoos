@@ -17,7 +17,7 @@ assert.ok(
 );
 assert.ok(
   workflow.includes("supabase/migrations/20261013060348_public_function_default_execute_privileges.sql") &&
-    workflow.includes(testPath) &&
+    workflow.includes("tests/public-function-default-privileges-contract.mjs") &&
     workflow.includes("node tests/public-function-default-privileges-contract.mjs"),
   "The migration and default-function privilege contract must be wired into CI.",
 );
